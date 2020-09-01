@@ -189,6 +189,7 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
+                         ftx, fty, ftz, qv,                               &
                          mu_tend, u_save, v_save, w_save, ph_save,        &
                          t_save, mu_save, RTHFTEN,                        &
                          ru, rv, rw, ww,                                  &
@@ -237,6 +238,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                          v,       &
                                                          w,       &
                                                          t,       &
+                                                         qv,      &
                                                          ph,      &
                                                          u_old,   &
                                                          v_old,   &
@@ -261,6 +263,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                          rv_tend, &
                                                          rw_tend, &
                                                          t_tend,  &
+                                                         ftx, fty, ftz,  &
                                                          ph_tend, &
                                                          RTHFTEN, &
                                                           u_save, &
@@ -330,9 +333,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL, INTENT( OUT ) :: max_horiz_cfl
    REAL, INTENT( OUT ) :: max_vert_cfl
 
+   REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy, thdry
+
    REAL    :: kdift, khdq, kvdq, cfn, cfn1, cf1, cf2, cf3
    INTEGER :: i,j,k
    INTEGER :: time_step
+   LOGICAL :: output_fluxes, advect_thdry
 
 !<DESCRIPTION>
 !
@@ -495,6 +501,22 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
+      IF ((rk_step == 3) .and. (config_flags%output_res_fluxes)) THEN
+        output_fluxes = .true.
+        IF ((config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. (config_flags%use_theta_m .eq. 1)) THEN
+          advect_thdry = .true.
+          DO j = jms,jme
+          DO k = kms,kme
+          DO i = ims,ime
+            thdry(i,k,j) = (t(i,k,j)+t0)/(1.+R_v/R_d*qv(i,k,j)) - t0
+          ENDDO
+          ENDDO
+          ENDDO
+        ENDIF
+      ELSE
+        output_fluxes = .false.
+        advect_thdry = .false.
+      ENDIF
 
 ! 11/2016 ERM: Use WENO for theta flux on 3rd RK step if using WENO_SCALAR or WENOPD_SCALAR
 ! to be consistent with other scalar fluxes
@@ -503,9 +525,25 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                  .or. config_flags%moist_adv_opt == WENO_SCALAR       &
                  .or. config_flags%moist_adv_opt == WENOPD_SCALAR     &
                        )  .and. (rk_step == 3) ) THEN
+      !output dry theta fluxes if desired
+        IF (advect_thdry) THEN
+        CALL advect_scalar_weno ( thdry, thdry, t_tend_dummy,   &
+                                 ftx, fty, ftz, output_fluxes,  &
+                                 ru, rv, ww,                    &
+                                 c1h, c2h, mut, time_step,      &
+                                 config_flags,                  &
+                                 msfux, msfuy, msfvx, msfvy,    &
+                                 msftx, msfty, fnm, fnp,        &
+                                 rdx, rdy, rdnw,                &
+                                 ids, ide, jds, jde, kds, kde,  &
+                                 ims, ime, jms, jme, kms, kme,  &
+                                 its, ite, jts, jte, kts, kte  )
+        output_fluxes = .false.
+        ENDIF
 ! also use weno for monotonic scalar option so that the h_ and z_tendency arrays are not needed
 
-        CALL advect_scalar_weno ( t, t, t_tend, ru, rv, ww,     &
+        CALL advect_scalar_weno ( t, t, t_tend, ftx, fty, ftz,  &
+                                 output_fluxes, ru, rv, ww,     &
                                  c1h, c2h, mut, time_step,      &
                                  config_flags,                  &
                                  msfux, msfuy, msfvx, msfvy,    &
@@ -516,7 +554,24 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                  its, ite, jts, jte, kts, kte  )
      ELSE
 
-     CALL advect_scalar ( t, t, t_tend, ru, rv, ww,     &
+
+     IF (advect_thdry) THEN
+        CALL advect_scalar ( thdry, thdry, t_tend_dummy,   &
+                             ftx, fty, ftz, output_fluxes, &
+                             ru, rv, ww,                   &
+                             c1h, c2h,                     &
+                             mut, time_step, config_flags, &
+                             msfux, msfuy, msfvx, msfvy,   &
+                             msftx, msfty, fnm, fnp,       &
+                             rdx, rdy, rdnw,               &
+                             ids, ide, jds, jde, kds, kde, &
+                             ims, ime, jms, jme, kms, kme, &
+                             its, ite, jts, jte, kts, kte )
+        output_fluxes = .false.
+     ENDIF
+
+     CALL advect_scalar ( t, t, t_tend, ftx, fty, ftz,  &
+                          output_fluxes, ru, rv, ww,    &
                           c1h, c2h,                     &
                           mut, time_step, config_flags, &
                           msfux, msfuy, msfvx, msfvy,   &
@@ -943,6 +998,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                             scalar_tends, advect_tend,       &
                             h_tendency, z_tendency,          &
                             RQVFTEN,                         &
+                            fqx, fqy, fqz, output_fluxes,    &
                             base, moist_step, fnm, fnp,      &
                             msfux, msfuy, msfvx, msfvx_inv,  &
                             msfvy, msftx, msfty,             &
@@ -963,6 +1019,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    TYPE(grid_config_rec_type   ) ,   INTENT(IN   ) :: config_flags
 
    LOGICAL ,                INTENT(IN   ) :: tenddec ! tendency term
+   LOGICAL,                 INTENT(INOUT) :: output_fluxes
 
    INTEGER ,                INTENT(IN   ) :: rk_step, scs, sce
    INTEGER ,                INTENT(IN   ) :: ids, ide, jds, jde, kds, kde, &
@@ -980,7 +1037,9 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(INOUT) :: advect_tend
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(  OUT) :: h_tendency, z_tendency
 
-   REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: RQVFTEN
+   REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: RQVFTEN,      &
+                                                                  fqx, fqy, fqz
+
 
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(IN   ) ::     ru,  &
                                                                       rv,  &
@@ -1058,12 +1117,16 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                       its, ite, jts, jte, kts, kte )
 
      CALL nl_get_time_step ( 1, time_step )
+     IF (rk_step /= 3) THEN
+       output_fluxes = .false.
+     ENDIF
 
       IF( (rk_step == 3) .and. (adv_opt == POSITIVEDEF) ) THEN
 
         CALL advect_scalar_pd       ( scalar(ims,kms,jms,im),             &
                                       scalar_old(ims,kms,jms,im),         &
                                       advect_tend(ims,kms,jms),           &
+                                      fqx, fqy, fqz, output_fluxes,       &
                                       h_tendency(ims,kms,jms),            &
                                       z_tendency(ims,kms,jms),            &
                                       ru, rv, ww, c1h, c2h,               &
@@ -1081,6 +1144,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
         CALL advect_scalar_mono       ( scalar(ims,kms,jms,im),             &
                                         scalar_old(ims,kms,jms,im),         &
                                         advect_tend(ims,kms,jms),           &
+                                        fqx, fqy, fqz, output_fluxes,       &
                                         h_tendency(ims,kms,jms),            &
                                         z_tendency(ims,kms,jms),            &
                                         ru, rv, ww, c1h, c2h,               &
@@ -1098,6 +1162,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
         CALL advect_scalar_weno ( scalar(ims,kms,jms,im),        &
                                  scalar(ims,kms,jms,im),        &
                                  advect_tend(ims,kms,jms),      &
+                                 fqx, fqy, fqz, output_fluxes,  &
                                  ru, rv, ww, c1h, c2h,          &
                                  mut, time_step,                &
                                  config_flags,                  &
@@ -1113,6 +1178,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
         CALL advect_scalar_wenopd   ( scalar(ims,kms,jms,im),             &
                                       scalar_old(ims,kms,jms,im),         &
                                       advect_tend(ims,kms,jms),           &
+                                      fqx, fqy, fqz, output_fluxes,       &
                                       ru, rv, ww, c1h, c2h,               &
                                       mut, mub, mu_old,                   &
                                       time_step, config_flags,            &
@@ -1128,6 +1194,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
         CALL advect_scalar     ( scalar(ims,kms,jms,im),        &
                                  scalar(ims,kms,jms,im),        &
                                  advect_tend(ims,kms,jms),      &
+                                 fqx, fqy, fqz, output_fluxes,  & 
                                  ru, rv, ww, c1h, c2h,          &
                                  mut, time_step,                &
                                  config_flags,                  &

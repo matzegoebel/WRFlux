@@ -5567,7 +5567,8 @@ END SUBROUTINE phy_prep_part2
 !------------------------------------------------------------------------------
 
    SUBROUTINE moist_physics_finish_em( t_new, t_old, t0, mut,     &
-                                       th_phy, h_diabatic, dt,    &
+                                       th_phy, h_diabatic,        &
+                                       t_tend_mp, dt,             &
                                        qv,qv_diabatic,            &
                                        qc,qc_diabatic,            &
                                        th_phy_m_t0,               &
@@ -5599,7 +5600,7 @@ END SUBROUTINE phy_prep_part2
                                                  qc_diabatic
 
    REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),        &
-         INTENT(  OUT) ::                         th_phy_m_t0
+         INTENT(  OUT) ::                         th_phy_m_t0, t_tend_mp
 
    REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),        &
          INTENT(IN   ) ::                           qv,  &
@@ -5720,6 +5721,7 @@ compiler error, not handled yet
             th_phy_m_t0(i,k,j) = t_new(i,k,j)
             h_diabatic(i,k,j) =  mpten/dt
          END IF
+         t_tend_mp(i,k,j) =  mpten/dt
 #endif
 !!!         ! KLUDGE:
 !!!         qvten = 0.0

@@ -93,6 +93,13 @@
  non_hydrostatic                     = .true., .true., .true.,
  pert_coriolis                       = .true., .true., .true.,
  use_theta_m                         = 1,
+
+ m_opt                                = 1
+ output_avgfluxes                     = 1
+ output_sgs_fluxes                    = 1
+ output_res_fluxes                    = 1
+ output_dry_theta_fluxes              = 1
+
  /
 
  &bdy_control

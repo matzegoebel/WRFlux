@@ -1,10 +1,10 @@
 state	real	-	ikjf	nba_mij		1       -       -       -
-state   real    m11     ikjf    nba_mij		1       -	h	"m11"   	"11 component of NBA subgrid stress tensor"     "m2 s-2"
-state   real    m22     ikjf    nba_mij		1       -       h       "m22"   	"22 component of NBA subgrid stress tensor"     "m2 s-2"
-state   real    m33     ikjf    nba_mij		1       -       h       "m33"   	"33 component of NBA subgrid stress tensor"     "m2 s-2"
-state   real    m12     ikjf    nba_mij		1       -       h       "m12"   	"12 component of NBA subgrid stress tensor"     "m2 s-2"
-state   real    m13     ikjf    nba_mij		1       -       h       "m13"   	"13 component of NBA subgrid stress tensor"     "m2 s-2"
-state   real    m23     ikjf    nba_mij		1       -       h       "m23"  		"23 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m11     ikjf    nba_mij	  1       -       -       "m11"     "11 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m22     ikjf    nba_mij	  1       -       -       "m22"     "22 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m33     ikjf    nba_mij	  1       -       -       "m33"     "33 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m12     ikjf    nba_mij	  1       -       -       "m12"     "12 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m13     ikjf    nba_mij	  1       -       -       "m13"     "13 component of NBA subgrid stress tensor"     "m2 s-2"
+state   real    m23     ikjf    nba_mij	  1       -       -       "m23"     "23 component of NBA subgrid stress tensor"     "m2 s-2"
 
 state   real    -       ikjf    nba_rij		1       -       -       -	
 state   real    r12     ikjf    nba_rij		1       -       -       "r12"   	"12 component of rotation tensor"               "s-1"

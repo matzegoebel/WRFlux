@@ -12,7 +12,7 @@ SUBROUTINE solve_em ( grid , config_flags  &
                  ,domain_get_current_time, domain_get_start_time                           &
                  ,domain_get_sim_start_time, domain_clock_get,is_alarm_tstep
    USE module_domain_type, ONLY : history_alarm, restart_alarm, auxinput4_alarm            &
-                 ,boundary_alarm
+                 ,boundary_alarm, auxhist24_alarm
    USE module_configure, ONLY : grid_config_rec_type
    USE module_driver_constants
    USE module_machine
@@ -151,12 +151,13 @@ SUBROUTINE solve_em ( grid , config_flags  &
    INTEGER :: rk_order, iwmax, jwmax, kwmax
    REAL :: dt_rk, dts_rk, dts, dtm, wmax
    REAL , ALLOCATABLE , DIMENSION(:)  :: max_vert_cfl_tmp, max_horiz_cfl_tmp
-   LOGICAL :: leapfrog
+   LOGICAL :: leapfrog, last_timestep
    INTEGER :: l,kte,kk
    LOGICAL :: f_flux  ! flag for computing averaged fluxes in cu_gd
    REAL    :: curr_secs, curr_secs2
    INTEGER :: num_sound_steps
    INTEGER :: idex, jdex
+   LOGICAL :: output_fluxes
    REAL    :: max_msft
    REAL    :: spacing
 
@@ -733,6 +734,7 @@ BENCH_START(calc_p_rho_tim)
                              , chem  , chem_tend                &
                              , tracer, tracer_tend              &
                              , scalar , scalar_tend             &
+                             , sgs_fluxes_8w                    &
                              , fdda3d, fdda2d                   &
                              , aerod                            &
                              , ru_tendf, rv_tendf               &
@@ -775,6 +777,7 @@ BENCH_START(calc_p_rho_tim)
                              , rw_tendf, t_tendf                &
                              , ph_tendf, mu_tendf               &
                              , tke_tend                         &
+                             , sgs_fluxes, sgs_fluxes_8w        &
                              , adapt_step_flag , curr_secs      &
                              , psim , psih , gz1oz0             &
                              , chklowq                          &
@@ -804,6 +807,7 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
+                         ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot, moist(:,:,:,P_QV)                       &
                          ,mu_tend, grid%u_save, grid%v_save, w_save, ph_save                                   &
                          ,grid%t_save, mu_save, grid%rthften                                                   &
                          ,grid%ru, grid%rv, grid%rw, grid%ww                                                   &
@@ -1325,6 +1329,7 @@ BENCH_START(advance_mu_t_tim)
                           grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,            &
                           grid%msfvy, grid%msftx,grid%msfty,                            &
                           iteration, config_flags,                                      &
+                          grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                  &
                           ids, ide, jds, jde, kds, kde,      &
                           ims, ime, jms, jme, kms, kme,      &
                           grid%i_start(ij), grid%i_end(ij),  &
@@ -2133,6 +2138,11 @@ BENCH_END(small_step_finish_tim)
 
                CALL wrf_debug ( 200 , ' call rk_scalar_tend' )
                tenddec = .false.
+               IF ((im==p_qv) .and. (config_flags%output_res_fluxes)) THEN
+                  output_fluxes = .true.
+               ELSE
+                  output_fluxes = .false.
+               ENDIF
 
 BENCH_START(rk_scalar_tend_tim)
                CALL rk_scalar_tend (  im, im, config_flags, tenddec,         & 
@@ -2145,6 +2155,8 @@ BENCH_START(rk_scalar_tend_tim)
                            moist(ims,kms,jms,im),                            &
                            moist_tend(ims,kms,jms,im),                       &
                            advect_tend,h_tendency,z_tendency,grid%rqvften,   & 
+                           grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,         &
+                           output_fluxes,                                    &
                            grid%qv_base, .true., grid%fnm, grid%fnp,         &
                            grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,&
                            grid%msfvy, grid%msftx,grid%msfty,                & 
@@ -2303,6 +2315,7 @@ BENCH_START(tke_adv_tim)
 
            CALL wrf_debug ( 200 , ' call rk_scalar_tend for tke' )
            tenddec = .false.
+           output_fluxes = .false.
            CALL rk_scalar_tend ( 1, 1, config_flags, tenddec,                      & 
                             rk_step, dt_rk,                                        &
                             grid%ru_m, grid%rv_m, grid%ww_m,                       &
@@ -2313,6 +2326,7 @@ BENCH_START(tke_adv_tim)
                             grid%tke_2,                                            &
                             tke_tend(ims,kms,jms),                                 &
                             advect_tend,h_tendency,z_tendency,grid%rqvften,        & 
+                            grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
                             grid%qv_base, .false., grid%fnm, grid%fnp,             &
                             grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,     &
                             grid%msfvy, grid%msftx,grid%msfty,                     &
@@ -2395,6 +2409,7 @@ BENCH_START(chem_adv_tim)
              CALL wrf_debug ( 200 , ' call rk_scalar_tend in chem_tile_loop_1' )
              tenddec = (( config_flags%chemdiag == USECHEMDIAG ) .and. &
                         ( adv_ct_indices(ic) >= PARAM_FIRST_SCALAR ))
+             output_fluxes = .false.
              CALL rk_scalar_tend ( ic, ic, config_flags, tenddec,                & 
                               rk_step, dt_rk,                                    &
                               grid%ru_m, grid%rv_m, grid%ww_m,                   &
@@ -2405,6 +2420,7 @@ BENCH_START(chem_adv_tim)
                               chem(ims,kms,jms,ic),                              &
                               chem_tend(ims,kms,jms,ic),                         &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
+                              grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2556,6 +2572,7 @@ BENCH_START(tracer_adv_tim)
 
              CALL wrf_debug ( 15 , ' call rk_scalar_tend in tracer_tile_loop_1' )
              tenddec = .false.
+             output_fluxes = .false.
              CALL rk_scalar_tend ( ic, ic, config_flags, tenddec,                & 
                               rk_step, dt_rk,                                    &
                               grid%ru_m, grid%rv_m, grid%ww_m,                   &
@@ -2566,6 +2583,7 @@ BENCH_START(tracer_adv_tim)
                               tracer(ims,kms,jms,ic),                            &
                               tracer_tend(ims,kms,jms,ic),                       &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
+                              grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2697,6 +2715,7 @@ BENCH_END(tracer_adv_tim)
 
            CALL wrf_debug ( 200 , ' call rk_scalar_tend' )
            tenddec = .false.
+           output_fluxes = .false.
            CALL rk_scalar_tend ( is, is, config_flags, tenddec,                   & 
                                  rk_step, dt_rk,                                  &
                                  grid%ru_m, grid%rv_m, grid%ww_m,                 &
@@ -2707,6 +2726,7 @@ BENCH_END(tracer_adv_tim)
                                  scalar(ims,kms,jms,is),                          &
                                  scalar_tend(ims,kms,jms,is),                     &
                                  advect_tend,h_tendency,z_tendency,grid%rqvften,  & 
+                                 grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
                                  grid%qv_base, .false., grid%fnm, grid%fnp,       &
                                  grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                                  grid%msfvy, grid%msftx,grid%msfty,               &
@@ -3391,64 +3411,6 @@ BENCH_END(bc_end_tim)
 #endif
 !-----------------------------------------------------------
 
-   IF (config_flags%do_avgflx_em .EQ. 1) THEN
-! Reinitialize time-averaged fluxes if history output was written after the previous time step:
-      CALL WRFU_ALARMGET(grid%alarms( HISTORY_ALARM ),prevringtime=temp_time)
-      CALL domain_clock_get ( grid, current_time=CurrTime, &
-           current_timestr=message2 )
-! use overloaded -, .LT. operator to check whether to initialize avgflx:
-! reinitialize after each history output (detect this here by comparing current time
-! against last history time and time step - this code follows what's done in adapt_timestep_em):
-      WRITE ( message , FMT = '("solve_em: old_dt =",g15.6,", dt=",g15.6," on domain ",I3)' ) &
-           & old_dt,grid%dt,grid%id
-      CALL wrf_debug(200,message)
-      old_dt=min(old_dt,grid%dt)
-      num = INT(old_dt * precision)
-      den = precision
-      CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
-      IF (CurrTime .lt. temp_time + dtInterval) THEN
-         WRITE ( message , FMT = '("solve_em: initializing avgflx at time ",A," on domain ",I3)' ) &
-              & TRIM(message2), grid%id
-         CALL wrf_message(trim(message)) 
-         grid%avgflx_count = 0
-!tile-loop for zero_avgflx
-   !$OMP PARALLEL DO   &
-   !$OMP PRIVATE ( ij )
-
-         DO ij = 1 , grid%num_tiles
-            CALL wrf_debug(200,'In solve_em, before zero_avgflx call')
-            CALL zero_avgflx(grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
-                 &   ids, ide, jds, jde, kds, kde,           &
-                 &   ims, ime, jms, jme, kms, kme,           &
-                 &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-                 &   k_start    , k_end, f_flux, &
-                 &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
-                 &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1 )
-            CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
-         ENDDO
-      ENDIF
-
-! Update avgflx quantities
-!tile-loop for upd_avgflx
-   !$OMP PARALLEL DO   &
-   !$OMP PRIVATE ( ij )
-
-      DO ij = 1 , grid%num_tiles
-         CALL wrf_debug(200,'In solve_em, before upd_avgflx call')
-         CALL upd_avgflx(grid%avgflx_count,grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
-              &   grid%ru_m, grid%rv_m, grid%ww_m, &
-              &   ids, ide, jds, jde, kds, kde,           &
-              &   ims, ime, jms, jme, kms, kme,           &
-              &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              &   k_start    , k_end, f_flux, &
-              &   grid%cfu1,grid%cfd1,grid%dfu1,grid%efu1,grid%dfd1,grid%efd1,          &
-              &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
-              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1 )
-         CALL wrf_debug(200,'In solve_em, after upd_avgflx call')
-         
-      ENDDO
-      grid%avgflx_count = grid%avgflx_count + 1
-   ENDIF
 !
    !$OMP PARALLEL DO   &
    !$OMP PRIVATE ( ij )
@@ -3920,7 +3882,7 @@ BENCH_START(moist_phys_end_tim)
                       k_start    , k_end                                )
 
        CALL moist_physics_finish_em( grid%t_2, grid%t_1, t0, grid%muts, th_phy,  &
-                                     grid%h_diabatic, dtm,                       &
+                                     grid%h_diabatic, grid%t_tend_mp, dtm,       &
                                      moist(ims,kms,jms,P_QV),grid%qv_diabatic,   &
                                      moist(ims,kms,jms,P_QC),grid%qc_diabatic,   &
                                      grid%th_phy_m_t0,                           &
@@ -4582,6 +4544,88 @@ BENCH_END(bc_2d_tim)
 
    END DO
    !$OMP END PARALLEL DO
+
+
+! new location for averaging. Moved here to include microphysics tendencies
+   IF ((config_flags%do_avgflx_em .EQ. 1) .or. (config_flags%output_avgfluxes .EQ. 1)) THEN
+! Reinitialize time-averaged fluxes if history output was written after the previous time step:
+      CALL WRFU_ALARMGET(grid%alarms( AUXHIST24_ALARM ),prevringtime=temp_time, RingInterval=intervaltime)
+      CALL domain_clock_get ( grid, current_time=CurrTime, &
+           current_timestr=message2 )
+! use overloaded -, .LT. operator to check whether to initialize avgflx:
+! reinitialize after each history output (detect this here by comparing current time
+! against last history time and time step - this code follows what's done in adapt_timestep_em):
+      WRITE ( message , FMT = '("solve_em: old_dt =",g15.6,", dt=",g15.6," on domain ",I3)' ) &
+           & old_dt,grid%dt,grid%id
+      CALL wrf_debug(200,message)
+      old_dt=min(old_dt,grid%dt)
+      num = INT(old_dt * precision)
+      den = precision
+      CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
+      IF (CurrTime .lt. temp_time + dtInterval) THEN
+         WRITE ( message , FMT = '("solve_em: initializing avgflx at time ",A," on domain ",I3)' ) &
+              & TRIM(message2), grid%id
+         CALL wrf_message(trim(message)) 
+         grid%avgflx_count = 0
+!tile-loop for zero_avgflx
+   !$OMP PARALLEL DO   &
+   !$OMP PRIVATE ( ij )
+
+         DO ij = 1 , grid%num_tiles
+            CALL wrf_debug(200,'In solve_em, before zero_avgflx call')
+            CALL zero_avgflx(grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
+                 &   ids, ide, jds, jde, kds, kde,           &
+                 &   ims, ime, jms, jme, kms, kme,           &
+                 &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+                 &   k_start    , k_end, f_flux, &
+                 &   config_flags%do_avgflx_em, config_flags%output_avgfluxes, &
+                 &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
+                 &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+                 &   hist_mean, hist_mean_8w)
+            CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
+         ENDDO
+   !$OMP END PARALLEL DO
+      ENDIF
+
+! Update avgflx quantities
+!tile-loop for upd_avgflx
+   IF (CurrTime .ge. temp_time + intervaltime - dtInterval) THEN
+      last_timestep = .true.
+   ELSE
+      last_timestep = .false.
+   ENDIF
+   !$OMP PARALLEL DO   &
+   !$OMP PRIVATE ( ij )
+
+      DO ij = 1 , grid%num_tiles
+         CALL wrf_debug(200,'In solve_em, before upd_avgflx call')
+         CALL upd_avgflx(grid%avgflx_count,grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
+              &   grid%ru_m, grid%rv_m, grid%ww_m, &
+              &   ids, ide, jds, jde, kds, kde,           &
+              &   ims, ime, jms, jme, kms, kme,           &
+              &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+              &   k_start    , k_end, f_flux, &
+              &   grid%cfu1,grid%cfd1,grid%dfu1,grid%efu1,grid%dfd1,grid%efd1,          &
+              &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
+              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+              &   config_flags,                                                                     &
+              &   sgs_fluxes, sgs_fluxes_8w, nba_mij, hist_mean, hist_mean_8w,                      &
+              &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
+              &   grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,                                         &
+              &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,               &
+              &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
+              &   grid%t_2, moist(:,:,:,P_QV),                                                      &
+              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy,                                 &
+              &   grid%dnw, grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                       &
+              &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3,                                 &
+              &   last_timestep, grid%dt                                                            )
+
+         CALL wrf_debug(200,'In solve_em, after upd_avgflx call')
+         
+      ENDDO
+   !$OMP END PARALLEL DO
+      grid%avgflx_count = grid%avgflx_count + 1
+   ENDIF
 
 !-----------------------------------------------------------
 !  After all of the RK steps, after the microphysics, after p-rho-phi,

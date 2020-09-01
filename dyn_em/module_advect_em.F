@@ -3027,6 +3027,7 @@ END SUBROUTINE advect_v
 
 #endif
 SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
+                             fqx_out, fqy_out, fqz_out, output_fluxes,  &
                              ru, rv, rom,                   &
                              c1, c2,                        &
                              mut, time_step, config_flags,  &
@@ -3053,6 +3054,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
                                                                       ru,    &
                                                                       rv,    &
                                                                       rom
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
@@ -3073,6 +3075,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -3248,6 +3251,13 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
      ENDIF
 
+      IF ( output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -3380,6 +3390,13 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
        ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 !  x flux-divergence into tendency
 
           DO k=kts,ktf
@@ -3505,6 +3522,13 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
      ENDIF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -3637,6 +3661,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
        ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
 !  x flux-divergence into tendency
 
           DO k=kts,ktf
@@ -3726,6 +3758,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
           ENDDO
         ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -3795,6 +3835,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
       ENDDO
       ENDDO
     END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -3915,6 +3963,13 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
           ENDDO
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -3985,6 +4040,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
       ENDDO
     END IF
 
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
+
 !  y flux-divergence into tendency
 
     ! Comments on polar boundary conditions
@@ -4049,6 +4112,17 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
       ENDDO
       ENDDO
 
+      IF (output_fluxes) THEN
+        DO j = j_start, j_end
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = ru(i,k,j)*(field(i,k,j)+field(i-1,k,j))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
+
+
       i_start = its
       i_end   = MIN(ite,ide-1)
 
@@ -4067,6 +4141,15 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
       ENDDO
       ENDDO
    
+      IF (output_fluxes) THEN
+        DO j = j_start, j_end+1
+        DO k = kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = rv(i,k,j)*(field(i,k,j)+field(i,k,j-1))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
       ! Polar boundary condtions
       ! These won't be covered in the loop above...
       IF (config_flags%polar) THEN
@@ -4231,6 +4314,16 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
          ENDDO
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
+
+
       ENDDO
 
    ELSE IF (vert_order == 5) THEN    
@@ -4272,6 +4365,15 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
          ENDDO
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
+
       ENDDO
 
    ELSE IF (vert_order == 4) THEN    
@@ -4300,6 +4402,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+         
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 
       ENDDO
 
@@ -4330,6 +4440,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
          ENDDO
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
       ENDDO
 
    ELSE IF (vert_order == 2) THEN    
@@ -4346,6 +4464,14 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
        tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
      ENDDO
      ENDDO
+     IF (output_fluxes) THEN
+       DO k = kts,kte
+       DO i = i_start, i_end
+        fqz_out(i,k,j) = vflux(i,k)
+       ENDDO
+       ENDDO
+     ENDIF
+
 
   ENDDO
 
@@ -6067,6 +6193,7 @@ END SUBROUTINE advect_w
 
 #endif
 SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
+                                fqx_out, fqy_out, fqz_out, output_fluxes, &
                                 h_tendency, z_tendency,        &
                                 ru, rv, rom,                   &
                                 c1, c2,                        &
@@ -6113,6 +6240,7 @@ SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut, mub, mu_old
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(  OUT) :: h_tendency, z_tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -6131,6 +6259,8 @@ SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
                                                                   rdy,  &
                                                                   dt
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
+
 
    ! Local data
    
@@ -7864,11 +7994,38 @@ SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
   ENDDO
   END IF
 
+  IF (output_fluxes) THEN
+    DO j = j_start, j_end
+    DO k=kts,ktf
+    DO i = i_start, i_end+1
+      fqx_out(i,k,j) = fqx(i,k,j) + fqxl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+    
+    DO j = j_start, j_end+1
+    DO k=kts,ktf
+    DO i = i_start, i_end
+      fqy_out(i,k,j) = fqy(i,k,j) + fqyl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+    
+    DO j = j_start, j_end
+    DO k=kts,kte
+    DO i = i_start, i_end
+      fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+  ENDIF
+
 END SUBROUTINE advect_scalar_pd
 
 !----------------------------------------------------------------
 
 SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
+                             fqx_out, fqy_out, fqz_out, output_fluxes, &
                              ru, rv, rom,                   &
                              c1, c2,                        &
                              mut, time_step, config_flags,  &
@@ -7902,6 +8059,7 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -7919,6 +8077,7 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -8159,6 +8318,13 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
 
      ENDIF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
       IF ( is == 0 ) THEN
@@ -8358,6 +8524,14 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
 
        ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
 !  x flux-divergence into tendency
 
        IF ( is == 0 ) THEN
@@ -8543,6 +8717,14 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+         
+         IF (output_fluxes) THEN
+          DO k=kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+         ENDIF
 
       ENDDO
 
@@ -8553,6 +8735,7 @@ END SUBROUTINE advect_scalar_weno
 !---------------------------------------------------------------------------------
 
 SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
+                                fqx_out, fqy_out, fqz_out, output_fluxes, &
                                 ru, rv, rom,                   &
                                 c1, c2,                        &
                                 mut, mub, mu_old,              &
@@ -8601,6 +8784,7 @@ SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut, mub, mu_old
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -8619,6 +8803,7 @@ SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
                                                                   rdy,  &
                                                                   dt
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
    ! Local data
    
@@ -9469,12 +9654,39 @@ SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
   ENDDO
   ENDDO
   ENDDO
+  
+  IF (output_fluxes) THEN
+  DO j = j_start, j_end
+  DO k=kts,ktf
+  DO i = i_start, i_end+1
+    fqx_out(i,k,j) = fqx(i,k,j) + fqxl(i,k,j)
+  ENDDO
+  ENDDO
+  ENDDO
+  
+  DO j = j_start, j_end+1
+  DO k=kts,ktf
+  DO i = i_start, i_end
+    fqy_out(i,k,j) = fqy(i,k,j) + fqyl(i,k,j)
+  ENDDO
+  ENDDO
+  ENDDO
+  
+  DO j = j_start, j_end
+  DO k=kts,kte
+  DO i = i_start, i_end
+    fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
+  ENDDO
+  ENDDO
+  ENDDO
+ENDIF
 
 END SUBROUTINE advect_scalar_wenopd
 
 !----------------------------------------------------------------
 
 SUBROUTINE advect_scalar_mono   ( field, field_old, tendency,    &
+                                  fqx_out, fqy_out, fqz_out, output_fluxes, &
                                   h_tendency, z_tendency,        &
                                   ru, rv, rom,                   &
                                   c1, c2,                        &
@@ -9519,6 +9731,7 @@ SUBROUTINE advect_scalar_mono   ( field, field_old, tendency,    &
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut, mub, mu_old
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(  OUT) :: h_tendency, z_tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -9537,6 +9750,7 @@ SUBROUTINE advect_scalar_mono   ( field, field_old, tendency,    &
                                                                   rdy,  &
                                                                   dt
 
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
    ! Local data
    
    INTEGER :: i, j, k, itf, jtf, ktf
@@ -10524,6 +10738,32 @@ SUBROUTINE advect_scalar_mono   ( field, field_old, tendency,    &
   ENDDO
   END IF
 
+  IF (output_fluxes) THEN
+    DO j = j_start, j_end
+    DO k=kts,ktf
+    DO i = i_start, i_end+1
+      fqx_out(i,k,j) = fqx(i,k,j) + fqxl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+    
+    DO j = j_start, j_end+1
+    DO k=kts,ktf
+    DO i = i_start, i_end
+      fqy_out(i,k,j) = fqy(i,k,j) + fqyl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+    
+    DO j = j_start, j_end
+    DO k=kts,kte
+    DO i = i_start, i_end
+      fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
+    ENDDO
+    ENDDO
+    ENDDO
+  ENDIF
+
 END SUBROUTINE advect_scalar_mono
 
 !-----------------------------------------------------------
@@ -10675,6 +10915,7 @@ PROGRAM feeder
          CALL advect_scalar    ( field(ims,kms,jms,im), &
                                  field_old(ims,kms,jms,im), &
                                  tendency(ims,kms,jms), &
+                                 fqx, fqy, fqz, output_fluxes,  & 
                                  ru, rv, rom, c1, c2,           &
                                  mut, time_step/3, config_flags,&
                                  msfux, msfuy, msfvx, msfvy,    &
@@ -10692,6 +10933,7 @@ PROGRAM feeder
          CALL advect_scalar    ( field(ims,kms,jms,im), &
                                  field_old(ims,kms,jms,im), &
                                  tendency(ims,kms,jms), &
+                                 fqx, fqy, fqz, output_fluxes,  & 
                                  ru, rv, rom, c1, c2,           &
                                  mut, time_step/2, config_flags,&
                                  msfux, msfuy, msfvx, msfvy,    &
@@ -10710,6 +10952,7 @@ PROGRAM feeder
             CALL advect_scalar    ( field(ims,kms,jms,im), &
                                     field_old(ims,kms,jms,im), &
                                     tendency(ims,kms,jms), &
+                                    fqx, fqy, fqz, output_fluxes,  & 
                                     ru, rv, rom, c1, c2,           &
                                     mut, time_step, config_flags,  &
                                     msfux, msfuy, msfvx, msfvy,    &
@@ -10723,6 +10966,7 @@ PROGRAM feeder
             CALL advect_scalar_pd ( field(ims,kms,jms,im), &
                                     field_old(ims,kms,jms,im), &
                                     tendency(ims,kms,jms), &
+                                    fqx, fqy, fqz, output_fluxes,  & 
                                     h_tendency(ims,kms,jms), &
                                     z_tendency(ims,kms,jms), &
                                     ru, rv, rom, c1, c2, &
@@ -10738,6 +10982,7 @@ PROGRAM feeder
             CALL advect_scalar_mono ( field(ims,kms,jms,im), &
                                     field_old(ims,kms,jms,im), &
                                     tendency(ims,kms,jms), &
+                                    fqx, fqy, fqz, output_fluxes,  & 
                                     h_tendency(ims,kms,jms), &
                                     z_tendency(ims,kms,jms), &
                                     ru, rv, rom, c1, c2, &
@@ -10753,6 +10998,7 @@ PROGRAM feeder
             CALL advect_scalar_weno ( field(ims,kms,jms,im), &
                                    field_old(ims,kms,jms,im), &
                                    tendency(ims,kms,jms), &
+                                   fqx, fqy, fqz, output_fluxes,  & 
                              ru, rv, rom, c1, c2,           &
                              mut, time_step, config_flags,  &
                              msfux, msfuy, msfvx, msfvy,    &
@@ -10766,6 +11012,7 @@ PROGRAM feeder
             CALL advect_scalar_wenopd ( field(ims,kms,jms,im), &
                                         field_old(ims,kms,jms,im), &
                                         tendency(ims,kms,jms), &
+                                        fqx, fqy, fqz, output_fluxes,  & 
                                 ru, rv, rom, c1, c2,           &
                                 mut, mub, mu_old,              &
                                 time_step, config_flags,       &

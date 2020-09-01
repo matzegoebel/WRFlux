@@ -2581,14 +2581,69 @@ CONTAINS
 ! ===6=8===============================================================72
 
 
+        subroutine fluxes_from_bl_tend(sgs_fluxes_8w, config_flags,                   &
+                               & rublten, rvblten, rqvblten, rthblten,                &
+                               & dz8w, rho, qv, thdry,                                &
+                               & ids, ide, jds, jde, kds, kde,                        &
+                               & ims, ime, jms, jme, kms, kme,                        &
+                               & i_start,i_end,j_start,j_end, k_start, k_end, num_tiles)
+
+        USE module_state_description
+        USE module_model_constants
+        USE module_configure, ONLY : grid_config_rec_type, model_config_rec
+
+        IMPLICIT NONE
+
+        INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
+                                       ims, ime, jms, jme, kms, kme, k_start, k_end, num_tiles
+                                       
+        INTEGER, DIMENSION(num_tiles), INTENT(IN) :: i_start,i_end,j_start,j_end
+        TYPE ( grid_config_rec_type ), INTENT(IN) :: config_flags
+
+        REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
+             rublten, rvblten, rqvblten, rthblten, dz8w, rho, qv, thdry
+
+        REAL , DIMENSION( ims:ime, kms:kme, jms:jme, num_sgs_fluxes_8w), INTENT(OUT) :: sgs_fluxes_8w
+        
+        REAL :: fac, rthblten_corr
+        INTEGER :: i,j,k, ij
+
+        !$OMP PARALLEL DO   &
+        !$OMP PRIVATE ( ij,i,j,k )
+
+        DO ij = 1 , num_tiles
+          DO j=j_start(ij),j_end(ij)
+            DO k=k_end,k_start,-1
+              DO i=i_start(ij),i_end(ij)
+                IF (k==k_end) THEN
+                   sgs_fluxes_8w(i,k,j,p_sgs_WTH) = 0
+                   sgs_fluxes_8w(i,k,j,p_sgs_WQ) = 0
+                   sgs_fluxes_8w(i,k,j,p_sgs_UW) = 0
+                   sgs_fluxes_8w(i,k,j,p_sgs_VW) = 0
+                ELSE
+                   !TODO: dz8w correct k index?
+                   fac = dz8w(i,k,j)*rho(i,k,j)
+                   IF ((config_flags%use_theta_m .eq. 1) .and. (config_flags%output_dry_theta_fluxes .eq. 0)) THEN
+                      rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)
+                   ELSE
+                      rthblten_corr = rthblten(i,k,j)
+                   ENDIF
+                  !TODO: should sgsuw and sgsvw be on staggered levels?
+                   sgs_fluxes_8w(i,k,j,p_sgs_WTH) = sgs_fluxes_8w(i,k+1,j,p_sgs_WTH) + rthblten_corr*fac
+                   sgs_fluxes_8w(i,k,j,p_sgs_WQ) = sgs_fluxes_8w(i,k+1,j,p_sgs_WQ) + rqvblten(i,k,j)*fac
+                   sgs_fluxes_8w(i,k,j,p_sgs_UW) = sgs_fluxes_8w(i,k+1,j,p_sgs_UW) + rublten(i,k,j)*fac
+                   sgs_fluxes_8w(i,k,j,p_sgs_VW) = sgs_fluxes_8w(i,k+1,j,p_sgs_VW) + rvblten(i,k,j)*fac
+                ENDIF
+
+              END DO
+            END DO
+          END DO
+        ENDDO
+
+        !$OMP END PARALLEL DO
 
 
-
-
-
-
-
-
+        end subroutine fluxes_from_bl_tend
 
 
 

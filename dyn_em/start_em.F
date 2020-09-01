@@ -1273,7 +1273,7 @@ endif
 
    CALL wrf_debug ( 100 , 'start_domain_em: After call to phy_init' )
 
-   IF (config_flags%do_avgflx_em .EQ. 1) THEN
+   IF ((config_flags%do_avgflx_em .EQ. 1) .or. (config_flags%output_avgfluxes .EQ. 1)) THEN
       WRITE ( message , FMT = '("start_em: initializing avgflx on domain ",I3)' ) &
            & grid%id
       CALL wrf_message(trim(message))
@@ -1285,8 +1285,11 @@ endif
               &   ids, ide, jds, jde, kds, kde,           &
               &   ims, ime, jms, jme, kms, kme,           &
               &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), kts, kte, f_flux, &
+              &   config_flags%do_avgflx_em, config_flags%output_avgfluxes, &
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
-              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1 )
+              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+              &   hist_mean,hist_mean_8w)
+
          call wrf_debug(200,'In start_em, after zero_avgflx call')
       ENDDO
    ENDIF

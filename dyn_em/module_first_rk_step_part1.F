@@ -12,6 +12,7 @@ CONTAINS
                              , chem  , chem_tend                &
                              , tracer, tracer_tend              &
                              , scalar , scalar_tend             &
+                             , sgs_fluxes_8w                    &
                              , fdda3d, fdda2d                   &
                              , aerod                            &
                              , ru_tendf, rv_tendf               &
@@ -42,7 +43,7 @@ CONTAINS
     USE module_surface_driver, ONLY : surface_driver
     USE module_cumulus_driver, ONLY : cumulus_driver
     USE module_shallowcu_driver, ONLY : shallowcu_driver
-    USE module_pbl_driver, ONLY : pbl_driver
+    USE module_pbl_driver, ONLY : pbl_driver, fluxes_from_bl_tend
     USE module_fr_fire_driver_wrf, ONLY : fire_driver_em_step
     USE module_fddagd_driver, ONLY : fddagd_driver
     USE module_em, ONLY : init_zero_tendency
@@ -85,6 +86,7 @@ CONTAINS
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_tracer),INTENT(INOUT)   :: tracer_tend
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar_tend
+    REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_sgs_fluxes_8w),INTENT(OUT) :: sgs_fluxes_8w
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_fdda3d),INTENT(INOUT)  :: fdda3d
     REAL    ,DIMENSION(ims:ime,1:1,jms:jme,num_fdda2d),INTENT(INOUT)      :: fdda2d
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_aerod),INTENT(INOUT)   :: aerod
@@ -1086,6 +1088,18 @@ BENCH_START(pbl_driver_tim)
 #endif
      &        ,QNORM=grid%QNORM, fasdas=config_flags%fasdas              & !fasdas
      &        )
+
+    if ((config_flags%output_sgs_fluxes==1) .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
+      !get turbulent fluxes from PBL scheme tendencies
+      call fluxes_from_bl_tend(sgs_fluxes_8w, config_flags,                         &
+                       & grid%rublten, grid%rvblten, grid%rqvblten, grid%rthblten,  &
+                       & dz8w, grid%rho, grid%moist(:,:,:,P_QV), th_phy,            &
+                       & ids, ide, jds, jde, kds, kde,                              &
+                       & ims, ime, jms, jme, kms, kme,                              &
+                       & grid%i_start, min(grid%i_end, ide-1),                      &
+                       & grid%j_start, min(grid%j_end, jde-1),                      &
+                       & k_start, min(k_end,kde-1), grid%num_tiles)
+    endif
 
 #if (WRF_CHEM == 1)
 #ifdef DM_PARALLEL

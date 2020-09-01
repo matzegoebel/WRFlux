@@ -3045,7 +3045,15 @@
       WRITE (wrf_err_message, FMT='(A,I6)') '--- NOTE: num_soil_layers has been set to ', &
                                              model_config_rec % num_soil_layers
       CALL wrf_debug ( 1, wrf_err_message )
-
+!--------------------------------------------------------------------------
+! Check that sgs turbulent stress tensor is available if fluxes are output
+!--------------------------------------------------------------------------
+      DO i = 1, model_config_rec % max_dom
+        if ((model_config_rec%output_sgs_fluxes .eq. 1) .and. (model_config_rec%m_opt(i) .eq. 0) .and. (model_config_rec%sfs_opt(i) .eq. 0)) then
+           WRITE (wrf_err_message, FMT='(A,I6)') '--- If output_sgs_fluxes=1, use m_opt=1 or sfs_opt > 0 to make sgs turbulent stress tensor available for output!'
+           CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+        END IF
+      ENDDO
    END SUBROUTINE set_physics_rconfigs
 
 !=======================================================================

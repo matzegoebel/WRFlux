@@ -93,7 +93,7 @@ CONTAINS
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                         &
        & Ustag, Vstag, Wstag, ru, rv, ww, thm, Q,                                   &
        & ph_1, ph_2, phb, zx, zy,                                                   &
-       & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3,                     &
+       & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,          &
        & last_timestep, dt                                                          )
     
 
@@ -105,7 +105,7 @@ CONTAINS
 
     INTEGER , INTENT(IN)        :: avgflx_count
     LOGICAL, INTENT(IN) :: do_cu, last_timestep
-    REAL, INTENT(IN) :: dt, cf1, cf2, cf3
+    REAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
 
     REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          ru_m, rv_m, ww_m,             & 
@@ -139,24 +139,20 @@ CONTAINS
 
     REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
 
-    INTEGER :: i,j,k,i_end,j_end
+    INTEGER :: i,j,k
     REAL :: local_count, rho_8w, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
             thetax, thetay, thetaz, qx, qy, qz, qfac,        &
             zx_8w, zy_8w, u_8w, v_8w, dzdt,              &
             corr_uth, corr_vth, corr_dthdt, corr_uq, corr_vq, corr_dqdt, &
             wdiag, muz, mu, dphidn
-    REAL :: thetax2, thetay2, thetaz2, qx2, qy2, qz2
 
-    i_end = min(ite,ide-1)
-    j_end = min(jte,jde-1)
     local_count = real(avgflx_count)
-
 
     if (config_flags%output_avgfluxes .eq. 1) then
 
-    DO j=jts-1,j_end
-    DO k=kts,kte-1
-    DO i=its-1,i_end
+    DO j=jts-1,jte
+    DO k=kts,kte
+    DO i=its-1,ite
       !calculate dry density
       mu = c1h(k)*mut(i,j)+c2h(k)
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
@@ -177,18 +173,20 @@ CONTAINS
     ENDDO
     ENDDO
 
-    DO j=jts,j_end
-      DO k=kts,kte-1
-        DO i=its,i_end
+    DO j=jts,jte
+      DO k=kts,kde
+        DO i=its,ite
 
           hist_mean_8w(i,k,j,P_Z_MEAN) = (local_count*hist_mean_8w(i,k,j,P_Z_MEAN)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
 
           IF (config_flags%output_res_fluxes==1) THEN
             !stagger density
-            if ( k .gt. kts) then
-              rho_8w = fnm(k)*rho_d(i,k,j)+ fnp(k)*rho_d(i,k-1,j)
-            else
+            if ( k .eq. kde) then
+              rho_8w = cfn*rho_d(i,kde-1,j)+cfn1*rho_d(i,kde-2,j)
+            elseif ( k .eq. kts) then
               rho_8w = cf1*rho_d(i,1,j)+cf2*rho_d(i,2,j)+cf3*rho_d(i,3,j)
+            else
+              rho_8w = fnm(k)*rho_d(i,k,j)+ fnp(k)*rho_d(i,k-1,j)
             endif
             if (config_flags%hesselberg_avg) then
               rhox = 0.5*(rho_d(i,k,j)+rho_d(i-1,k,j))
@@ -203,49 +201,38 @@ CONTAINS
             !determine staggered theta from total fluxes
             thetax = ruth_tot(i,k,j)/ru(i,k,j)
             thetay = rvth_tot(i,k,j)/rv(i,k,j)
-            if ( k .gt. kts) then
-              thetaz = wwth_tot(i,k,j)/ww(i,k,j)
-            else
+            if ( k .eq. kde) then
+              thetaz = cfn*th(i,kde-1,j)+cfn1*th(i,kde-2,j)
+            elseif ( k .eq. kts) then
               thetaz = cf1*th(i,1,j)+cf2*th(i,2,j)+cf3*th(i,3,j)
-            endif
-            !2nd order staggering
-            thetax2 = 0.5*(th(i-1,k,j) + th(i,k,j))
-            thetay2 = 0.5*(th(i,k,j-1) + th(i,k,j))
-            if ( k .gt. kts) then
-              thetaz2 = (fnp(k)* th(i,k-1,j) + fnm(k)* th(i,k,j))
-            ELSE
-              thetaz2 = thetaz
+            else
+              thetaz = wwth_tot(i,k,j)/ww(i,k,j)
             endif
 
             !staggered q, different vertical velocity needed
             qx = ruq_tot(i,k,j)/ru_m(i,k,j)
             qy = rvq_tot(i,k,j)/rv_m(i,k,j)
-            if ( k .gt. kts) then
-              qz = wwq_tot(i,k,j)/ww_m(i,k,j)
-            else
+            if ( k .eq. kde) then
+              qz = cfn*Q(i,kde-1,j)+cfn1*Q(i,kde-2,j)
+            elseif ( k .eq. kts) then
               qz = cf1*Q(i,1,j)+cf2*Q(i,2,j)+cf3*Q(i,3,j)
-            endif
-
-            !2nd order staggering
-
-            qx2 = 0.5*(Q(i,k,j)+Q(i-1,k,j))
-            qy2 = 0.5*(Q(i,k,j)+Q(i,k,j-1))
-            if ( k .gt. kts) then
-              qz2 = (fnm(k)*Q(i,k,j) + fnp(k)*Q(i,k-1,j))
             else
-              qz2 = qz
+              qz = wwq_tot(i,k,j)/ww_m(i,k,j)
             endif
 
             !compute cartesian corrections
             zx_8w = 0.5*(zx(i,k,j)+zx(i+1,k,j))
             zy_8w = 0.5*(zy(i,k,j)+zy(i,k,j+1))
             dzdt = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
-            if ( k .gt. kts) then
-              u_8w = fnm(k)*0.5*(Ustag(i,k,j)+Ustag(i+1,k,j)) + fnp(k)*0.5*(Ustag(i,k-1,j)+Ustag(i+1,k-1,j))
-              v_8w = fnm(k)*0.5*(Vstag(i,k,j)+Vstag(i,k,j+1)) + fnp(k)*0.5*(Vstag(i,k-1,j)+Vstag(i,k-1,j+1))
-            else
+            if ( k .eq. kde) then
+              u_8w = cfn*0.5*(Ustag(i,kde-1,j)+Ustag(i+1,kde-1,j)) + cfn1*0.5*(Ustag(i,kde-2,j)+Ustag(i+1,kde-2,j))
+              v_8w = cfn*0.5*(Vstag(i,kde-1,j)+Vstag(i,kde-1,j+1)) + cfn1*0.5*(Vstag(i,kde-2,j)+Vstag(i,kde-2,j+1))
+            elseif ( k .eq. kts) then
               u_8w = cf1*0.5*(Ustag(i,1,j)+Ustag(i+1,1,j)) + cf2*0.5*(Ustag(i,2,j)+Ustag(i+1,2,j)) + cf3*0.5*(Ustag(i,3,j)+Ustag(i+1,3,j))
               v_8w = cf1*0.5*(Vstag(i,1,j)+Vstag(i,1,j+1)) + cf2*0.5*(Vstag(i,2,j)+Vstag(i,2,j+1)) + cf3*0.5*(Vstag(i,3,j)+Vstag(i,3,j+1))
+            else
+              u_8w = fnm(k)*0.5*(Ustag(i,k,j)+Ustag(i+1,k,j)) + fnp(k)*0.5*(Ustag(i,k-1,j)+Ustag(i+1,k-1,j))
+              v_8w = fnm(k)*0.5*(Vstag(i,k,j)+Vstag(i,k,j+1)) + fnp(k)*0.5*(Vstag(i,k-1,j)+Vstag(i,k-1,j+1))
             endif
 
             corr_uth = rho_8w*zx_8w*u_8w*thetaz
@@ -265,10 +252,12 @@ CONTAINS
               rho_mean = hist_mean(i,k,j,P_RHOD_MEAN)
               rhox_mean = 0.5*(hist_mean(i,k,j,P_RHOD_MEAN) + hist_mean(i-1,k,j,P_RHOD_MEAN))
               rhoy_mean = 0.5*(hist_mean(i,k,j,P_RHOD_MEAN) + hist_mean(i,k,j-1,P_RHOD_MEAN))
-              if ( k .gt. kts) then
-                rhoz_mean = fnm(k)*hist_mean(i,k,j,P_RHOD_MEAN) + fnp(k)*hist_mean(i,k-1,j,P_RHOD_MEAN)
-              else
+              if ( k .eq. kde) then
+                rhoz_mean = cfn*hist_mean(i,kde-1,j,P_RHOD_MEAN) + cfn1*hist_mean(i,kde-2,j,P_RHOD_MEAN)
+              elseif ( k .eq. kts) then
                 rhoz_mean = cf1*hist_mean(i,1,j,P_RHOD_MEAN) + cf2*hist_mean(i,2,j,P_RHOD_MEAN) + cf3*hist_mean(i,3,j,P_RHOD_MEAN)
+              else
+                rhoz_mean = fnm(k)*hist_mean(i,k,j,P_RHOD_MEAN) + fnp(k)*hist_mean(i,k-1,j,P_RHOD_MEAN)
               endif
             ELSE
               rho_mean  = 1

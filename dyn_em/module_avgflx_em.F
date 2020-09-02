@@ -145,8 +145,6 @@ CONTAINS
             zx_8w, zy_8w, u_8w, v_8w, dzdt,              &
             corr_uth, corr_vth, corr_dthdt, corr_uq, corr_vq, corr_dqdt, &
             wdiag, muz, mu, dphidn
-    REAL :: thetax2, thetay2, thetaz2
-
 
     local_count = real(avgflx_count)
 
@@ -209,15 +207,6 @@ CONTAINS
               thetaz = cf1*th(i,1,j)+cf2*th(i,2,j)+cf3*th(i,3,j)
             else
               thetaz = wwth_tot(i,k,j)/ww(i,k,j)
-            endif
-
-            !2nd order staggering
-            thetax2 = 0.5*(th(i-1,k,j) + th(i,k,j))
-            thetay2 = 0.5*(th(i,k,j-1) + th(i,k,j))
-            if (( k .gt. kts) .and. (k .lt. kde)) then
-              thetaz2 = (fnp(k)* th(i,k-1,j) + fnm(k)* th(i,k,j))
-            ELSE
-              thetaz2 = thetaz
             endif
 
             !staggered q, different vertical velocity needed

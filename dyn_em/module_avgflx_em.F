@@ -139,7 +139,7 @@ CONTAINS
 
     REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
 
-    INTEGER :: i,j,k,i_end,j_end
+    INTEGER :: i,j,k
     REAL :: local_count, rho_8w, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
             thetax, thetay, thetaz, qx, qy, qz, qfac,        &
             zx_8w, zy_8w, u_8w, v_8w, dzdt,              &
@@ -147,16 +147,14 @@ CONTAINS
             wdiag, muz, mu, dphidn
     REAL :: thetax2, thetay2, thetaz2, qx2, qy2, qz2
 
-    i_end = min(ite,ide-1)
-    j_end = min(jte,jde-1)
-    local_count = real(avgflx_count)
 
+    local_count = real(avgflx_count)
 
     if (config_flags%output_avgfluxes .eq. 1) then
 
-    DO j=jts-1,j_end
-    DO k=kts,kte-1
-    DO i=its-1,i_end
+    DO j=jts-1,jte
+    DO k=kts,kte
+    DO i=its-1,ite
       !calculate dry density
       mu = c1h(k)*mut(i,j)+c2h(k)
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
@@ -177,9 +175,9 @@ CONTAINS
     ENDDO
     ENDDO
 
-    DO j=jts,j_end
-      DO k=kts,kte-1
-        DO i=its,i_end
+    DO j=jts,jte
+      DO k=kts,kte
+        DO i=its,ite
 
           hist_mean_8w(i,k,j,P_Z_MEAN) = (local_count*hist_mean_8w(i,k,j,P_Z_MEAN)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
 

@@ -118,11 +118,11 @@ state   real    sgs_UU             ikjf     sgs_fluxes            1             
 state   real    sgs_VV             ikjf     sgs_fluxes            1               -               - "sgs_VV"             "VV-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
 state   real    sgs_WW             ikjf     sgs_fluxes            1               -               - "sgs_WW"             "WW-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
 
-# tendencies from physics
+# tendencies from additional sources
 state   real    t_tend_radlw_mean    ikjf     hist_mean          1               -               h{24} "T_TEND_RADLW_MEAN"      "mean dry theta tendency from RAD scheme, longwave" "K s-1"
 state   real    t_tend_radsw_mean    ikjf     hist_mean          1               -               h{24} "T_TEND_RADSW_MEAN"      "mean dry theta tendency from RAD scheme, shortwave" "K s-1"
 state   real    t_tend_mp_mean       ikjf     hist_mean          1               -               h{24} "T_TEND_MP_MEAN"         "mean dry theta tendency from MP scheme" "K s-1"
-state   real    q_tend_mp_mean       ikjf     hist_mean          1               -               h{24} "q_tend_mp_mean"         "mean water vapor mixing ratio tendency from MP scheme" "s-1"
+state   real    q_tend_mp_mean       ikjf     hist_mean          1               -               h{24} "Q_TEND_MP_MEAN"         "mean water vapor mixing ratio tendency from MP scheme" "s-1"
 
 state   real    t_tend_mp        ikj      dyn_em          1               -               -     "T_TEND_MP"          "inst. dry theta-tendency from MP scheme" "K s-1"
 

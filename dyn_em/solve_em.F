@@ -807,7 +807,10 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
-                         ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot, moist(:,:,:,P_QV)                       &
+                         ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot                                          &
+                         ,grid%ruu_tot, grid%rvu_tot, grid%wwu_tot                                             &
+                         ,grid%ruv_tot, grid%rvv_tot, grid%wwv_tot                                             &
+                         ,grid%ruw_tot, grid%rvw_tot, grid%www_tot, moist(:,:,:,P_QV)                          &
                          ,mu_tend, grid%u_save, grid%v_save, w_save, ph_save                                   &
                          ,grid%t_save, mu_save, grid%rthften                                                   &
                          ,grid%ru, grid%rv, grid%rw, grid%ww                                                   &

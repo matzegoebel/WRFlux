@@ -124,6 +124,7 @@ CONTAINS
 !-------------------------------------------------------------------------------
 
 SUBROUTINE advect_u   ( u, u_old, tendency,            &
+                        fqx_out, fqy_out, fqz_out, output_fluxes,  &
                         ru, rv, rom,                   &
                         c1, c2,                        &
                         mut, time_step, config_flags,  &
@@ -150,6 +151,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
                                                                       ru,    &
                                                                       rv,    &
                                                                       rom
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
@@ -170,7 +172,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
-
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
    ! Local data
    
    INTEGER :: i, j, k, itf, jtf, ktf
@@ -345,6 +347,13 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
       END IF
 
+      IF ( output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
         ! (j > j_start) will miss the u(,,jds) tendency
@@ -472,6 +481,13 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
         ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -606,6 +622,13 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
       END IF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
         ! (j > j_start) will miss the u(,,jds) tendency
@@ -733,6 +756,14 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
         ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -829,6 +860,13 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
           ENDDO
         ENDIF
 
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -907,6 +945,14 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
        ENDDO
 
      END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -1035,6 +1081,14 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
           ENDDO
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -1112,6 +1166,14 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
        ENDDO
 
      END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -1227,6 +1289,24 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
       ENDDO
       ENDDO
       ENDDO
+
+      IF (output_fluxes) THEN
+        DO j = j_start, j_end
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = 0.25*(ru(i,k,j)+ru(i-1,k,j))*(u(i,k,j)+u(i-1,k,j))
+        ENDDO
+        ENDDO
+        ENDDO
+
+        DO j = j_start, j_end+1
+        DO k = kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = 0.25*(rv(i,k,j)+rv(i-1,k,j))*(u(i,k,j)+u(i,k,j-1))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
 
    ELSE IF ( horz_order == 0 ) THEN
 
@@ -1395,6 +1475,15 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
+
       ENDDO
 
     ELSE IF (vert_order == 5) THEN    
@@ -1435,6 +1524,15 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
+
       ENDDO
 
     ELSE IF (vert_order == 4) THEN    
@@ -1465,6 +1563,15 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
+
       ENDDO
 
     ELSE IF (vert_order == 3) THEN    
@@ -1495,6 +1602,15 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
+
       ENDDO
 
     ELSE IF (vert_order == 2) THEN    
@@ -1514,6 +1630,14 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
          ENDDO
          ENDDO
 
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
+
       ENDDO
 
    ELSE
@@ -1528,6 +1652,7 @@ END SUBROUTINE advect_u
 !-------------------------------------------------------------------------------
 
 SUBROUTINE advect_v   ( v, v_old, tendency,            &
+                        fqx_out, fqy_out, fqz_out, output_fluxes,  &
                         ru, rv, rom,                   &
                         c1, c2,                        &
                         mut, time_step, config_flags,  &
@@ -1554,6 +1679,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
                                                                       ru,    &
                                                                       rv,    &
                                                                       rom
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
@@ -1574,6 +1700,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -1753,6 +1880,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
       END IF
 
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
+
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -1890,6 +2025,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -2021,6 +2164,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
             ENDDO
 
       END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -2159,6 +2310,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts,ktf
@@ -2261,6 +2420,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
         ENDDO
       END IF
 
+      IF (output_fluxes) THEN
+         DO k=kts,ktf
+         DO i = i_start, i_end
+            fqy_out(i,k,j) = fqy(i,k,jp1)
+         ENDDO
+         ENDDO
+      ENDIF
+
       ! Comments on polar boundary conditions
       ! No advection over the poles means tendencies (held from jds [S. pole]
       ! to jde [N pole], i.e., on v grid) must be zero at poles
@@ -2359,6 +2526,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
                    *(v(i_end+1,k,j)+v(i_end,k,j))
           ENDDO
         ENDIF
+
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
 
 !  x flux-divergence into tendency
 
@@ -2462,6 +2637,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
         ENDDO
       END IF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
+
       ! Comments on polar boundary conditions
       ! No advection over the poles means tendencies (held from jds [S. pole]
       ! to jde [N pole], i.e., on v grid) must be zero at poles
@@ -2560,6 +2743,14 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
                    *(v(i_end+1,k,j)+v(i_end,k,j))
           ENDDO
         ENDIF
+
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
 
 !  x flux-divergence into tendency
 
@@ -2676,6 +2867,24 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
       ENDDO
       ENDDO
       ENDDO
+
+      IF (output_fluxes) THEN
+        DO j = j_start, j_end
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = 0.25*(ru(i,k,j)+ru(i,k,j-1))*(v(i,k,j)+v(i-1,k,j))
+        ENDDO
+        ENDDO
+        ENDDO
+
+        DO j = j_start, j_end+1
+        DO k = kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = 0.25*(rv(i,k,j)+rv(i,k,j-1))*(v(i,k,j)+v(i,k,j-1))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
 
    ELSE IF ( horz_order == 0 ) THEN
 
@@ -2867,6 +3076,13 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 
          DO k=kts,ktf
          DO i = i_start, i_end
@@ -2912,6 +3128,13 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
          ENDDO
 
+         IF (output_fluxes) THEN
+           DO k = kts,kte
+           DO i = i_start, i_end
+             fqz_out(i,k,j) = vflux(i,k)
+           ENDDO
+           ENDDO
+         ENDIF
 
          DO k=kts,ktf
          DO i = i_start, i_end
@@ -2947,6 +3170,13 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 
          DO k=kts,ktf
          DO i = i_start, i_end
@@ -2982,6 +3212,13 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 
          DO k=kts,ktf
          DO i = i_start, i_end
@@ -3012,6 +3249,15 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-(msfvy(i,j)/msfvx(i,j))*rdzw(k)*(vflux(i,k+1)-vflux(i,k)) ! ADT eqn 45, 3rd term on RHS
       ENDDO
       ENDDO
+
+     IF (output_fluxes) THEN
+       DO k = kts,kte
+       DO i = i_start, i_end
+         fqz_out(i,k,j) = vflux(i,k)
+       ENDDO
+       ENDDO
+     ENDIF
+
    ENDDO
 
    ELSE
@@ -4488,6 +4734,7 @@ END SUBROUTINE advect_scalar
 !---------------------------------------------------------------------------------
 
 SUBROUTINE advect_w    ( w, w_old, tendency,            &
+                         fqx_out, fqy_out, fqz_out, output_fluxes,  &
                          ru, rv, rom,                   &
                          c1, c2,                        &
                          mut, time_step, config_flags,  &
@@ -4514,6 +4761,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
                                                                       ru,    &
                                                                       rv,    &
                                                                       rom
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
@@ -4534,6 +4782,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -4739,6 +4988,14 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
 
      ENDIF
 
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
+
 !  y flux-divergence into tendency
 
         ! Comments for polar boundary conditions
@@ -4895,6 +5152,14 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
           ENDDO
 
         ENDIF
+
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
 
 !  x flux-divergence into tendency
 
@@ -5053,6 +5318,14 @@ ELSE IF (horz_order == 5 ) THEN
 
      ENDIF
 
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
+
 !  y flux-divergence into tendency
 
         ! Comments for polar boundary conditions
@@ -5210,6 +5483,14 @@ ELSE IF (horz_order == 5 ) THEN
 
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts+1,ktf+1
@@ -5315,6 +5596,14 @@ ELSE IF ( horz_order == 4 ) THEN
                    *(w(i_end+1,k,j)+w(i_end,k,j))
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts+1,ktf+1
@@ -5411,6 +5700,14 @@ ELSE IF ( horz_order == 4 ) THEN
                                     vel                     )
           ENDDO
        END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -5547,6 +5844,14 @@ ELSE IF ( horz_order == 3 ) THEN
                    *(w(i_end+1,k,j)+w(i_end,k,j))
         ENDIF
 
+      IF (output_fluxes) THEN
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = fqx(i,k)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  x flux-divergence into tendency
 
         DO k=kts+1,ktf+1
@@ -5643,6 +5948,14 @@ ELSE IF ( horz_order == 3 ) THEN
                                     vel                     )
           ENDDO
        END IF
+
+    IF (output_fluxes) THEN
+      DO k=kts,ktf
+      DO i = i_start, i_end
+        fqy_out(i,k,j) = fqy(i,k,jp1)
+      ENDDO
+      ENDDO
+    ENDIF
 
 !  y flux-divergence into tendency
 
@@ -5800,6 +6113,26 @@ ELSE IF (horz_order == 2 ) THEN
             ENDDO
          END IF
       END IF
+
+      IF (output_fluxes) THEN
+        DO j = j_start, j_end
+        DO k = kts,ktf
+        DO i = i_start, i_end+1
+          fqx_out(i,k,j) = (fzm(k)*ru(i,k,j)+fzp(k)*ru(i,k-1,j))      &
+                               *(w(i,k,j)+w(i-1,k,j))
+        ENDDO
+        ENDDO
+        ENDDO
+
+        DO j = j_start, j_end+1
+        DO k = kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = (fzm(k)*rv(i,k,j)+fzp(k)*rv(i,k-1,j))      &
+                                 *(w(i,k,j)+w(i,k,j-1))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
 
    ELSE IF ( horz_order == 0 ) THEN
 
@@ -6033,6 +6366,14 @@ ELSE IF (horz_order == 2 ) THEN
            tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
       ENDDO
 
  ELSE IF (vert_order == 5) THEN    
@@ -6081,6 +6422,14 @@ ELSE IF (horz_order == 2 ) THEN
            tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
       ENDDO
 
  ELSE IF (vert_order == 4) THEN    
@@ -6116,6 +6465,14 @@ ELSE IF (horz_order == 2 ) THEN
          DO i = i_start, i_end
            tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
          ENDDO
+
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
 
       ENDDO
 
@@ -6154,6 +6511,14 @@ ELSE IF (horz_order == 2 ) THEN
            tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
          ENDDO
 
+        IF (output_fluxes) THEN
+          DO k = kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+        ENDIF
+
       ENDDO
 
  ELSE IF (vert_order == 2) THEN    
@@ -6177,6 +6542,14 @@ ELSE IF (horz_order == 2 ) THEN
      DO i = i_start, i_end
        tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
      ENDDO
+
+     IF (output_fluxes) THEN
+       DO k = kts,kte
+       DO i = i_start, i_end
+         fqz_out(i,k,j) = vflux(i,k)
+       ENDDO
+       ENDDO
+     ENDIF
 
   ENDDO
 
@@ -11082,6 +11455,7 @@ END PROGRAM feeder
 !---------------------------------------------------------------------------------
 
 SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
+                        fqx_out, fqy_out, fqz_out, output_fluxes, &
                         ru, rv, rom,                   &
                         c1, c2,                        &
                         mut, time_step, config_flags,  &
@@ -11117,6 +11491,7 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -11134,6 +11509,7 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
    ! Local data
    
@@ -11362,6 +11738,14 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
 
       END IF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  y flux-divergence into tendency
 
         ! (j > j_start) will miss the u(,,jds) tendency
@@ -11518,6 +11902,14 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
                                          vel                     )
           ENDDO
 
+        ENDIF
+
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
         ENDIF
 
 !  x flux-divergence into tendency
@@ -11721,6 +12113,15 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
             tendency(i,k,j)=tendency(i,k,j)-rdzw(k)*(vflux(i,k+1)-vflux(i,k))
          ENDDO
          ENDDO
+
+         IF (output_fluxes) THEN
+          DO k=kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+         ENDIF
+         
       ENDDO
 
 
@@ -11729,6 +12130,7 @@ END SUBROUTINE advect_weno_u
 !-------------------------------------------------------------------------------
 
 SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
+                        fqx_out, fqy_out, fqz_out, output_fluxes, &
                         ru, rv, rom,                   &
                         c1, c2,                        &
                         mut, time_step, config_flags,  &
@@ -11764,6 +12166,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -11781,6 +12184,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -12014,6 +12418,14 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
       END IF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -12180,6 +12592,14 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
           ENDDO
 
+        ENDIF
+
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
         ENDIF
 
 !  x flux-divergence into tendency
@@ -12415,6 +12835,13 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
          ENDDO
          ENDDO
 
+         IF (output_fluxes) THEN
+          DO k=kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+         ENDIF
       ENDDO
 
 
@@ -12424,6 +12851,7 @@ END SUBROUTINE advect_weno_v
 !---------------------------------------------------------------------------------
 
 SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
+                         fqx_out, fqy_out, fqz_out, output_fluxes, &
                          ru, rv, rom,                   &
                          c1, c2,                        &
                          mut, time_step, config_flags,  &
@@ -12459,6 +12887,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
    REAL , DIMENSION( ims:ime , jms:jme ) , INTENT(IN   ) :: mut
    REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ), INTENT(OUT) :: fqx_out,fqy_out,fqz_out
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -12476,6 +12905,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    INTEGER ,                                     INTENT(IN   ) :: time_step
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 
    ! Local data
@@ -12760,6 +13190,14 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
      ENDIF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i = i_start, i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
+
 !  y flux-divergence into tendency
 
         ! Comments for polar boundary conditions
@@ -12977,6 +13415,14 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
           ENDDO
 
+        ENDIF
+
+        IF (output_fluxes) THEN
+          DO k=kts,ktf
+          DO i = i_start, i_end+1
+            fqx_out(i,k,j) = fqx(i,k)
+          ENDDO
+          ENDDO
         ENDIF
 
 !  x flux-divergence into tendency
@@ -13242,6 +13688,14 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
          DO i = i_start, i_end
            tendency(i,k,j)=tendency(i,k,j)+2.*rdzu(k-1)*(vflux(i,k))
          ENDDO
+
+         IF (output_fluxes) THEN
+          DO k=kts,kte
+          DO i = i_start, i_end
+            fqz_out(i,k,j) = vflux(i,k)
+          ENDDO
+          ENDDO
+         ENDIF
 
       ENDDO
 

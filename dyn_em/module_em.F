@@ -189,7 +189,8 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
-                         ftx, fty, ftz, qv,                               &
+                         ftx, fty, ftz,                                   &
+                         fux, fuy, fuz, fvx, fvy, fvz, fwx, fwy, fwz, qv, &
                          mu_tend, u_save, v_save, w_save, ph_save,        &
                          t_save, mu_save, RTHFTEN,                        &
                          ru, rv, rw, ww,                                  &
@@ -263,14 +264,18 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                          rv_tend, &
                                                          rw_tend, &
                                                          t_tend,  &
-                                                         ftx, fty, ftz,  &
                                                          ph_tend, &
                                                          RTHFTEN, &
                                                           u_save, &
                                                           v_save, &
                                                           w_save, &
                                                          ph_save, &
-                                                          t_save
+                                                          t_save, &
+                                                  ftx, fty, ftz,  &
+                                                  fux, fuy, fuz,  &
+                                                  fvx, fvy, fvz,  &
+                                                  fwx, fwy, fwz
+
 
    REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) ,               &
                                         INTENT(INOUT) :: ru_tendf, &
@@ -423,10 +428,17 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    !  advection tendencies
    CALL nl_get_time_step ( 1, time_step )
 
+   IF ((rk_step == 3) .and. (config_flags%output_res_fluxes==1)) THEN
+     output_fluxes = .true.
+   ELSE
+     output_fluxes = .false.
+   ENDIF
 
     IF( (rk_step == 3) .and. ( adv_opt == WENO_MOM ) ) THEN
 
-     CALL advect_weno_u ( u, u , ru_tend, ru, rv, ww, &
+     CALL advect_weno_u ( u, u , ru_tend,        &
+                   fux, fuy, fuz, output_fluxes, &
+                   ru, rv, ww,                   &
                    c1h, c2h,                     &
                    mut, time_step, config_flags, &
                    msfux, msfuy, msfvx, msfvy,   &
@@ -438,7 +450,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ELSE
      
-     CALL advect_u ( u, u , ru_tend, ru, rv, ww, &
+     CALL advect_u ( u, u , ru_tend,             &
+                   fux, fuy, fuz, output_fluxes, &
+                   ru, rv, ww,                   &
                    c1h, c2h,                     &
                    mut, time_step, config_flags, &
                    msfux, msfuy, msfvx, msfvy,   &
@@ -451,7 +465,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      IF( (rk_step == 3) .and. ( adv_opt == WENO_MOM ) ) THEN
 
-     CALL advect_weno_v ( v, v , rv_tend, ru, rv, ww,  &
+     CALL advect_weno_v ( v, v , rv_tend,        &
+                   fvx, fvy, fvz, output_fluxes, &
+                   ru, rv, ww,                   &
                    c1h, c2h,                     &
                    mut, time_step, config_flags, &
                    msfux, msfuy, msfvx, msfvy,   &
@@ -463,7 +479,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
     ELSE
      
-     CALL advect_v ( v, v , rv_tend, ru, rv, ww,  &
+     CALL advect_v ( v, v , rv_tend,             &
+                   fvx, fvy, fvz, output_fluxes, &
+                   ru, rv, ww,                   &
                    c1h, c2h,                     &
                    mut, time_step, config_flags, &
                    msfux, msfuy, msfvx, msfvy,   &
@@ -477,7 +495,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
    IF (non_hydrostatic) THEN
      IF( (rk_step == 3) .and. ( adv_opt == WENO_MOM ) ) THEN
-     CALL advect_weno_w ( w, w, rw_tend, ru, rv, ww,    &
+     CALL advect_weno_w ( w, w, rw_tend,           &
+                     fwx, fwy, fwz, output_fluxes, &
+                     ru, rv, ww,                   &
                      c1h, c2h,                     &
                      mut, time_step, config_flags, &
                      msfux, msfuy, msfvx, msfvy,   &
@@ -489,7 +509,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ELSE
      
-     CALL advect_w ( w, w, rw_tend, ru, rv, ww,    &
+     CALL advect_w ( w, w, rw_tend,                &
+                     fwx, fwy, fwz, output_fluxes, &
+                     ru, rv, ww,                   &
                      c1h, c2h,                     &
                      mut, time_step, config_flags, &
                      msfux, msfuy, msfvx, msfvy,   &
@@ -501,9 +523,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((rk_step == 3) .and. (config_flags%output_res_fluxes==1)) THEN
-        output_fluxes = .true.
-        IF ((config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. (config_flags%use_theta_m .eq. 1)) THEN
+      IF ((output_fluxes) .and. (config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. (config_flags%use_theta_m .eq. 1)) THEN
           advect_thdry = .true.
           DO j = jms,jme
           DO k = kms,kme
@@ -512,9 +532,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
           ENDDO
-        ENDIF
       ELSE
-        output_fluxes = .false.
         advect_thdry = .false.
       ENDIF
 

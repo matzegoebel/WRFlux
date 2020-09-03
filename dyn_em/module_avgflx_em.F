@@ -186,7 +186,7 @@ CONTAINS
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            i, j, k, kms, kme, kde              )
 
-            if (config_flags%hesselberg_avg) then
+            if (config_flags%hesselberg_avg==1) then
               rhox = 0.5*(rho_d(i,k,j)+rho_d(i-1,k,j))
               rhoy = 0.5*(rho_d(i,k,j)+rho_d(i,k,j-1))
               rhoz = rho_8w
@@ -236,7 +236,7 @@ CONTAINS
             corr_vq = rho_8w*zy_8w*v_8w*qz
             corr_dqdt = rho_8w*dzdt*qz
 
-            if (last_timestep .and. config_flags%hesselberg_avg ) then
+            if (last_timestep .and. config_flags%hesselberg_avg==1) then
               !normalize means by density
               rho_mean = hist_mean(i,k,j,P_RHOD_MEAN)
               rhox_mean = 0.5*(hist_mean(i,k,j,P_RHOD_MEAN) + hist_mean(i-1,k,j,P_RHOD_MEAN))

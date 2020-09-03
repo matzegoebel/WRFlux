@@ -501,7 +501,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((rk_step == 3) .and. (config_flags%output_res_fluxes)) THEN
+      IF ((rk_step == 3) .and. (config_flags%output_res_fluxes==1)) THEN
         output_fluxes = .true.
         IF ((config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. (config_flags%use_theta_m .eq. 1)) THEN
           advect_thdry = .true.

@@ -2138,7 +2138,7 @@ BENCH_END(small_step_finish_tim)
 
                CALL wrf_debug ( 200 , ' call rk_scalar_tend' )
                tenddec = .false.
-               IF ((im==p_qv) .and. (config_flags%output_res_fluxes)) THEN
+               IF ((im==p_qv) .and. (config_flags%output_res_fluxes==1)) THEN
                   output_fluxes = .true.
                ELSE
                   output_fluxes = .false.

@@ -4615,6 +4615,9 @@ BENCH_END(bc_2d_tim)
               &   sgs_fluxes, sgs_fluxes_8w, nba_mij, hist_mean, hist_mean_8w,                      &
               &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
               &   grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,                                         &
+              &   grid%ruu_tot, grid%rvu_tot, grid%wwu_tot,                                         &
+              &   grid%ruv_tot, grid%rvv_tot, grid%wwv_tot,                                         &
+              &   grid%ruw_tot, grid%rvw_tot, grid%www_tot,                                         &
               &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,               &
               &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
               &   grid%t_2, moist(:,:,:,P_QV),                                                      &

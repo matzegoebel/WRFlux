@@ -90,8 +90,9 @@ CONTAINS
        & config_flags,                                                              &
        & sgs_fluxes, sgs_fluxes_8w, nba_mij, hist_mean, hist_mean_8w,               &
        & ruth_tot, rvth_tot, wwth_tot, ruq_tot, rvq_tot, wwq_tot,                   &
+       & ruu_tot, rvu_tot, wwu_tot, ruv_tot, rvv_tot, wwv_tot, ruw_tot, rvw_tot, www_tot, &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                         &
-       & Ustag, Vstag, Wstag, ru, rv, ww, thm, Q,                                   &
+       & U, V, W, ru, rv, ww, thm, Q,                                               &
        & ph_1, ph_2, phb, zx, zy,                                                   &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,          &
        & last_timestep, dt                                                          )
@@ -109,10 +110,13 @@ CONTAINS
 
     REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          ru_m, rv_m, ww_m,             & 
-         Ustag, Vstag, Wstag, ru, rv, ww,  &
+         U, V, W, ru, rv, ww,  &
          thm, Q, ph_1, ph_2, phb, zx, zy,  &
          ruth_tot, rvth_tot, wwth_tot,     &
          ruq_tot, rvq_tot, wwq_tot,        &
+         ruu_tot, rvu_tot, wwu_tot,        &
+         ruv_tot, rvv_tot, wwv_tot,        &
+         ruw_tot, rvw_tot, www_tot,        &
          t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp
 
     REAL , DIMENSION( ims:ime, kms:kme, jms:jme, num_sgs_fluxes), INTENT(IN) :: sgs_fluxes
@@ -142,9 +146,13 @@ CONTAINS
 
     INTEGER :: i,j,k
     REAL :: local_count, rho_8w, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
-            thetax, thetay, thetaz, qx, qy, qz, qfac,        &
-            zx_8w, zy_8w, u_8w, v_8w, dzdt,              &
-            corr_uth, corr_vth, corr_dthdt, corr_uq, corr_vq, corr_dqdt, &
+            thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz, qfac,     &
+            zx_8w, zy_8w, u_8w, v_8w, dzdt, &
+            corr_uth, corr_vth, corr_dthdt, &
+            corr_uq, corr_vq, corr_dqdt,    &
+            corr_uu, corr_vu, corr_dudt, &
+            corr_uv, corr_vv, corr_dvdt, &
+            corr_uw, corr_vw, corr_dwdt, &
             wdiag, muz, mu, dphidn
 
     local_count = real(avgflx_count)
@@ -213,15 +221,36 @@ CONTAINS
                                            cf1, cf2, cf3, cfn, cfn1,   &
                                            i, j, k, kde,               &
                                            ims, ime, jms, jme, kms, kme  )
+    !TODO: which velocity? and staggering?
+            call get_staggered_from_fluxes(ux, uy, uz,                 &
+                                           ruu_tot, rvu_tot, wwu_tot,  &
+                                           ru_m, rv_m, ww_m, U,        &
+                                           cf1, cf2, cf3, cfn, cfn1,   &
+                                           i, j, k, kde,               &
+                                           ims, ime, jms, jme, kms, kme  )
+            call get_staggered_from_fluxes(vx, vy, vz,                 &
+                                           ruv_tot, rvv_tot, wwv_tot,  &
+                                           ru_m, rv_m, ww_m, V,        &
+                                           cf1, cf2, cf3, cfn, cfn1,   &
+                                           i, j, k, kde,               &
+                                           ims, ime, jms, jme, kms, kme  )
+
+           !TODO different staggering for w!!
+            call get_staggered_from_fluxes(wx, wy, wz,                 &
+                                           ruw_tot, rvw_tot, www_tot,  &
+                                           ru_m, rv_m, ww_m, W,        &
+                                           cf1, cf2, cf3, cfn, cfn1,   &
+                                           i, j, k, kde,               &
+                                           ims, ime, jms, jme, kms, kme  )
 
             !compute cartesian corrections
             zx_8w = 0.5*(zx(i,k,j)+zx(i+1,k,j))
             zy_8w = 0.5*(zy(i,k,j)+zy(i,k,j+1))
             dzdt = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
-            call stagger_z(u_8w, Ustag(i,:,j)+Ustag(i+1,:,j),  &
+            call stagger_z(u_8w, U(i,:,j)+U(i+1,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            i, j, k, kms, kme, kde              )
-            call stagger_z(v_8w, Vstag(i,:,j)+Vstag(i,:,j+1),  &
+            call stagger_z(v_8w, V(i,:,j)+V(i,:,j+1),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            i, j, k, kms, kme, kde              )
 
@@ -235,6 +264,19 @@ CONTAINS
             corr_uq = rho_8w*zx_8w*u_8w*qz
             corr_vq = rho_8w*zy_8w*v_8w*qz
             corr_dqdt = rho_8w*dzdt*qz
+
+            corr_uu = rho_8w*zx_8w*u_8w*uz
+            corr_vu = rho_8w*zy_8w*v_8w*uz
+            corr_dudt = rho_8w*dzdt*uz
+
+            corr_uv = rho_8w*zx_8w*u_8w*vz
+            corr_vv = rho_8w*zy_8w*v_8w*vz
+            corr_dvdt = rho_8w*dzdt*vz
+
+            corr_uw = rho_8w*zx_8w*u_8w*wz
+            corr_vw = rho_8w*zy_8w*v_8w*wz
+            corr_dwdt = rho_8w*dzdt*wz
+
 
             if (last_timestep .and. config_flags%hesselberg_avg==1) then
               !normalize means by density
@@ -253,9 +295,9 @@ CONTAINS
             ENDIF
 
             !mean variables
-            hist_mean(i,k,j,P_U_MEAN) = (local_count*hist_mean(i,k,j,P_U_MEAN) + Ustag(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
-            hist_mean(i,k,j,P_V_MEAN) = (local_count*hist_mean(i,k,j,P_V_MEAN) + Vstag(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
-            hist_mean_8w(i,k,j,P_W_MEAN) = (local_count*hist_mean_8w(i,k,j,P_W_MEAN) + Wstag(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
+            hist_mean(i,k,j,P_U_MEAN) = (local_count*hist_mean(i,k,j,P_U_MEAN) + U(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
+            hist_mean(i,k,j,P_V_MEAN) = (local_count*hist_mean(i,k,j,P_V_MEAN) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
+            hist_mean_8w(i,k,j,P_W_MEAN) = (local_count*hist_mean_8w(i,k,j,P_W_MEAN) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
             hist_mean_8w(i,k,j,P_OM_MEAN) = (local_count*hist_mean_8w(i,k,j,P_OM_MEAN) + ww(i,k,j)/muz*rhoz )/(local_count+1.)/rhoz_mean
             hist_mean_8w(i,k,j,P_WD_MEAN) = (local_count*hist_mean_8w(i,k,j,P_WD_MEAN) + wdiag*rhoz )/(local_count+1.)/rhoz_mean
 
@@ -271,6 +313,21 @@ CONTAINS
             hist_mean_8w(i,k,j,P_QZ_MEAN) = (local_count*hist_mean_8w(i,k,j,P_QZ_MEAN) + qz*rhoz )/(local_count+1.)/rhoz_mean
             hist_mean(i,k,j,P_QQ_MEAN) = (local_count*hist_mean(i,k,j,P_QQ_MEAN) + Q(i,k,j)*2 )/(local_count+1.)
 
+            hist_mean(i,k,j,P_U_MEAN) = (local_count*hist_mean(i,k,j,P_U_MEAN) + U(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+            hist_mean(i,k,j,P_UX_MEAN) = (local_count*hist_mean(i,k,j,P_UX_MEAN) + ux*rhox )/(local_count+1.)/rhox_mean
+            hist_mean(i,k,j,P_UY_MEAN) = (local_count*hist_mean(i,k,j,P_UY_MEAN) + uy*rhoy )/(local_count+1.)/rhoy_mean
+            hist_mean_8w(i,k,j,P_UZ_MEAN) = (local_count*hist_mean_8w(i,k,j,P_UZ_MEAN) + uz*rhoz )/(local_count+1.)/rhoz_mean
+
+            hist_mean(i,k,j,P_V_MEAN) = (local_count*hist_mean(i,k,j,P_V_MEAN) + V(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+            hist_mean(i,k,j,P_VX_MEAN) = (local_count*hist_mean(i,k,j,P_VX_MEAN) + vx*rhox )/(local_count+1.)/rhox_mean
+            hist_mean(i,k,j,P_VY_MEAN) = (local_count*hist_mean(i,k,j,P_VY_MEAN) + vy*rhoy )/(local_count+1.)/rhoy_mean
+            hist_mean_8w(i,k,j,P_VZ_MEAN) = (local_count*hist_mean_8w(i,k,j,P_VZ_MEAN) + vz*rhoz )/(local_count+1.)/rhoz_mean
+
+            hist_mean(i,k,j,P_W_MEAN) = (local_count*hist_mean(i,k,j,P_W_MEAN) + W(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+            hist_mean(i,k,j,P_WX_MEAN) = (local_count*hist_mean(i,k,j,P_WX_MEAN) + wx*rhox )/(local_count+1.)/rhox_mean
+            hist_mean(i,k,j,P_WY_MEAN) = (local_count*hist_mean(i,k,j,P_WY_MEAN) + wy*rhoy )/(local_count+1.)/rhoy_mean
+            hist_mean_8w(i,k,j,P_WZ_MEAN) = (local_count*hist_mean_8w(i,k,j,P_WZ_MEAN) + wz*rhoz )/(local_count+1.)/rhoz_mean
+
             !mean total fluxes
             !TODO: momentum fluxes from advection module
 
@@ -282,6 +339,18 @@ CONTAINS
             hist_mean(i,k,j,P_RVQ_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RVQ_TOT_MEAN) + rvq_tot(i,k,j) )/(local_count+1.)
             hist_mean_8w(i,k,j,P_WWQ_TOT_MEAN)  = (local_count*hist_mean_8w(i,k,j,P_WWQ_TOT_MEAN) + wwq_tot(i,k,j) )/(local_count+1.)
 
+            hist_mean(i,k,j,P_RUU_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RUU_TOT_MEAN) + ruu_tot(i,k,j) )/(local_count+1.)
+            hist_mean(i,k,j,P_RVU_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RVU_TOT_MEAN) + rvu_tot(i,k,j) )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_WWU_TOT_MEAN)  = (local_count*hist_mean_8w(i,k,j,P_WWU_TOT_MEAN) + wwu_tot(i,k,j) )/(local_count+1.)
+
+            hist_mean(i,k,j,P_RUV_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RUV_TOT_MEAN) + ruv_tot(i,k,j) )/(local_count+1.)
+            hist_mean(i,k,j,P_RVV_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RVV_TOT_MEAN) + rvv_tot(i,k,j) )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_WWV_TOT_MEAN)  = (local_count*hist_mean_8w(i,k,j,P_WWV_TOT_MEAN) + wwv_tot(i,k,j) )/(local_count+1.)
+
+            hist_mean(i,k,j,P_RUW_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RUW_TOT_MEAN) + ruw_tot(i,k,j) )/(local_count+1.)
+            hist_mean(i,k,j,P_RVW_TOT_MEAN)  = (local_count*hist_mean(i,k,j,P_RVW_TOT_MEAN) + rvw_tot(i,k,j) )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_WWW_TOT_MEAN)  = (local_count*hist_mean_8w(i,k,j,P_WWW_TOT_MEAN) + www_tot(i,k,j) )/(local_count+1.)
+
             !mean correction terms
             hist_mean_8w(i,k,j,P_CORR_UTH)  = (local_count*hist_mean_8w(i,k,j,P_CORR_UTH) + corr_uth )/(local_count+1.)
             hist_mean_8w(i,k,j,P_CORR_VTH)  = (local_count*hist_mean_8w(i,k,j,P_CORR_VTH) + corr_vth )/(local_count+1.)
@@ -291,13 +360,25 @@ CONTAINS
             hist_mean_8w(i,k,j,P_CORR_VQ)  = (local_count*hist_mean_8w(i,k,j,P_CORR_VQ) + corr_vq )/(local_count+1.)
             hist_mean_8w(i,k,j,P_CORR_DQDT)  = (local_count*hist_mean_8w(i,k,j,P_CORR_DQDT) + corr_dqdt )/(local_count+1.)
 
+            hist_mean_8w(i,k,j,P_CORR_UU)  = (local_count*hist_mean_8w(i,k,j,P_CORR_UU) + corr_uu )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_VU)  = (local_count*hist_mean_8w(i,k,j,P_CORR_VU) + corr_vu )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_DUDT)  = (local_count*hist_mean_8w(i,k,j,P_CORR_DUDT) + corr_dudt )/(local_count+1.)
+
+            hist_mean_8w(i,k,j,P_CORR_UV)  = (local_count*hist_mean_8w(i,k,j,P_CORR_UV) + corr_uv )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_VV)  = (local_count*hist_mean_8w(i,k,j,P_CORR_VV) + corr_vv )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_DVDT)  = (local_count*hist_mean_8w(i,k,j,P_CORR_DVDT) + corr_dvdt )/(local_count+1.)
+
+            hist_mean_8w(i,k,j,P_CORR_UW)  = (local_count*hist_mean_8w(i,k,j,P_CORR_UW) + corr_uw )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_VW)  = (local_count*hist_mean_8w(i,k,j,P_CORR_VW) + corr_vw )/(local_count+1.)
+            hist_mean_8w(i,k,j,P_CORR_DWDT)  = (local_count*hist_mean_8w(i,k,j,P_CORR_DWDT) + corr_dwdt )/(local_count+1.)
+
           ENDIF
 
           hist_mean(i,k,j,P_T_TEND_RADLW_MEAN)  = (local_count*hist_mean(i,k,j,P_T_TEND_RADLW_MEAN) + t_tend_radlw(i,k,j) )/(local_count+1.)
           hist_mean(i,k,j,P_T_TEND_RADSW_MEAN)  = (local_count*hist_mean(i,k,j,P_T_TEND_RADSW_MEAN) + t_tend_radsw(i,k,j) )/(local_count+1.)
           hist_mean(i,k,j,P_T_TEND_MP_MEAN)  = (local_count*hist_mean(i,k,j,P_T_TEND_MP_MEAN) + t_tend_mp(i,k,j) )/(local_count+1.)
           hist_mean(i,k,j,P_Q_TEND_MP_MEAN)  = (local_count*hist_mean(i,k,j,P_Q_TEND_MP_MEAN) + qv_tend_mp(i,k,j) )/(local_count+1.)
-          !TODO: temperature tendencies from cumulus scheme; small time step tendencies
+          !TODO: temperature tendencies from cumulus scheme; small time step tendencies from momentum
           IF (config_flags%output_sgs_fluxes==1) THEN
             hist_mean(i,k,j,P_sgs_UU_mean)  = (local_count*hist_mean(i,k,j,P_sgs_UU_mean)  + sgs_fluxes(i,k,j,P_sgs_UU) )  / (local_count+1.)
             hist_mean(i,k,j,P_sgs_VV_mean)  = (local_count*hist_mean(i,k,j,P_sgs_VV_mean)  + sgs_fluxes(i,k,j,P_sgs_VV)  )  / (local_count+1.)

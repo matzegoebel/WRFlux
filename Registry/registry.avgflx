@@ -185,14 +185,20 @@ state   real    q_tend_mp_mean       ikjf     hist_mean          1              
 state   real    t_tend_mp        ikj      dyn_em          1               -               -     "T_TEND_MP"          "inst. dry theta-tendency from MP scheme" "K s-1"
 
 #namelist options
-rconfig  integer  output_avgfluxes    namelist,dynamics    1              0               - "output_avgfluxes"      "Output averaged fluxes and mean quantities"
+rconfig  integer  output_avgfluxes    namelist,dynamics    1              0               - "output_avgfluxes"  "Output averaged fluxes and mean quantities"
 rconfig  integer  output_sgs_fluxes   namelist,dynamics    1              0               - "output_sgs_fluxes" "Output SGS turbulent fluxes from diffusion module and PBL scheme"
 rconfig  integer  output_res_fluxes   namelist,dynamics    1              0               - "output_res_fluxes" "Output total resolved fluxes from advection module"
+rconfig  integer  output_th_fluxes    namelist,dynamics    1              0               - "output_th_fluxes"  "Output resolved and SGS theta-fluxes"
+rconfig  integer  output_q_fluxes     namelist,dynamics    1              0               - "output_q_fluxes"   "Output resolved and SGS moisture fluxes"
+rconfig  integer  output_u_fluxes     namelist,dynamics    1              0               - "output_u_fluxes"   "Output resolved and SGS u-fluxes"
+rconfig  integer  output_v_fluxes     namelist,dynamics    1              0               - "output_v_fluxes"   "Output resolved and SGS v-fluxes"
+rconfig  integer  output_w_fluxes     namelist,dynamics    1              0               - "output_w_fluxes"   "Output resolved and SGS w-fluxes"
+rconfig  integer  output_tke          namelist,dynamics    1              0               - "output_tke"        "Output TKE budget terms from diffusion module if available"
 rconfig  integer  hesselberg_avg      namelist,dynamics    1              0               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
 rconfig  integer  output_dry_theta_fluxes  namelist,dynamics    1         0               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
 
 #packages
-package  hist_mean_p       output_avgfluxes==1        -  hist_mean:u_mean,v_mean,rhod_mean,th_mean,thx_mean,thy_mean,q_mean,qx_mean,qy_mean,thth_mean,qq_mean,ruth_tot_mean,rvth_tot_mean,ruq_tot_mean,rvq_tot_mean,sgs_UV_mean,sgs_UU_mean,sgs_VV_mean,sgs_WW_mean,sgs_UTH_mean,sgs_VTH_mean,sgs_UQ_mean,sgs_VQ_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean
+package  hist_mean_p       output_avgfluxes==1        -  hist_mean:u_mean,ux_mean,uy_mean,v_mean,vx_mean,vy_mean,rhod_mean,th_mean,thx_mean,thy_mean,q_mean,qx_mean,qy_mean,thth_mean,qq_mean,ruth_tot_mean,rvth_tot_mean,ruq_tot_mean,rvq_tot_mean,sgs_UV_mean,sgs_UU_mean,sgs_VV_mean,sgs_WW_mean,sgs_UTH_mean,sgs_VTH_mean,sgs_UQ_mean,sgs_VQ_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean
 package  hist_mean_p_8w    output_avgfluxes==1        -  hist_mean_8w:om_mean,wd_mean,w_mean,z_mean,thz_mean,qz_mean,wwth_tot_mean,wwq_tot_mean,corr_uth,corr_vth,corr_dthdt,corr_uq,corr_vq,corr_dqdt,sgs_UW_mean,sgs_VW_mean,sgs_WTH_mean,sgs_WQ_mean
 package  sgs_fluxes_p      output_sgs_fluxes==1       -  sgs_fluxes:sgs_UV,sgs_UU,sgs_VV,sgs_WW,sgs_UTH,sgs_VTH,sgs_UQ,sgs_VQ
 package  sgs_fluxes_p_8w   output_sgs_fluxes==1       -  sgs_fluxes_8w:sgs_UW,sgs_VW,sgs_WU,sgs_WV,sgs_WTH,sgs_WQ

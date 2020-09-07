@@ -5,9 +5,7 @@
 
     USE module_bc, only: set_physical_bc3d, set_physical_bc2d ! XZ
     USE module_state_description, only: p_m23, p_m13, p_m22, p_m33, p_r23, p_r13, p_r12, p_m12, p_m11, &
-                                        P_QNS, P_QNR, P_QNG, P_QT, P_QNH, P_QVOLG,                     & ! XZ
-                                        p_sgs_UTH, p_sgs_VTH, p_sgs_WTH, p_sgs_UQ, p_sgs_VQ, p_sgs_WQ,       &
-                                        p_sgs_UV, p_sgs_UW, p_sgs_VW, p_sgs_WU, p_sgs_WV, p_sgs_UU, p_sgs_VV, p_sgs_WW
+                                        P_QNS, P_QNR, P_QNG, P_QT, P_QNH, P_QVOLG  ! XZ
     USE module_big_step_utilities_em, only: grid_config_rec_type, param_first_scalar, p_qv, p_qi, p_qc
     USE module_model_constants
 
@@ -2860,7 +2858,8 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                     chem_tendf, n_chem,                        &
                                     scalar_tendf, n_scalar,                    &
                                     tracer_tendf, n_tracer,                    &
-                                    sgs_fluxes, n_sgs_fluxes,                  &
+                                    sgs_uth, sgs_vth, sgs_uq, sgs_vq,          &
+                                    sgs_uu, sgs_uv, sgs_vv, sgs_uw, sgs_vw,    &
                                     thp, theta, tke, config_flags,             &
                                     defor11, defor22, defor12,                 &
                                     defor13, defor23,                          &
@@ -2886,7 +2885,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                             ims, ime, jms, jme, kms, kme, &
                                             its, ite, jts, jte, kts, kte
 
-   INTEGER ,        INTENT(IN   ) ::        n_moist,n_chem,n_scalar,n_tracer,km_opt,n_sgs_fluxes
+   INTEGER ,        INTENT(IN   ) ::        n_moist,n_chem,n_scalar,n_tracer,km_opt
 
    REAL ,           INTENT(IN   ) ::        cf1, cf2, cf3
 
@@ -2921,9 +2920,6 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_tracer),                &
           INTENT(INOUT) ::                                   tracer_tendf
 
-   REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_sgs_fluxes),                  &
-          INTENT(OUT) ::                                     sgs_fluxes
-
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_moist),                 &
           INTENT(IN   ) ::                                          moist
 
@@ -2952,6 +2948,10 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                                                      rdz, &
                                                                     rdzw, &
                                                                      rho
+
+   REAL , DIMENSION( ims:ime, kms:kme, jms:jme), INTENT(OUT) ::  &
+                                    sgs_uth, sgs_vth, sgs_uq, sgs_vq,  &
+                                    sgs_uu, sgs_uv, sgs_vv, sgs_uw, sgs_vw
 
 
    REAL ,                                        INTENT(IN   ) ::    rdx, &
@@ -3008,15 +3008,15 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-        sgs_fluxes(i,k,j,p_sgs_UV) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
+        sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
                                                                    rho(i-1,k,j-1) + rho(i,k,j-1) )
-        sgs_fluxes(i,k,j,p_sgs_UU) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
-        sgs_fluxes(i,k,j,p_sgs_VV) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
+        sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
+        sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
 
         !horizontal fluxes of w (not redundant if pbl scheme is used)
-        sgs_fluxes(i,k,j,p_sgs_WU) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+        sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
                                                                               fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-        sgs_fluxes(i,k,j,p_sgs_WV) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+        sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
                                                                               fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
       ENDDO
       ENDDO
@@ -3071,8 +3071,8 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-          sgs_fluxes(i,k,j,p_sgs_UTH) = H1(i,k,j)
-          sgs_fluxes(i,k,j,p_sgs_VTH) = H2(i,k,j)
+          sgs_UTH(i,k,j) = H1(i,k,j)
+          sgs_VTH(i,k,j) = H2(i,k,j)
       ENDDO
       ENDDO
       ENDDO
@@ -3113,8 +3113,8 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
             DO j=jts,min(jte,jde-1)
             DO k=kts,min(kte,kde-1)
             DO i=its,min(ite,ide-1)
-                sgs_fluxes(i,k,j,p_sgs_UQ) = H1(i,k,j)
-                sgs_fluxes(i,k,j,p_sgs_VQ) = H2(i,k,j)
+                sgs_UQ(i,k,j) = H1(i,k,j)
+                sgs_VQ(i,k,j) = H2(i,k,j)
             ENDDO
             ENDDO
             ENDDO
@@ -4079,8 +4079,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
                                     chem_tendf, n_chem,                       &
                                     scalar_tendf, n_scalar,                   &
                                     tracer_tendf, n_tracer,                   &
-                                    sgs_fluxes, n_sgs_fluxes,                 &
-                                    sgs_fluxes_8w, n_sgs_fluxes_8w,            &
+                                    sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww,  &
                                     u_2, v_2,                                 &
                                     thp,u_base,v_base,t_base,qv_base,tke,     &
                                     theta,                                    &
@@ -4106,7 +4105,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
                                             ims, ime, jms, jme, kms, kme, &
                                             its, ite, jts, jte, kts, kte
 
-   INTEGER ,        INTENT(IN   ) ::        n_moist,n_chem,n_scalar,n_tracer,n_sgs_fluxes,n_sgs_fluxes_8w,km_opt
+   INTEGER ,        INTENT(IN   ) ::        n_moist,n_chem,n_scalar,n_tracer,km_opt
 
    REAL , DIMENSION( kms:kme ) ,                 INTENT(IN   ) :: fnm
    REAL , DIMENSION( kms:kme ) ,                 INTENT(IN   ) :: fnp
@@ -4136,11 +4135,8 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
           INTENT(INOUT) ::                                   tracer_tendf
 
 
-   REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_sgs_fluxes),                  &
-          INTENT(OUT) ::                                     sgs_fluxes
-          
-   REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_sgs_fluxes_8w),                  &
-          INTENT(OUT) ::                                     sgs_fluxes_8w
+   REAL , DIMENSION( ims:ime, kms:kme, jms:jme), INTENT(OUT) ::    &
+                                       sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww
 
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_moist),                 &
           INTENT(INOUT) ::                                          moist
@@ -4329,12 +4325,11 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-        !TODO: for UW, VW : need to sum up PBL scheme and diff components or only PBL??
-        sgs_fluxes_8w(i,k,j,p_sgs_UW) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+        sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
                                                                        fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-        sgs_fluxes_8w(i,k,j,p_sgs_VW) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+        sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
                                                                        fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
-        sgs_fluxes(i,k,j,p_sgs_WW) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
+        sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
       ENDDO
       ENDDO
       ENDDO
@@ -4389,7 +4384,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
       DO j=jts,min(jte,jde-1)
       DO k=kts+1,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-        sgs_fluxes_8w(i,k,j,p_sgs_WTH) = H3(i,k,j)
+        sgs_WTH(i,k,j) = H3(i,k,j)
       ENDDO
       ENDDO
       ENDDO
@@ -4409,7 +4404,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        hfx(i,j)=heat_flux*cpm*rho(i,kts,j)         ! provided for output only
 
        IF (config_flags%output_sgs_fluxes==1) THEN
-        sgs_fluxes_8w(i,kts,j,p_sgs_WTH) = heat_flux*rho(i,kts,j)
+        sgs_WTH(i,kts,j) = heat_flux*rho(i,kts,j)
        ENDIF
        
        if(config_flags%use_theta_m == 1)THEN
@@ -4418,7 +4413,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
              -g*1.61*theta(i,kts,j)*qfx(i,j)/dnw(kts)
 
          IF ((config_flags%output_dry_theta_fluxes .EQ. 0 ) .and. (config_flags%output_sgs_fluxes==1)) THEN
-            sgs_fluxes_8w(i,kts,j,p_sgs_WTH) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))*rho(i,kts,j) &
+            sgs_WTH(i,kts,j) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))*rho(i,kts,j) &
                                                + 1.61*theta(i,kts,j)*qfx(i,j)
          ENDIF
        ELSE
@@ -4435,7 +4430,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
        heat_flux = hfx(i,j)/cpm
        IF (config_flags%output_sgs_fluxes==1) THEN
-        sgs_fluxes_8w(i,kts,j,p_sgs_WTH) = heat_flux
+        sgs_WTH(i,kts,j) = heat_flux
        ENDIF
 
        if(config_flags%use_theta_m == 1)THEN
@@ -4443,7 +4438,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
              -g*heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))/dnw(kts) &
              -g*1.61*theta(i,kts,j)*qfx(i,j)/dnw(kts)
          IF ((config_flags%output_dry_theta_fluxes .EQ. 0 ) .and. (config_flags%output_sgs_fluxes==1)) THEN
-            sgs_fluxes_8w(i,kts,j,p_sgs_WTH) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV)) &
+            sgs_WTH(i,kts,j) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV)) &
                                                + 1.61*theta(i,kts,j)*qfx(i,j)
          ENDIF
        ELSE
@@ -4513,7 +4508,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
         DO j=jts,min(jte,jde-1)
         DO k = kts+1,min(kte,kde-1)
         DO i=its,min(ite,ide-1)
-          sgs_fluxes_8w(i,k,j,p_sgs_WQ) = H3(i,k,j)
+          sgs_WQ(i,k,j) = H3(i,k,j)
         ENDDO
         ENDDO
         ENDDO
@@ -4533,7 +4528,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        DO i = i_start, i_end
           moist_flux = qfx(i,j)
           IF (config_flags%output_sgs_fluxes==1) THEN
-            sgs_fluxes_8w(i,kts,j,p_sgs_WQ) = moist_flux
+            sgs_WQ(i,kts,j) = moist_flux
           ENDIF
           moist_tendf(i,kts,j,im)=moist_tendf(i,kts,j,im)  &
                -g*moist_flux/dnw(kts)
@@ -7750,8 +7745,7 @@ END SUBROUTINE phy_bc
                                         chem_tendf, n_chem,                       &
                                         scalar_tendf, n_scalar,                   &
                                         tracer_tendf, n_tracer,                   &
-                                        sgs_fluxes, n_sgs_fluxes,                 &
-                                        sgs_fluxes_8w, n_sgs_fluxes_8w,           &
+                                        sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww,  &
                                         u_2, v_2, w_2, dt,                        &
                                         thp,u_base,v_base,t_base,qv_base,mu,tke,  &
                                         theta, config_flags,                      &
@@ -7778,7 +7772,7 @@ END SUBROUTINE phy_bc
                                             ims, ime, jms, jme, kms, kme, &
                                             its, ite, jts, jte, kts, kte
  
-   INTEGER ,        INTENT(IN   ) :: n_moist,n_chem,n_scalar,n_tracer,n_sgs_fluxes,n_sgs_fluxes_8w,km_opt
+   INTEGER ,        INTENT(IN   ) :: n_moist,n_chem,n_scalar,n_tracer,km_opt
    REAL,            INTENT(IN   ) :: dt
  
    REAL , DIMENSION( kms:kme ) ,                 INTENT(IN   ) :: fnm
@@ -7807,12 +7801,8 @@ END SUBROUTINE phy_bc
                                                                  rw_tendf,&
                                                                 tke_tendf,&
                                                                  rt_tendf
-   REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_sgs_fluxes),                  &
-          INTENT(OUT) ::                                     sgs_fluxes
-
-   REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_sgs_fluxes_8w),                  &
-          INTENT(OUT) ::                                     sgs_fluxes_8w
-
+   REAL , DIMENSION( ims:ime, kms:kme, jms:jme), INTENT(OUT) ::    &
+                                       sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww
  
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_moist),                 &
           INTENT(INOUT) ::                                    moist_tendf
@@ -7998,10 +7988,10 @@ END SUBROUTINE phy_bc
          ENDDO
  
          IF (config_flags%output_sgs_fluxes==1) THEN
-            sgs_fluxes_8w(i,kde,j,p_sgs_UW) = 0.
+            sgs_WU(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d(k) - u_2(i,k,j))/(dt*rdzw(i,k,j))* rho(i,k,j)
-               sgs_fluxes_8w(i,k,j,p_sgs_UW) = temp + sgs_fluxes_8w(i,k+1,j,p_sgs_UW)
+               sgs_WU(i,k,j) = temp + sgs_WU(i,k+1,j)
             ENDDO
          ENDIF
 
@@ -8118,10 +8108,10 @@ END SUBROUTINE phy_bc
             rv_tendf(i,k,j) = rv_tendf(i,k,j) + muavg_v(i,k,j) * (d(k) - v_2(i,k,j))/dt
          ENDDO
          IF (config_flags%output_sgs_fluxes==1) THEN
-            sgs_fluxes_8w(i,kde,j,p_sgs_VW) = 0.
+            sgs_WV(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d(k) - v_2(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)
-               sgs_fluxes_8w(i,k,j,p_sgs_VW) = temp + sgs_fluxes_8w(i,k+1,j,p_sgs_VW)
+               sgs_WV(i,k,j) = temp + sgs_WV(i,k+1,j)
             ENDDO
          ENDIF
  
@@ -8177,11 +8167,11 @@ END SUBROUTINE phy_bc
           ENDDO
 
           IF (config_flags%output_sgs_fluxes==1) THEN
-            sgs_fluxes(i,kde,j,p_sgs_WW) = 0.
+            sgs_WW(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d1(k) - w_2(i,k+1,j))/(dt*rdz(i,k+1,j))
                temp = temp * ( fnm(k+1)*rho(i,k+1,j) + fnp(k+1)*rho(i,k,j) )
-               sgs_fluxes(i,k,j,p_sgs_WW) = temp + sgs_fluxes(i,k+1,j,p_sgs_WW)
+               sgs_WW(i,k,j) = temp + sgs_WW(i,k+1,j)
             ENDDO
          ENDIF
  
@@ -8339,11 +8329,11 @@ END SUBROUTINE phy_bc
             ELSE
                d1(:) = d(:)
             ENDIF
-            sgs_fluxes_8w(i,kde,j,p_sgs_WTH) = 0.
+            sgs_WTH(i,kde,j) = 0.
             DO k=ktf,kts,-1
                   temp = d1(k) - th_dry(k)
                   temp = temp/(dt*rdzw(i,k,j))* rho(i,k,j)
-                  sgs_fluxes_8w(i,k,j,p_sgs_WTH) = temp + sgs_fluxes_8w(i,k+1,j,p_sgs_WTH)
+                  sgs_WTH(i,k,j) = temp + sgs_WTH(i,k+1,j)
             ENDDO
          ENDIF
        ENDDO
@@ -8471,10 +8461,10 @@ END SUBROUTINE phy_bc
            ENDDO
            
            IF (config_flags%output_sgs_fluxes==1) THEN
-           sgs_fluxes_8w(i,kde,j,p_sgs_WQ) = 0.
+           sgs_WQ(i,kde,j) = 0.
            DO k=ktf,kts,-1
                temp = (d(k) - var_mix(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)
-               sgs_fluxes_8w(i,k,j,p_sgs_WQ) = temp + sgs_fluxes_8w(i,k+1,j,p_sgs_WQ)
+               sgs_WQ(i,k,j) = temp + sgs_WQ(i,k+1,j)
            ENDDO
            ENDIF
 

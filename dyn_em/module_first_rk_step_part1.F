@@ -12,7 +12,6 @@ CONTAINS
                              , chem  , chem_tend                &
                              , tracer, tracer_tend              &
                              , scalar , scalar_tend             &
-                             , sgs_fluxes_8w                    &
                              , fdda3d, fdda2d                   &
                              , aerod                            &
                              , ru_tendf, rv_tendf               &
@@ -86,7 +85,6 @@ CONTAINS
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_tracer),INTENT(INOUT)   :: tracer_tend
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar_tend
-    REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_sgs_fluxes_8w),INTENT(OUT) :: sgs_fluxes_8w
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_fdda3d),INTENT(INOUT)  :: fdda3d
     REAL    ,DIMENSION(ims:ime,1:1,jms:jme,num_fdda2d),INTENT(INOUT)      :: fdda2d
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_aerod),INTENT(INOUT)   :: aerod
@@ -1091,7 +1089,8 @@ BENCH_START(pbl_driver_tim)
 
     if ((config_flags%output_sgs_fluxes==1) .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
       !get turbulent fluxes from PBL scheme tendencies
-      call fluxes_from_bl_tend(sgs_fluxes_8w, config_flags,                         &
+      call fluxes_from_bl_tend(grid%sgs_wth, grid%sgs_wq,                           &
+                       & grid%sgs_wu, grid%sgs_wv, grid%sgs_ww, config_flags,       &
                        & grid%rublten, grid%rvblten, grid%rqvblten, grid%rthblten,  &
                        & dz8w, grid%rho, grid%moist(:,:,:,P_QV), th_phy,            &
                        & ids, ide, jds, jde, kds, kde,                              &

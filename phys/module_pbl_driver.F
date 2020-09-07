@@ -2581,7 +2581,7 @@ CONTAINS
 ! ===6=8===============================================================72
 
 
-        subroutine fluxes_from_bl_tend(sgs_fluxes_8w, config_flags,                   &
+        subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww, config_flags, &
                                & rublten, rvblten, rqvblten, rthblten,                &
                                & dz8w, rho, qv, thdry,                                &
                                & ids, ide, jds, jde, kds, kde,                        &
@@ -2603,7 +2603,7 @@ CONTAINS
         REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
              rublten, rvblten, rqvblten, rthblten, dz8w, rho, qv, thdry
 
-        REAL , DIMENSION( ims:ime, kms:kme, jms:jme, num_sgs_fluxes_8w), INTENT(OUT) :: sgs_fluxes_8w
+        REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww
         
         REAL :: fac, rthblten_corr
         INTEGER :: i,j,k, ij
@@ -2616,10 +2616,10 @@ CONTAINS
             DO k=k_end,k_start,-1
               DO i=i_start(ij),i_end(ij)
                 IF (k==k_end) THEN
-                   sgs_fluxes_8w(i,k,j,p_sgs_WTH) = 0
-                   sgs_fluxes_8w(i,k,j,p_sgs_WQ) = 0
-                   sgs_fluxes_8w(i,k,j,p_sgs_UW) = 0
-                   sgs_fluxes_8w(i,k,j,p_sgs_VW) = 0
+                   sgs_wth(i,k,j) = 0
+                   sgs_wq(i,k,j) = 0
+                   sgs_wu(i,k,j) = 0
+                   sgs_wv(i,k,j) = 0
                 ELSE
                    !TODO: dz8w correct k index?
                    fac = dz8w(i,k,j)*rho(i,k,j)
@@ -2629,10 +2629,10 @@ CONTAINS
                       rthblten_corr = rthblten(i,k,j)
                    ENDIF
                   !TODO: should sgsuw and sgsvw be on staggered levels?
-                   sgs_fluxes_8w(i,k,j,p_sgs_WTH) = sgs_fluxes_8w(i,k+1,j,p_sgs_WTH) + rthblten_corr*fac
-                   sgs_fluxes_8w(i,k,j,p_sgs_WQ) = sgs_fluxes_8w(i,k+1,j,p_sgs_WQ) + rqvblten(i,k,j)*fac
-                   sgs_fluxes_8w(i,k,j,p_sgs_UW) = sgs_fluxes_8w(i,k+1,j,p_sgs_UW) + rublten(i,k,j)*fac
-                   sgs_fluxes_8w(i,k,j,p_sgs_VW) = sgs_fluxes_8w(i,k+1,j,p_sgs_VW) + rvblten(i,k,j)*fac
+                   sgs_wth(i,k,j) = sgs_wth(i,k+1,j) + rthblten_corr*fac
+                   sgs_wq(i,k,j) = sgs_wq(i,k+1,j) + rqvblten(i,k,j)*fac
+                   sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + rublten(i,k,j)*fac
+                   sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + rvblten(i,k,j)*fac
                 ENDIF
 
               END DO

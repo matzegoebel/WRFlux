@@ -1284,11 +1284,32 @@ endif
          if (.not. grid%restart) call zero_avgflx(grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
               &   ids, ide, jds, jde, kds, kde,           &
               &   ims, ime, jms, jme, kms, kme,           &
-              &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), kts, kte, f_flux, &
-              &   config_flags%do_avgflx_em, config_flags%output_avgfluxes, &
+              &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), kts, kte,          &
+              &   config_flags,                                       &
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
-              &   hist_mean,hist_mean_8w)
+              &   grid%th_mean,grid%thx_mean,grid%thy_mean,grid%thz_mean,grid%thth_mean,                 &
+              &   grid%ruth_tot_mean,grid%rvth_tot_mean,grid%wwth_tot_mean,                              &
+              &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
+              &   grid%ruq_tot_mean,grid%rvq_tot_mean,grid%wwq_tot_mean,                                 &
+              &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
+              &   grid%ruu_tot_mean,grid%rvu_tot_mean,grid%wwu_tot_mean,                                 &
+              &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
+              &   grid%ruv_tot_mean,grid%rvv_tot_mean,grid%wwv_tot_mean,                                 &
+              &   grid%om_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,                                &
+              &   grid%wy_mean,grid%wz_mean,grid%ruw_tot_mean,grid%rvw_tot_mean,grid%www_tot_mean,       &
+              &   grid%corr_uth,grid%corr_vth,grid%corr_dthdt,                                           &
+              &   grid%corr_uq,grid%corr_vq,grid%corr_dqdt,                                              &
+              &   grid%corr_uu,grid%corr_vu,grid%corr_dudt,                                              &
+              &   grid%corr_uv,grid%corr_vv,grid%corr_dvdt,                                              &
+              &   grid%corr_uw,grid%corr_vw,grid%corr_dwdt,                                              &
+              &   grid%sgs_uth_mean,grid%sgs_vth_mean,grid%sgs_wth_mean,                                 &
+              &   grid%sgs_uq_mean,grid%sgs_vq_mean,grid%sgs_wq_mean,                                    &
+              &   grid%sgs_uu_mean,grid%sgs_wu_mean,                                                     &
+              &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
+              &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
+              &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%rhod_mean,grid%z_mean                                                             )
 
          call wrf_debug(200,'In start_em, after zero_avgflx call')
       ENDDO

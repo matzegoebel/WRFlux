@@ -17,7 +17,6 @@ CONTAINS
                              , rw_tendf, t_tendf                &
                              , ph_tendf, mu_tendf               &
                              , tke_tend                         &
-                             , sgs_fluxes, sgs_fluxes_8w        &
                              , adapt_step_flag , curr_secs      &
                              , psim , psih , gz1oz0 , chklowq   &
                              , cu_act_flag , hol , th_phy       &
@@ -91,8 +90,6 @@ CONTAINS
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_tracer),INTENT(INOUT)   :: tracer_tend
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_scalar),INTENT(INOUT)   :: scalar_tend
-    REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_sgs_fluxes),INTENT(INOUT)   :: sgs_fluxes
-    REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_sgs_fluxes_8w),INTENT(INOUT)   :: sgs_fluxes_8w
     REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme,num_fdda3d),INTENT(INOUT)  :: fdda3d
     REAL    ,DIMENSION(ims:ime,1:1,jms:jme,num_fdda2d),INTENT(INOUT)      :: fdda2d
     REAL    ,DIMENSION(ims:ime,jms:jme), INTENT(INOUT)         :: psim
@@ -964,8 +961,8 @@ BENCH_END(tke_rhs_tim)
                                                chem_tend, num_chem,                                       &
                                                scalar_tend, num_scalar,                                   &
                                                tracer_tend, num_tracer,                                   &
-                                               sgs_fluxes, num_sgs_fluxes,                                &
-                                               sgs_fluxes_8w, num_sgs_fluxes_8w,                          &
+                                               grid%sgs_wth, grid%sgs_wq,                                 &
+                                               grid%sgs_wu, grid%sgs_wv, grid%sgs_ww,                     &
                                                grid%u_2, grid%v_2,grid%w_2,grid%dt,                       &
                                                grid%t_2,grid%u_base,grid%v_base,grid%t_base,grid%qv_base, &
                                                grid%mut,grid%tke_2,th_phy,config_flags,                   &
@@ -998,8 +995,8 @@ BENCH_START(vert_diff_tim)
                                       chem_tend, num_chem,                       &
                                       scalar_tend, num_scalar,                     &
                                       tracer_tend, num_tracer,                     &
-                                      sgs_fluxes, num_sgs_fluxes,                 &
-                                      sgs_fluxes_8w, num_sgs_fluxes_8w,                 &
+                                      grid%sgs_wth, grid%sgs_wq,                                 &
+                                      grid%sgs_wu, grid%sgs_wv, grid%sgs_ww,                     &
                                       grid%u_2, grid%v_2,                                  &
                                       grid%t_2,grid%u_base,grid%v_base,grid%t_base,grid%qv_base,          &
                                       grid%tke_2, th_phy, config_flags,              &
@@ -1034,7 +1031,8 @@ BENCH_START(hor_diff_tim)
                                       chem_tend, num_chem,                   &
                                       scalar_tend, num_scalar,                 &
                                       tracer_tend, num_tracer,                 &
-                                      sgs_fluxes, num_sgs_fluxes,                 &
+                                      grid%sgs_uth, grid%sgs_vth, grid%sgs_uq, grid%sgs_vq,             &
+                                      grid%sgs_uu, grid%sgs_uv, grid%sgs_vv, grid%sgs_uw, grid%sgs_vw,  &
                                       grid%t_2, th_phy,                           &
                                       grid%tke_2, config_flags,              &
                                       grid%defor11, grid%defor22, grid%defor12,             &

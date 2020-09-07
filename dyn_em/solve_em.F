@@ -734,7 +734,6 @@ BENCH_START(calc_p_rho_tim)
                              , chem  , chem_tend                &
                              , tracer, tracer_tend              &
                              , scalar , scalar_tend             &
-                             , sgs_fluxes_8w                    &
                              , fdda3d, fdda2d                   &
                              , aerod                            &
                              , ru_tendf, rv_tendf               &
@@ -777,7 +776,6 @@ BENCH_START(calc_p_rho_tim)
                              , rw_tendf, t_tendf                &
                              , ph_tendf, mu_tendf               &
                              , tke_tend                         &
-                             , sgs_fluxes, sgs_fluxes_8w        &
                              , adapt_step_flag , curr_secs      &
                              , psim , psih , gz1oz0             &
                              , chklowq                          &
@@ -4580,11 +4578,31 @@ BENCH_END(bc_2d_tim)
                  &   ids, ide, jds, jde, kds, kde,           &
                  &   ims, ime, jms, jme, kms, kme,           &
                  &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-                 &   k_start    , k_end, f_flux, &
-                 &   config_flags%do_avgflx_em, config_flags%output_avgfluxes, &
+                 &   k_start    , k_end, config_flags,                   &
                  &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
                  &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
-                 &   hist_mean, hist_mean_8w)
+                 &   grid%th_mean,grid%thx_mean,grid%thy_mean,grid%thz_mean,grid%thth_mean,                 &
+                 &   grid%ruth_tot_mean,grid%rvth_tot_mean,grid%wwth_tot_mean,                              &
+                 &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
+                 &   grid%ruq_tot_mean,grid%rvq_tot_mean,grid%wwq_tot_mean,                                 &
+                 &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
+                 &   grid%ruu_tot_mean,grid%rvu_tot_mean,grid%wwu_tot_mean,                                 &
+                 &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
+                 &   grid%ruv_tot_mean,grid%rvv_tot_mean,grid%wwv_tot_mean,                                 &
+                 &   grid%om_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,                                &
+                 &   grid%wy_mean,grid%wz_mean,grid%ruw_tot_mean,grid%rvw_tot_mean,grid%www_tot_mean,       &
+                 &   grid%corr_uth,grid%corr_vth,grid%corr_dthdt,                                           &
+                 &   grid%corr_uq,grid%corr_vq,grid%corr_dqdt,                                              &
+                 &   grid%corr_uu,grid%corr_vu,grid%corr_dudt,                                              &
+                 &   grid%corr_uv,grid%corr_vv,grid%corr_dvdt,                                              &
+                 &   grid%corr_uw,grid%corr_vw,grid%corr_dwdt,                                              &
+                 &   grid%sgs_uth_mean,grid%sgs_vth_mean,grid%sgs_wth_mean,                                 &
+                 &   grid%sgs_uq_mean,grid%sgs_vq_mean,grid%sgs_wq_mean,                                    &
+                 &   grid%sgs_uu_mean,grid%sgs_wu_mean,                                                     &
+                 &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
+                 &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
+                 &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+                 &   grid%rhod_mean,grid%z_mean                                                             )
             CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
          ENDDO
    !$OMP END PARALLEL DO
@@ -4611,13 +4629,36 @@ BENCH_END(bc_2d_tim)
               &   grid%cfu1,grid%cfd1,grid%dfu1,grid%efu1,grid%dfd1,grid%efd1,          &
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
-              &   config_flags,                                                                     &
-              &   sgs_fluxes, sgs_fluxes_8w, nba_mij, hist_mean, hist_mean_8w,                      &
+              &   config_flags,                                                                          &
+              &   grid%th_mean,grid%thx_mean,grid%thy_mean,grid%thz_mean,grid%thth_mean,                 &
+              &   grid%ruth_tot_mean,grid%rvth_tot_mean,grid%wwth_tot_mean,                              &
+              &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
+              &   grid%ruq_tot_mean,grid%rvq_tot_mean,grid%wwq_tot_mean,                                 &
+              &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
+              &   grid%ruu_tot_mean,grid%rvu_tot_mean,grid%wwu_tot_mean,                                 &
+              &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
+              &   grid%ruv_tot_mean,grid%rvv_tot_mean,grid%wwv_tot_mean,                                 &
+              &   grid%om_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,                                &
+              &   grid%wy_mean,grid%wz_mean,grid%ruw_tot_mean,grid%rvw_tot_mean,grid%www_tot_mean,       &
+              &   grid%corr_uth,grid%corr_vth,grid%corr_dthdt,                                           &
+              &   grid%corr_uq,grid%corr_vq,grid%corr_dqdt,                                              &
+              &   grid%corr_uu,grid%corr_vu,grid%corr_dudt,                                              &
+              &   grid%corr_uv,grid%corr_vv,grid%corr_dvdt,                                              &
+              &   grid%corr_uw,grid%corr_vw,grid%corr_dwdt,                                              &
+              &   grid%sgs_uth_mean,grid%sgs_vth_mean,grid%sgs_wth_mean,                                 &
+              &   grid%sgs_uq_mean,grid%sgs_vq_mean,grid%sgs_wq_mean,                                    &
+              &   grid%sgs_uu_mean,grid%sgs_wu_mean,                                                     &
+              &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
+              &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
+              &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%rhod_mean,grid%z_mean,                                                            &
               &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
               &   grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,                                         &
               &   grid%ruu_tot, grid%rvu_tot, grid%wwu_tot,                                         &
               &   grid%ruv_tot, grid%rvv_tot, grid%wwv_tot,                                         &
               &   grid%ruw_tot, grid%rvw_tot, grid%www_tot,                                         &
+              &   grid%sgs_uth,grid%sgs_vth,grid%sgs_wth,grid%sgs_uq,grid%sgs_vq,grid%sgs_wq,            &
+              &   grid%sgs_uu,grid%sgs_wu,grid%sgs_uv,grid%sgs_vv,grid%sgs_wv,grid%sgs_uw,grid%sgs_vw,grid%sgs_ww,  &
               &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,               &
               &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
               &   grid%t_2, moist(:,:,:,P_QV),                                                      &

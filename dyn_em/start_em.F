@@ -1273,7 +1273,7 @@ endif
 
    CALL wrf_debug ( 100 , 'start_domain_em: After call to phy_init' )
 
-   IF ((config_flags%do_avgflx_em .EQ. 1) .or. (config_flags%output_avgfluxes .EQ. 1)) THEN
+   IF ((config_flags%do_avgflx_em .EQ. 1) .or. config_flags%output_avgfluxes) THEN
       WRITE ( message , FMT = '("start_em: initializing avgflx on domain ",I3)' ) &
            & grid%id
       CALL wrf_message(trim(message))

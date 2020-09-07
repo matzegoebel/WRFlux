@@ -3004,20 +3004,28 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                    ims, ime, jms, jme, kms, kme,           &
                                    its, ite, jts, jte, kts, kte           )
 
-    IF (config_flags%output_sgs_fluxes==1) THEN
+!TODO: improve performance by swapping ifs and do
+    IF (config_flags%output_sgs_fluxes) THEN
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-        sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
-                                                                   rho(i-1,k,j-1) + rho(i,k,j-1) )
-        sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
-        sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
-
+        IF (config_flags%output_usgs_fluxes) THEN
+            sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
+        ENDIF
+        IF (config_flags%output_vsgs_fluxes) THEN
+            sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
+        ENDIF
+        IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
+            sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
+                                                          rho(i-1,k,j-1) + rho(i,k,j-1) )
+        ENDIF
         !horizontal fluxes of w (not redundant if pbl scheme is used)
-        sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                                              fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-        sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                                              fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+        IF (config_flags%output_wsgs_fluxes) THEN
+            sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                                                     fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+            sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+                                                                     fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+        ENDIF
       ENDDO
       ENDDO
       ENDDO
@@ -3036,8 +3044,8 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                    its, ite, jts, jte, kts, kte           )
 
 
-    IF ( (config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. ( config_flags%use_theta_m .EQ. 1 ) .and. &
-         (config_flags%output_sgs_fluxes==1)) THEN
+    IF ( config_flags%output_dry_theta_fluxes .and. ( config_flags%use_theta_m .EQ. 1 ) .and. &
+         config_flags%output_thsgs_fluxes) THEN
         !set boundary values for dry theta
         DO k=kts,min(kte,kde-1)
         DO i=its,min(ite,ide-1)
@@ -3067,7 +3075,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                        its, ite, jts, jte, kts, kte            )
     ENDIF
 
-    IF (config_flags%output_sgs_fluxes==1) THEN
+    IF (config_flags%output_thsgs_fluxes) THEN
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
@@ -3109,7 +3117,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                        ims, ime, jms, jme, kms, kme,      &
                                        its, ite, jts, jte, kts, kte      )
 
-          IF ( (im == P_QV) .and. (config_flags%output_sgs_fluxes==1) ) THEN
+          IF ( (im == P_QV) .and. config_flags%output_qsgs_fluxes) THEN
             DO j=jts,min(jte,jde-1)
             DO k=kts,min(kte,kde-1)
             DO i=its,min(ite,ide-1)
@@ -4321,15 +4329,21 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
     CALL wrf_error_fatal( 'isfflx value invalid for diff_opt=2' )
   END SELECT vflux
 
-    IF (config_flags%output_sgs_fluxes==1) THEN
+    IF (config_flags%output_sgs_fluxes) THEN
       DO j=jts,min(jte,jde-1)
       DO k=kts,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
-        sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                                       fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-        sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                                       fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
-        sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
+        IF (config_flags%output_usgs_fluxes) THEN
+            sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                                           fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+        ENDIF
+        IF (config_flags%output_vsgs_fluxes) THEN
+            sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+                                                           fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+        ENDIF
+        IF (config_flags%output_wsgs_fluxes) THEN
+            sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
+        ENDIF
       ENDDO
       ENDDO
       ENDDO
@@ -4368,8 +4382,8 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
                               ims, ime, jms, jme, kms, kme,          &
                               its, ite, jts, jte, kts, kte          )
 
-   IF ( (config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. ( config_flags%use_theta_m .EQ. 1 ) .and. &
-        (config_flags%output_sgs_fluxes==1)) THEN
+   IF ( config_flags%output_dry_theta_fluxes .and. ( config_flags%use_theta_m .EQ. 1 ) .and. &
+        config_flags%output_thsgs_fluxes) THEN
        !output dry instead of moist theta flux, don't save tendency
        CALL vertical_diffusion_s( dummy_tend, H3, config_flags, theta-t0, xkhv, &
                                   dn, dnw, rdz, rdzw, fnm, fnp, rho,     &
@@ -4380,7 +4394,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
    END IF
 
 
-    IF (config_flags%output_sgs_fluxes==1) THEN
+    IF (config_flags%output_thsgs_fluxes) THEN
       DO j=jts,min(jte,jde-1)
       DO k=kts+1,min(kte,kde-1)
       DO i=its,min(ite,ide-1)
@@ -4403,7 +4417,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
        hfx(i,j)=heat_flux*cpm*rho(i,kts,j)         ! provided for output only
 
-       IF (config_flags%output_sgs_fluxes==1) THEN
+       IF (config_flags%output_thsgs_fluxes) THEN
         sgs_WTH(i,kts,j) = heat_flux*rho(i,kts,j)
        ENDIF
        
@@ -4412,7 +4426,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
              -g*heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))*rho(i,kts,j)/dnw(kts) &
              -g*1.61*theta(i,kts,j)*qfx(i,j)/dnw(kts)
 
-         IF ((config_flags%output_dry_theta_fluxes .EQ. 0 ) .and. (config_flags%output_sgs_fluxes==1)) THEN
+         IF ((.not. config_flags%output_dry_theta_fluxes) .and. config_flags%output_thsgs_fluxes) THEN
             sgs_WTH(i,kts,j) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))*rho(i,kts,j) &
                                                + 1.61*theta(i,kts,j)*qfx(i,j)
          ENDIF
@@ -4429,7 +4443,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
 
        cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
        heat_flux = hfx(i,j)/cpm
-       IF (config_flags%output_sgs_fluxes==1) THEN
+       IF (config_flags%output_thsgs_fluxes) THEN
         sgs_WTH(i,kts,j) = heat_flux
        ENDIF
 
@@ -4437,7 +4451,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
          rt_tendf(i,kts,j)=rt_tendf(i,kts,j)  &
              -g*heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))/dnw(kts) &
              -g*1.61*theta(i,kts,j)*qfx(i,j)/dnw(kts)
-         IF ((config_flags%output_dry_theta_fluxes .EQ. 0 ) .and. (config_flags%output_sgs_fluxes==1)) THEN
+         IF ((.not. config_flags%output_dry_theta_fluxes) .and. config_flags%output_thsgs_fluxes) THEN
             sgs_WTH(i,kts,j) = heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV)) &
                                                + 1.61*theta(i,kts,j)*qfx(i,j)
          ENDIF
@@ -4504,7 +4518,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
                                      ims, ime, jms, jme, kms, kme,        &
                                      its, ite, jts, jte, kts, kte        )
 
-       IF ( (im == P_QV) .and. (config_flags%output_sgs_fluxes==1) ) THEN
+       IF ( (im == P_QV) .and. config_flags%output_qsgs_fluxes) THEN
         DO j=jts,min(jte,jde-1)
         DO k = kts+1,min(kte,kde-1)
         DO i=its,min(ite,ide-1)
@@ -4527,7 +4541,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        DO j = j_start, j_end
        DO i = i_start, i_end
           moist_flux = qfx(i,j)
-          IF (config_flags%output_sgs_fluxes==1) THEN
+          IF (config_flags%output_qsgs_fluxes) THEN
             sgs_WQ(i,kts,j) = moist_flux
           ENDIF
           moist_tendf(i,kts,j,im)=moist_tendf(i,kts,j,im)  &
@@ -7987,7 +8001,7 @@ END SUBROUTINE phy_bc
             ru_tendf(i,k,j) = ru_tendf(i,k,j) + muavg_u(i,k,j) * (d(k) - u_2(i,k,j))/dt 
          ENDDO
  
-         IF (config_flags%output_sgs_fluxes==1) THEN
+         IF (config_flags%output_usgs_fluxes) THEN
             sgs_WU(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d(k) - u_2(i,k,j))/(dt*rdzw(i,k,j))* rho(i,k,j)
@@ -8107,7 +8121,7 @@ END SUBROUTINE phy_bc
          DO k=kts,ktf
             rv_tendf(i,k,j) = rv_tendf(i,k,j) + muavg_v(i,k,j) * (d(k) - v_2(i,k,j))/dt
          ENDDO
-         IF (config_flags%output_sgs_fluxes==1) THEN
+         IF (config_flags%output_vsgs_fluxes) THEN
             sgs_WV(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d(k) - v_2(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)
@@ -8166,7 +8180,7 @@ END SUBROUTINE phy_bc
              rw_tendf(i,k,j) = rw_tendf(i,k,j) + (c1f(k)*mu(i,j) + c2f(k)) * (d1(k-1)-w_2(i,k,j))/dt
           ENDDO
 
-          IF (config_flags%output_sgs_fluxes==1) THEN
+          IF (config_flags%output_wsgs_fluxes) THEN
             sgs_WW(i,kde,j) = 0.
             DO k=ktf,kts,-1
                temp = (d1(k) - w_2(i,k+1,j))/(dt*rdz(i,k+1,j))
@@ -8270,7 +8284,7 @@ END SUBROUTINE phy_bc
     DO  j = j_start, j_end
     DO  i = i_start, i_end
             cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
-            IF((config_flags%use_theta_m == 1  ) .and. (config_flags%output_dry_theta_fluxes==1)) THEN
+            IF((config_flags%use_theta_m == 1  ) .and. config_flags%output_dry_theta_fluxes) THEN
               output_dry = .true.
               th_dry = (thp(i,:,j) + t0)/(1 + rvovrd*moist(i,:,j,P_QV)) - t0
             ELSE
@@ -8323,7 +8337,7 @@ END SUBROUTINE phy_bc
              rt_tendf(i,k,j) = rt_tendf(i,k,j) + (c1h(k)*mu(i,j) + c2h(k)) * (d(k) - var_mix(i,k,j))/dt
           ENDDO
 
-          IF (config_flags%output_sgs_fluxes==1) THEN
+          IF (config_flags%output_thsgs_fluxes) THEN
             IF (output_dry) THEN
                CALL tridiag(nz,a,b,c,d1)
             ELSE
@@ -8460,7 +8474,7 @@ END SUBROUTINE phy_bc
              moist_tendf(i,k,j,im) = moist_tendf(i,k,j,im) + (c1h(k)*mu(i,j)+c2h(k)) * (d(k)-var_mix(i,k,j))/dt
            ENDDO
            
-           IF (config_flags%output_sgs_fluxes==1) THEN
+           IF (config_flags%output_qsgs_fluxes) THEN
            sgs_WQ(i,kde,j) = 0.
            DO k=ktf,kts,-1
                temp = (d(k) - var_mix(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)

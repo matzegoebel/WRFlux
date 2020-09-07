@@ -428,7 +428,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    !  advection tendencies
    CALL nl_get_time_step ( 1, time_step )
 
-   IF ((rk_step == 3) .and. (config_flags%output_res_fluxes==1)) THEN
+   IF ((rk_step == 3) .and. config_flags%output_ures_fluxes) THEN
      output_fluxes = .true.
    ELSE
      output_fluxes = .false.
@@ -463,6 +463,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                    its, ite, jts, jte, kts, kte )
       ENDIF
 
+     IF ((rk_step == 3) .and. config_flags%output_vres_fluxes) THEN
+        output_fluxes = .true.
+     ELSE
+        output_fluxes = .false.
+     ENDIF
+
      IF( (rk_step == 3) .and. ( adv_opt == WENO_MOM ) ) THEN
 
      CALL advect_weno_v ( v, v , rv_tend,        &
@@ -494,6 +500,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
 
    IF (non_hydrostatic) THEN
+     IF ((rk_step == 3) .and. config_flags%output_wres_fluxes) THEN
+        output_fluxes = .true.
+     ELSE
+        output_fluxes = .false.
+     ENDIF
+
      IF( (rk_step == 3) .and. ( adv_opt == WENO_MOM ) ) THEN
      CALL advect_weno_w ( w, w, rw_tend,           &
                      fwx, fwy, fwz, output_fluxes, &
@@ -523,7 +535,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((output_fluxes) .and. (config_flags%output_dry_theta_fluxes .EQ. 1 ) .and. (config_flags%use_theta_m .eq. 1)) THEN
+      IF ((rk_step == 3) .and. config_flags%output_thres_fluxes) THEN
+        output_fluxes = .true.
+      ELSE
+        output_fluxes = .false.
+      ENDIF
+
+      IF ((output_fluxes) .and. config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
           advect_thdry = .true.
           DO j = jms,jme
           DO k = kms,kme

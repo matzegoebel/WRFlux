@@ -3045,15 +3045,61 @@
       WRITE (wrf_err_message, FMT='(A,I6)') '--- NOTE: num_soil_layers has been set to ', &
                                              model_config_rec % num_soil_layers
       CALL wrf_debug ( 1, wrf_err_message )
-!--------------------------------------------------------------------------
-! Check that sgs turbulent stress tensor is available if fluxes are output
-!--------------------------------------------------------------------------
-      DO i = 1, model_config_rec % max_dom
-        if ((model_config_rec%output_sgs_fluxes .eq. 1) .and. (model_config_rec%m_opt(i) .eq. 0) .and. (model_config_rec%sfs_opt(i) .eq. 0)) then
-           WRITE (wrf_err_message, FMT='(A,I6)') '--- If output_sgs_fluxes=1, use m_opt=1 or sfs_opt > 0 to make sgs turbulent stress tensor available for output!'
-           CALL wrf_error_fatal ( TRIM(wrf_err_message) )
-        END IF
-      ENDDO
+
+
+      !determine which flux variables to output
+
+      if ((model_config_rec%output_th_fluxes==1) .or. (model_config_rec%output_th_fluxes==2)) THEN
+         model_config_rec%output_thres_fluxes = .true.
+         model_config_rec%output_res_fluxes = .true.
+      endif
+      if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==2)) THEN
+         model_config_rec%output_qres_fluxes = .true.
+         model_config_rec%output_res_fluxes = .true.
+      endif
+      if ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==2)) THEN
+         model_config_rec%output_ures_fluxes = .true.
+         model_config_rec%output_res_fluxes = .true.
+      endif
+      if ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==2)) THEN
+         model_config_rec%output_vres_fluxes = .true.
+         model_config_rec%output_res_fluxes = .true.
+      endif
+      if ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==2)) THEN
+         model_config_rec%output_wres_fluxes = .true.
+         model_config_rec%output_res_fluxes = .true.
+      endif
+
+
+
+      if ((model_config_rec%output_th_fluxes==1) .or. (model_config_rec%output_th_fluxes==3)) THEN
+         model_config_rec%output_thsgs_fluxes = .true.
+         model_config_rec%output_sgs_fluxes = .true.
+      endif
+      if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==3)) THEN
+         model_config_rec%output_qsgs_fluxes = .true.
+         model_config_rec%output_sgs_fluxes = .true.
+      endif
+      if ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==3)) THEN
+         model_config_rec%output_usgs_fluxes = .true.
+         model_config_rec%output_sgs_fluxes = .true.
+         model_config_rec%m_opt = 1
+      endif
+      if ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==3)) THEN
+         model_config_rec%output_vsgs_fluxes = .true.
+         model_config_rec%output_sgs_fluxes = .true.
+         model_config_rec%m_opt = 1
+      endif
+      if ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==3)) THEN
+         model_config_rec%output_wsgs_fluxes = .true.
+         model_config_rec%output_sgs_fluxes = .true.
+         model_config_rec%m_opt = 1
+      endif
+
+      if (model_config_rec%output_sgs_fluxes .or. model_config_rec%output_res_fluxes) THEN
+         model_config_rec%output_avgfluxes = .true.
+      endif
+
    END SUBROUTINE set_physics_rconfigs
 
 !=======================================================================

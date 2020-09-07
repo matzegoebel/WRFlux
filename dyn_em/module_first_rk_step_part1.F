@@ -1087,10 +1087,10 @@ BENCH_START(pbl_driver_tim)
      &        ,QNORM=grid%QNORM, fasdas=config_flags%fasdas              & !fasdas
      &        )
 
-    if ((config_flags%output_sgs_fluxes==1) .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
+    if (config_flags%output_sgs_fluxes .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
       !get turbulent fluxes from PBL scheme tendencies
       call fluxes_from_bl_tend(grid%sgs_wth, grid%sgs_wq,                           &
-                       & grid%sgs_wu, grid%sgs_wv, grid%sgs_ww, config_flags,       &
+                       & grid%sgs_wu, grid%sgs_wv, config_flags,                    &
                        & grid%rublten, grid%rvblten, grid%rqvblten, grid%rthblten,  &
                        & dz8w, grid%rho, grid%moist(:,:,:,P_QV), th_phy,            &
                        & ids, ide, jds, jde, kds, kde,                              &

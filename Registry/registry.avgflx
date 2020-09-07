@@ -178,20 +178,49 @@ state   real    q_tend_mp_mean       ikj     dyn_em          1               -  
 state   real    t_tend_mp            ikj      dyn_em          1               -               -     "T_TEND_MP"          "inst. dry theta-tendency from MP scheme" "K s-1"
 
 #namelist options
-rconfig  integer  output_avgfluxes    namelist,dynamics    1              0               - "output_avgfluxes"  "Output averaged fluxes and mean quantities"
-rconfig  integer  output_sgs_fluxes   namelist,dynamics    1              0               - "output_sgs_fluxes" "Output SGS turbulent fluxes from diffusion module and PBL scheme"
-rconfig  integer  output_res_fluxes   namelist,dynamics    1              0               - "output_res_fluxes" "Output total resolved fluxes from advection module"
-rconfig  integer  output_th_fluxes    namelist,dynamics    1              0               - "output_th_fluxes"  "Output resolved and SGS theta-fluxes"
-rconfig  integer  output_q_fluxes     namelist,dynamics    1              0               - "output_q_fluxes"   "Output resolved and SGS moisture fluxes"
-rconfig  integer  output_u_fluxes     namelist,dynamics    1              0               - "output_u_fluxes"   "Output resolved and SGS u-fluxes"
-rconfig  integer  output_v_fluxes     namelist,dynamics    1              0               - "output_v_fluxes"   "Output resolved and SGS v-fluxes"
-rconfig  integer  output_w_fluxes     namelist,dynamics    1              0               - "output_w_fluxes"   "Output resolved and SGS w-fluxes"
-rconfig  integer  output_tke          namelist,dynamics    1              0               - "output_tke"        "Output TKE budget terms from diffusion module if available"
-rconfig  integer  hesselberg_avg      namelist,dynamics    1              0               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
-rconfig  integer  output_dry_theta_fluxes  namelist,dynamics    1         0               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
+
+rconfig  integer  output_th_fluxes         namelist,dynamics    1         0                    - "output_th_fluxes"  "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_q_fluxes          namelist,dynamics    1         0                    - "output_q_fluxes"   "Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_u_fluxes          namelist,dynamics    1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_v_fluxes          namelist,dynamics    1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_w_fluxes          namelist,dynamics    1         0                    - "output_w_fluxes"   "Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  logical  hesselberg_avg           namelist,dynamics    1         .true.               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
+rconfig  logical  output_dry_theta_fluxes  namelist,dynamics    1         .true.               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
+
+#derived from namelist options
+rconfig  logical  output_avgfluxes     derived    1  .false. -    "output_avgfluxes"  "Output averaged fluxes and mean quantities"
+rconfig  logical  output_sgs_fluxes    derived    1  .false. -    "output_sgs_fluxes" "Output SGS turbulent fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_res_fluxes    derived    1  .false. -    "output_res_fluxes" "Output total resolved fluxes from advection module"
+rconfig  logical  output_thsgs_fluxes  derived    1  .false.  -   "output_thsgs_fluxes" "Output SGS turbulent theta-fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_qsgs_fluxes   derived    1  .false.  -   "output_qsgs_fluxes" "Output SGS turbulent q-fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_usgs_fluxes   derived    1  .false.  -   "output_usgs_fluxes" "Output SGS turbulent u-fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_vsgs_fluxes   derived    1  .false.  -   "output_vsgs_fluxes" "Output SGS turbulent v-fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_wsgs_fluxes   derived    1  .false.  -   "output_wsgs_fluxes" "Output SGS turbulent w-fluxes from diffusion module and PBL scheme"
+
+rconfig  logical  output_thres_fluxes  derived    1  .false.  -   "output_thres_fluxes" "Output total resolved theta-fluxes from advection module"
+rconfig  logical  output_qres_fluxes   derived    1  .false.  -   "output_qres_fluxes" "Output total resolved q-fluxes from advection module"
+rconfig  logical  output_ures_fluxes   derived    1  .false.  -   "output_ures_fluxes" "Output total resolved u-fluxes from advection module"
+rconfig  logical  output_vres_fluxes   derived    1  .false.  -   "output_vres_fluxes" "Output total resolved v-fluxes from advection module"
+rconfig  logical  output_wres_fluxes   derived    1  .false.  -   "output_wres_fluxes" "Output total resolved w-fluxes from advection module"
 
 #packages
-#package  hist_mean_p       output_avgfluxes==1        -  state:th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,v_mean,vx_mean,vy_mean,vz_mean,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,om_mean,wd_mean,w_mean,wx_mean,wy_mean,wz_mean,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uth,corr_vth,corr_dthdt,corr_uq,corr_vq,corr_dqdt,corr_uu,corr_vu,corr_dudt,corr_uv,corr_vv,corr_dvdt,corr_uw,corr_vw,corr_dwdt,sgs_uth_mean,sgs_vth_mean,sgs_wth_mean,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean,sgs_uu_mean,sgs_vu_mean,sgs_wu_mean,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,rhod_mean,z_mean
-#package  sgs_fluxes_p      output_sgs_fluxes==1       -  state:SGS_UTH,SGS_VTH,SGS_WTH,SGS_UQ,SGS_VQ,SGS_WQ,SGS_UU,SGS_WU,SGS_UV,SGS_VV,SGS_WV,SGS_UW,SGS_VW,SGS_WW
 
+package  mean_th_1      output_th_fluxes==1       -  state:rhod_mean,z_mean,th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean,corr_uth,corr_vth,corr_dthdt,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,sgs_uth,sgs_vth,sgs_wth,sgs_uth_mean,sgs_vth_mean,sgs_wth_mean
+package  mean_th_2      output_th_fluxes==2       -  state:rhod_mean,z_mean,th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean,corr_uth,corr_vth,corr_dthdt,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean
+package  mean_th_3      output_th_fluxes==3       -  state:rhod_mean,z_mean,sgs_uth,sgs_vth,sgs_wth,sgs_uth_mean,sgs_vth_mean,sgs_wth_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean
 
+package  mean_q_1       output_q_fluxes==1        -  state:rhod_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,corr_uq,corr_vq,corr_dqdt,sgs_uq,sgs_vq,sgs_wq,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean,q_tend_mp_mean
+package  mean_q_2       output_q_fluxes==2        -  state:rhod_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,corr_uq,corr_vq,corr_dqdt,q_tend_mp_mean
+package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,z_mean,sgs_uq,sgs_vq,sgs_wq,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean,q_tend_mp_mean
+
+package  mean_u_1       output_u_fluxes==1        -  state:rhod_mean,z_mean,u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean
+package  mean_u_2       output_u_fluxes==2        -  state:rhod_mean,z_mean,u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt
+package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,z_mean,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean
+
+package  mean_v_1       output_v_fluxes==1        -  state:rhod_mean,z_mean,v_mean,vx_mean,vy_mean,vz_mean,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean
+package  mean_v_2       output_v_fluxes==2        -  state:rhod_mean,z_mean,v_mean,vx_mean,vy_mean,vz_mean,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt
+package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,z_mean,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean
+
+package  mean_w_1       output_w_fluxes==1        -  state:rhod_mean,z_mean,om_mean,wd_mean,zwind_mean,w_mean,wx_mean,wy_mean,wz_mean,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean
+package  mean_w_2       output_w_fluxes==2        -  state:rhod_mean,z_mean,om_mean,wd_mean,zwind_mean,w_mean,wx_mean,wy_mean,wz_mean,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt
+package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,z_mean,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean

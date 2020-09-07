@@ -120,7 +120,8 @@ SUBROUTINE solve_em ( grid , config_flags  &
    
    ! Changes in tendency at this timestep
    real ,DIMENSION(grid%sm31:grid%em31,grid%sm32:grid%em32,grid%sm33:grid%em33) :: h_tendency, &
-                                                                                   z_tendency
+                                                                                   z_tendency, &
+                                                                                   dummy
                                                                                    
    ! Whether advection should produce decoupled horizontal and vertical advective tendency outputs
    LOGICAL                        :: tenddec
@@ -2139,7 +2140,7 @@ BENCH_END(small_step_finish_tim)
 
                CALL wrf_debug ( 200 , ' call rk_scalar_tend' )
                tenddec = .false.
-               IF ((im==p_qv) .and. (config_flags%output_res_fluxes==1)) THEN
+               IF ((im==p_qv) .and. config_flags%output_qres_fluxes) THEN
                   output_fluxes = .true.
                ELSE
                   output_fluxes = .false.
@@ -2421,7 +2422,7 @@ BENCH_START(chem_adv_tim)
                               chem(ims,kms,jms,ic),                              &
                               chem_tend(ims,kms,jms,ic),                         &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
-                              grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
+                              dummy, dummy, dummy, output_fluxes,                &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2584,7 +2585,7 @@ BENCH_START(tracer_adv_tim)
                               tracer(ims,kms,jms,ic),                            &
                               tracer_tend(ims,kms,jms,ic),                       &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
-                              grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
+                              dummy, dummy, dummy, output_fluxes,                &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2727,7 +2728,7 @@ BENCH_END(tracer_adv_tim)
                                  scalar(ims,kms,jms,is),                          &
                                  scalar_tend(ims,kms,jms,is),                     &
                                  advect_tend,h_tendency,z_tendency,grid%rqvften,  & 
-                                 grid%ruq_tot, grid%rvq_tot, grid%wwq_tot, output_fluxes, &
+                                 dummy, dummy, dummy, output_fluxes,              &
                                  grid%qv_base, .false., grid%fnm, grid%fnp,       &
                                  grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                                  grid%msfvy, grid%msftx,grid%msfty,               &
@@ -4548,7 +4549,7 @@ BENCH_END(bc_2d_tim)
 
 
 ! new location for averaging. Moved here to include microphysics tendencies
-   IF ((config_flags%do_avgflx_em .EQ. 1) .or. (config_flags%output_avgfluxes .EQ. 1)) THEN
+   IF ((config_flags%do_avgflx_em .EQ. 1) .or. config_flags%output_avgfluxes) THEN
 ! Reinitialize time-averaged fluxes if history output was written after the previous time step:
       CALL WRFU_ALARMGET(grid%alarms( AUXHIST24_ALARM ),prevringtime=temp_time, RingInterval=intervaltime)
       CALL domain_clock_get ( grid, current_time=CurrTime, &

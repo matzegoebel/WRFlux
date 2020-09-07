@@ -2581,7 +2581,7 @@ CONTAINS
 ! ===6=8===============================================================72
 
 
-        subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww, config_flags, &
+        subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, config_flags, &
                                & rublten, rvblten, rqvblten, rthblten,                &
                                & dz8w, rho, qv, thdry,                                &
                                & ids, ide, jds, jde, kds, kde,                        &
@@ -2603,7 +2603,7 @@ CONTAINS
         REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
              rublten, rvblten, rqvblten, rthblten, dz8w, rho, qv, thdry
 
-        REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: sgs_wth, sgs_wq, sgs_wu, sgs_wv, sgs_ww
+        REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: sgs_wth, sgs_wq, sgs_wu, sgs_wv
         
         REAL :: fac, rthblten_corr
         INTEGER :: i,j,k, ij
@@ -2616,23 +2616,38 @@ CONTAINS
             DO k=k_end,k_start,-1
               DO i=i_start(ij),i_end(ij)
                 IF (k==k_end) THEN
-                   sgs_wth(i,k,j) = 0
-                   sgs_wq(i,k,j) = 0
-                   sgs_wu(i,k,j) = 0
-                   sgs_wv(i,k,j) = 0
-                ELSE
-                   !TODO: dz8w correct k index?
-                   fac = dz8w(i,k,j)*rho(i,k,j)
-                   IF ((config_flags%use_theta_m .eq. 1) .and. (config_flags%output_dry_theta_fluxes .eq. 0)) THEN
-                      rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)
-                   ELSE
-                      rthblten_corr = rthblten(i,k,j)
+                   IF (config_flags%output_thsgs_fluxes) THEN
+                     sgs_wth(i,k,j) = 0
                    ENDIF
-                  !TODO: should sgsuw and sgsvw be on staggered levels?
-                   sgs_wth(i,k,j) = sgs_wth(i,k+1,j) + rthblten_corr*fac
-                   sgs_wq(i,k,j) = sgs_wq(i,k+1,j) + rqvblten(i,k,j)*fac
-                   sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + rublten(i,k,j)*fac
-                   sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + rvblten(i,k,j)*fac
+                   IF (config_flags%output_qsgs_fluxes) THEN
+                     sgs_wq(i,k,j) = 0
+                   ENDIF
+                   IF (config_flags%output_usgs_fluxes) THEN
+                     sgs_wu(i,k,j) = 0
+                   ENDIF
+                   IF (config_flags%output_vsgs_fluxes) THEN
+                     sgs_wv(i,k,j) = 0
+                   ENDIF
+                ELSE
+                    fac = dz8w(i,k,j)*rho(i,k,j)
+                   !TODO: dz8w correct k index?
+                   IF   (config_flags%output_thsgs_fluxes) THEN
+                      IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
+                         rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)
+                      ELSE
+                         rthblten_corr = rthblten(i,k,j)
+                      ENDIF
+                      sgs_wth(i,k,j) = sgs_wth(i,k+1,j) + rthblten_corr*fac
+                   ENDIF
+                   IF (config_flags%output_qsgs_fluxes) THEN
+                     sgs_wq(i,k,j) = sgs_wq(i,k+1,j) + rqvblten(i,k,j)*fac
+                   ENDIF
+                   IF (config_flags%output_usgs_fluxes) THEN
+                     sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + rublten(i,k,j)*fac
+                   ENDIF
+                   IF (config_flags%output_vsgs_fluxes) THEN
+                     sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + rvblten(i,k,j)*fac
+                   ENDIF
                 ENDIF
 
               END DO

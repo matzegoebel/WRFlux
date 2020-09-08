@@ -484,7 +484,8 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
         IF (output_fluxes) THEN
           DO k=kts,ktf
           DO i = i_start, i_end+1
-            fqx_out(i,k,j) = fqx(i,k)
+            !shift x-flux to be on mass points
+            fqx_out(i,k,j) = fqx(i+1,k)
           ENDDO
           ENDDO
         ENDIF
@@ -759,7 +760,8 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
         IF (output_fluxes) THEN
           DO k=kts,ktf
           DO i = i_start, i_end+1
-            fqx_out(i,k,j) = fqx(i,k)
+            !shift x-flux to be on mass points
+            fqx_out(i,k,j) = fqx(i+1,k)
           ENDDO
           ENDDO
         ENDIF
@@ -863,7 +865,8 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
         IF (output_fluxes) THEN
           DO k=kts,ktf
           DO i = i_start, i_end+1
-            fqx_out(i,k,j) = fqx(i,k)
+            !shift x-flux to be on mass points
+            fqx_out(i,k,j) = fqx(i+1,k)
           ENDDO
           ENDDO
         ENDIF
@@ -1083,8 +1086,9 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i = i_start, i_end+1
-          fqx_out(i,k,j) = fqx(i,k)
+        DO i = i_start, i_end
+          !shift x-flux to be on mass points
+          fqx_out(i,k,j) = fqx(i+1,k)
         ENDDO
         ENDDO
       ENDIF
@@ -1294,7 +1298,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
         DO j = j_start, j_end
         DO k = kts,ktf
         DO i = i_start, i_end+1
-          fqx_out(i,k,j) = 0.25*(ru(i,k,j)+ru(i-1,k,j))*(u(i,k,j)+u(i-1,k,j))
+          fqx_out(i,k,j) = 0.25*(ru(i,k,j)+ru(i+1,k,j))*(u(i,k,j)+u(i+1,k,j))
         ENDDO
         ENDDO
         ENDDO
@@ -2947,6 +2951,17 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
         ENDDO
 
       ENDIF
+
+   IF (output_fluxes) THEN
+      !shift y-flux to be on mass points
+      DO j=jts,jte
+      DO k=kts,ktf
+      DO i=its,ite
+        fqy_out(i,k,j) = fqy_out(i,k,j+1)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
 !  pick up the rest of the horizontal radiation boundary conditions.
 !  (these are the computations that don't require 'cb'.
@@ -6369,7 +6384,12 @@ ELSE IF (horz_order == 2 ) THEN
         IF (output_fluxes) THEN
           DO k = kts,kte
           DO i = i_start, i_end
-            fqz_out(i,k,j) = vflux(i,k)
+            !shift z-flux to be on mass points
+            IF (k .eq. kte) THEN
+               fqz_out(i,k,j) = 0
+            ELSE
+               fqz_out(i,k,j) = vflux(i,k+1)
+            ENDIF
           ENDDO
           ENDDO
         ENDIF
@@ -6425,7 +6445,12 @@ ELSE IF (horz_order == 2 ) THEN
         IF (output_fluxes) THEN
           DO k = kts,kte
           DO i = i_start, i_end
-            fqz_out(i,k,j) = vflux(i,k)
+            !shift z-flux to be on mass points
+            IF (k .eq. kte) THEN
+               fqz_out(i,k,j) = 0
+            ELSE
+               fqz_out(i,k,j) = vflux(i,k+1)
+            ENDIF
           ENDDO
           ENDDO
         ENDIF
@@ -6469,7 +6494,12 @@ ELSE IF (horz_order == 2 ) THEN
         IF (output_fluxes) THEN
           DO k = kts,kte
           DO i = i_start, i_end
-            fqz_out(i,k,j) = vflux(i,k)
+            !shift z-flux to be on mass points
+            IF (k .eq. kte) THEN
+               fqz_out(i,k,j) = 0
+            ELSE
+               fqz_out(i,k,j) = vflux(i,k+1)
+            ENDIF
           ENDDO
           ENDDO
         ENDIF
@@ -6514,7 +6544,12 @@ ELSE IF (horz_order == 2 ) THEN
         IF (output_fluxes) THEN
           DO k = kts,kte
           DO i = i_start, i_end
-            fqz_out(i,k,j) = vflux(i,k)
+            !shift z-flux to be on mass points
+            IF (k .eq. kte) THEN
+               fqz_out(i,k,j) = 0
+            ELSE
+               fqz_out(i,k,j) = vflux(i,k+1)
+            ENDIF
           ENDDO
           ENDDO
         ENDIF
@@ -6546,7 +6581,12 @@ ELSE IF (horz_order == 2 ) THEN
      IF (output_fluxes) THEN
        DO k = kts,kte
        DO i = i_start, i_end
-         fqz_out(i,k,j) = vflux(i,k)
+         !shift z-flux to be on mass points
+         IF (k .eq. kte) THEN
+            fqz_out(i,k,j) = 0
+         ELSE
+            fqz_out(i,k,j) = vflux(i,k+1)
+         ENDIF
        ENDDO
        ENDDO
      ENDIF
@@ -11905,9 +11945,10 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
         ENDIF
 
         IF (output_fluxes) THEN
+          !shift x-flux to be on mass points
           DO k=kts,ktf
           DO i = i_start, i_end+1
-            fqx_out(i,k,j) = fqx(i,k)
+            fqx_out(i,k,j) = fqx(i+1,k)
           ENDDO
           ENDDO
         ENDIF
@@ -12418,14 +12459,6 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
       END IF
 
-      IF (output_fluxes) THEN
-        DO k=kts,ktf
-        DO i = i_start, i_end
-          fqy_out(i,k,j) = fqy(i,k,jp1)
-        ENDDO
-        ENDDO
-      ENDIF
-
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -12468,6 +12501,17 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
         jp0 = jtmp
 
    ENDDO j_loop_y_flux_5
+
+   IF (output_fluxes) THEN
+     !shift y-flux to be on mass points
+     DO j=jts,jte
+     DO k=kts,ktf
+     DO i=jts,jte
+       fqy_out(i,k,j) = fqy(i,k,j+1)
+     ENDDO
+     ENDDO
+     ENDDO
+   ENDIF
 
 !  next, x - flux divergence
 
@@ -13692,7 +13736,12 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
          IF (output_fluxes) THEN
           DO k=kts,kte
           DO i = i_start, i_end
-            fqz_out(i,k,j) = vflux(i,k)
+            !shift z-flux to be on mass points
+            IF (k .eq. kte) THEN
+               fqz_out(i,k,j) = 0
+            ELSE
+               fqz_out(i,k,j) = vflux(i,k+1)
+            ENDIF
           ENDDO
           ENDDO
          ENDIF

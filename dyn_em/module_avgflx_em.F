@@ -314,12 +314,13 @@ CONTAINS
        RHOD_MEAN,Z_MEAN
 
     REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8z, v8z, rho8w
 
     INTEGER :: i,j,k
-    REAL :: local_count, rho_8w, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
+    REAL :: local_count, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz, qfac,     &
             ru_d, rv_d, ww_d,               &
-            zx_8w, zy_8w, u_8w, v_8w, dzdt, &
+            zx_s, zy_s, u_s, v_s, rho_s, dzdt_s, &
             corr_uth, corr_vth, corr_dthdt, &
             corr_uq, corr_vq, corr_dqdt,    &
             corr_uu, corr_vu, corr_dudt, &
@@ -356,22 +357,37 @@ CONTAINS
     ENDDO
     ENDDO
 
+    IF (config_flags%output_res_fluxes) THEN
+        DO j=jts-1,jte+1
+        DO k=kts,kte
+        DO i=its-1,ite+1
+            dzdt(i,k,j) = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
+            call stagger_z(u8w(i,k,j), U(i,:,j),  &
+                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                           i, j, k, kms, kme, kde              )
+            call stagger_z(v8w(i,k,j), V(i,:,j),  &
+                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                           i, j, k, kms, kme, kde              )
+            call stagger_z(rho8w(i,k,j), rho_d(i,:,j),  &
+                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                           i, j, k, kms, kme, kde              )
+        ENDDO
+        ENDDO
+        ENDDO
+    ENDIF
+
     DO j=jts,jte
-      DO k=kts,kde
+      DO k=kts,kte
         DO i=its,ite
 
           Z_MEAN(i,k,j) = (local_count*Z_MEAN(i,k,j)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
 
           IF (config_flags%output_res_fluxes) THEN
             !stagger density
-            call stagger_z(rho_8w, rho_d(i,:,j),               &
-                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
-
             if (config_flags%hesselberg_avg) then
               rhox = 0.5*(rho_d(i,k,j)+rho_d(i-1,k,j))
               rhoy = 0.5*(rho_d(i,k,j)+rho_d(i,k,j-1))
-              rhoz = rho_8w
+              rhoz = rho8w(i,k,j)
             else
               rhox = 1
               rhoy = 1
@@ -398,8 +414,8 @@ CONTAINS
                                                ims, ime, jms, jme, kms, kme              )
             ENDIF
             IF (config_flags%output_ures_fluxes) THEN
-                !destagger in x direction
-                ru_d = 0.5*(ru(i-1,j,k)+ru(i,j,k))
+                !(de)stagger in x direction
+                ru_d = 0.5*(ru(i,j,k)+ru(i+1,j,k))
                 rv_d = 0.5*(rv(i-1,j,k)+rv(i,j,k))
                 ww_d = 0.5*(ww(i-1,j,k)+ww(i,j,k))
                 call get_staggered_from_fluxes(ux, uy, uz,                 &
@@ -410,8 +426,9 @@ CONTAINS
                                                ims, ime, jms, jme, kms, kme       )
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
+                !(de)stagger in y direction
                 ru_d = 0.5*(ru(i,j-1,k)+ru(i,j,k))
-                rv_d = 0.5*(rv(i,j-1,k)+rv(i,j,k))
+                rv_d = 0.5*(rv(i,j+1,k)+rv(i,j,k))
                 ww_d = 0.5*(ww(i,j-1,k)+ww(i,j,k))
                 call get_staggered_from_fluxes(vx, vy, vz,                 &
                                                ruv_tot, rvv_tot, wwv_tot,  &
@@ -421,67 +438,90 @@ CONTAINS
                                                ims, ime, jms, jme, kms, kme       )
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
-                IF (k .eq. kts) THEN
-                    wx = 0
-                    wy = 0
-                    wz = 0
+                IF (k .eq. kte) THEN
+                    ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
+                    rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
+                    ww_d = 0
                 ELSE
-                    IF (k .eq. kte) THEN
-                        ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
-                        rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
-                    ELSE
-                        ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
-                        rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
-                    ENDIF
-                    ww_d = 0.5*(ww(i,j,k)+ww(i,j,k-1))
-                    call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                                   ruw_tot, rvw_tot, www_tot,  &
-                                                   ru_d, rv_d, ww_d, W,        &
-                                                   cf1, cf2, cf3, cfn, cfn1, .true.,  &
-                                                   i, j, k, kde,                      &
-                                                   ims, ime, jms, jme, kms, kme       )
+                    ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
+                    rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
+                    ww_d = 0.5*(ww(i,j,k)+ww(i,j,k+1))
                 ENDIF
+
+                call get_staggered_from_fluxes(wx, wy, wz,                 &
+                                               ruw_tot, rvw_tot, www_tot,  &
+                                               ru_d, rv_d, ww_d, W,        &
+                                               cf1, cf2, cf3, cfn, cfn1, .true.,  &
+                                               i, j, k, kde,                      &
+                                               ims, ime, jms, jme, kms, kme       )
             ENDIF
 
             !compute cartesian corrections
-            zx_8w = 0.5*(zx(i,k,j)+zx(i+1,k,j))
-            zy_8w = 0.5*(zy(i,k,j)+zy(i,k,j+1))
-            dzdt = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
-            call stagger_z(u_8w, U(i,:,j)+U(i+1,:,j),  &
-                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
-            call stagger_z(v_8w, V(i,:,j)+V(i,:,j+1),  &
-                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
 
-            wdiag = dzdt + zx_8w*u_8w + zy_8w*v_8w + ww(i,k,j)/(-rho_8w*g)
+            !destagger to masspoints
+            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
+            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
+            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
+            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
+            dzdt_s = dzdt(i,k,j)
+            rho_s = rho8w(i,k,j)
+
+            wdiag = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
             muz = c1f(k)*mut(i,j)+c2f(k)
 
             IF (config_flags%output_thres_fluxes) THEN
-                corr_uth = rho_8w*zx_8w*u_8w*thetaz
-                corr_vth = rho_8w*zy_8w*v_8w*thetaz
-                corr_dthdt = rho_8w*dzdt*thetaz
+                corr_uth = rho_s*zx_s*u_s*thetaz
+                corr_vth = rho_s*zy_s*v_s*thetaz
+                corr_dthdt = rho_s*dzdt_s*thetaz
             ENDIF
             IF (config_flags%output_qres_fluxes) THEN
-                corr_uq = rho_8w*zx_8w*u_8w*qz
-                corr_vq = rho_8w*zy_8w*v_8w*qz
-                corr_dqdt = rho_8w*dzdt*qz
+                corr_uq = rho_s*zx_s*u_s*qz
+                corr_vq = rho_s*zy_s*v_s*qz
+                corr_dqdt = rho_s*dzdt_s*qz
             ENDIF
             !TODO: different staggering for vel
             IF (config_flags%output_ures_fluxes) THEN
-                corr_uu = rho_8w*zx_8w*u_8w*uz
-                corr_vu = rho_8w*zy_8w*v_8w*uz
-                corr_dudt = rho_8w*dzdt*uz
+                zx_s = zx(i,k,j)
+                zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i-1,k,j) + zy(i-1,k,j+1))
+                u_s = u8w(i,k,j)
+                v_s = 0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
+                dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i-1,k,j))
+                rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
+
+                corr_uu = rho_s*zx_s*u_s*uz
+                corr_vu = rho_s*zy_s*v_s*uz
+                corr_dudt = rho_s*dzdt_s*uz
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
-                corr_uv = rho_8w*zx_8w*u_8w*vz
-                corr_vv = rho_8w*zy_8w*v_8w*vz
-                corr_dvdt = rho_8w*dzdt*vz
+                zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k,j-1) + zx(i+1,k,j-1))
+                zy_s = zy(i,k,j)
+                u_s = 0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
+                v_s = v8w(i,k,j)
+                dzdt_s = 0.5*(dzdt(i,k,j-1) + dzdt(i,k,j-1))
+                rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
+
+                corr_uv = rho_s*zx_s*u_s*vz
+                corr_vv = rho_s*zy_s*v_s*vz
+                corr_dvdt = rho_s*dzdt_s*vz
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
-                corr_uw = rho_8w*zx_8w*u_8w*wz
-                corr_vw = rho_8w*zy_8w*v_8w*wz
-                corr_dwdt = rho_8w*dzdt*wz
+                IF (k .lt. kte) THEN
+                    !destagger in z and x/y direction
+                    zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k+1,j) + zx(i+1,k+1,j))
+                    zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i,k+1,j) + zy(i,k+1,j+1))
+                    u_s = 0.5*(U(i,k,j) + U(i+1,k,j))
+                    v_s = 0.5*(V(i,k,j) + V(i,k,j+1))
+                    dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i,k+1,j))
+                    rho_s = rho_d(i,k,j)
+
+                    corr_uw = rho_s*zx_s*u_s*wz
+                    corr_vw = rho_s*zy_s*v_s*wz
+                    corr_dwdt = rho_s*dzdt_s*wz
+                ELSE
+                    corr_uw = 0
+                    corr_vw = 0
+                    corr_dwdt = 0
+                ENDIF
             ENDIF
 
             if (last_timestep .and. config_flags%hesselberg_avg) then
@@ -578,14 +618,14 @@ CONTAINS
             IF (config_flags%output_q_fluxes > 0) THEN
                 Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
             ENDIF
-            !TODO: other mom sources (coriolis, curvature)
+            !TODO: other mom sources (coriolis, curvature, small time step)
 !~             IF (config_flags%output_u_fluxes > 0) THEN
 !~             ENDIF
 !~             IF (config_flags%output_v_fluxes > 0) THEN
 !~             ENDIF
 !~             IF (config_flags%output_w_fluxes > 0) THEN
 !~             ENDIF
-          !TODO: temperature tendencies from cumulus scheme; small time step tendencies from momentum
+          !TODO: temperature and humidity tendencies from cumulus scheme
           IF (config_flags%output_sgs_fluxes) THEN
             IF (config_flags%output_thsgs_fluxes) THEN
                 sgs_UTH_mean(i,k,j) = (local_count*sgs_UTH_mean(i,k,j) + sgs_UTH(i,k,j) ) / (local_count+1.)
@@ -698,9 +738,11 @@ CONTAINS
 
     varx = ruvar_tot(i,k,j)/ru
     vary = rvvar_tot(i,k,j)/rv
-    if (( k .eq. kde) .and. (.not. do_w)) then
+    if ((do_w) .and. (k .eq. kde)) THEN
+      varz = 0
+    elseif (k .eq. kde) then
       varz = cfn*var(i,kde-1,j)+cfn1*var(i,kde-2,j)
-    elseif ( k .eq. 1) then
+    elseif ((k .eq. 1) .and. (.not. do_w)) then
       varz = cf1*var(i,1,j)+cf2*var(i,2,j)+cf3*var(i,3,j)
     else
       varz = wwvar_tot(i,k,j)/ww

@@ -3021,7 +3021,8 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                 sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
             ENDDO
             ENDDO
-            ENDDO        ENDIF
+            ENDDO
+        ENDIF
         IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
             DO j=jts,min(jte,jde-1)
             DO k=kts,min(kte,kde-1)

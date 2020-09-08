@@ -201,7 +201,7 @@ CONTAINS
                         corr_vw(i,k,j) = 0.
                         corr_dwdt(i,k,j) = 0.
                     endif
-                    if (config_flags%output_wsgs_fluxes > 0) then
+                    if (config_flags%output_wsgs_fluxes) then
                         sgs_UW_mean(i,k,j) = 0.
                         sgs_VW_mean(i,k,j) = 0.
                         sgs_WW_mean(i,k,j) = 0.
@@ -314,7 +314,7 @@ CONTAINS
        RHOD_MEAN,Z_MEAN
 
     REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8z, v8z, rho8w
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w
 
     INTEGER :: i,j,k
     REAL :: local_count, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &

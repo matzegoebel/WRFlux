@@ -12506,7 +12506,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
      !shift y-flux to be on mass points
      DO j=jts,jte
      DO k=kts,ktf
-     DO j=jts,jte
+     DO i=its,ite
        fqy_out(i,k,j) = fqy(i,k,j+1)
      ENDDO
      ENDDO

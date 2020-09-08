@@ -3004,31 +3004,47 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                    ims, ime, jms, jme, kms, kme,           &
                                    its, ite, jts, jte, kts, kte           )
 
-!TODO: improve performance by swapping ifs and do
     IF (config_flags%output_sgs_fluxes) THEN
-      DO j=jts,min(jte,jde-1)
-      DO k=kts,min(kte,kde-1)
-      DO i=its,min(ite,ide-1)
         IF (config_flags%output_usgs_fluxes) THEN
-            sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
         IF (config_flags%output_vsgs_fluxes) THEN
-            sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
-        ENDIF
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
+            ENDDO
+            ENDDO
+            ENDDO        ENDIF
         IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
-            sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
-                                                          rho(i-1,k,j-1) + rho(i,k,j-1) )
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
+                                                              rho(i-1,k,j-1) + rho(i,k,j-1) )
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
         !horizontal fluxes of w (not redundant if pbl scheme is used)
         IF (config_flags%output_wsgs_fluxes) THEN
-            sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                                     fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-            sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                                     fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                                                         fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+                sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+                                                                         fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
     ENDIF
 
 
@@ -4330,23 +4346,35 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
   END SELECT vflux
 
     IF (config_flags%output_sgs_fluxes) THEN
-      DO j=jts,min(jte,jde-1)
-      DO k=kts,min(kte,kde-1)
-      DO i=its,min(ite,ide-1)
         IF (config_flags%output_usgs_fluxes) THEN
-            sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                           fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                                               fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
         IF (config_flags%output_vsgs_fluxes) THEN
-            sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                           fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
+                                                               fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
         IF (config_flags%output_wsgs_fluxes) THEN
-            sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
+                sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
+            ENDDO
+            ENDDO
+            ENDDO
         ENDIF
-      ENDDO
-      ENDDO
-      ENDDO
     ENDIF
 !
 !  FINE MODIFICA al flusso di momento alla parete

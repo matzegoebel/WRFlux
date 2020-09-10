@@ -317,7 +317,8 @@ CONTAINS
     REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w
 
     INTEGER :: i,j,k
-    REAL :: local_count, rhox, rhoy, rhoz, rho_mean, rhox_mean, rhoy_mean, rhoz_mean, &
+    REAL :: local_count, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                &
+            rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz, qfac,     &
             ru_d, rv_d, ww_d,               &
             zx_s, zy_s, u_s, v_s, rho_s, dzdt_s, &
@@ -387,11 +388,21 @@ CONTAINS
             if (config_flags%hesselberg_avg) then
               rhox = 0.5*(rho_d(i,k,j)+rho_d(i-1,k,j))
               rhoy = 0.5*(rho_d(i,k,j)+rho_d(i,k,j-1))
+              rhoxy = 0.25*(rho_d(i,k,j)+rho_d(i,k,j-1)+rho_d(i-1,k,j)+rho_d(i-1,k,j-1))
               rhoz = rho8w(i,k,j)
+              call stagger_z(rhoxz, 0.5*(rho_d(i,:,j)+rho_d(i-1,:,j)),  &
+                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                             i, j, k, kms, kme, kde              )
+              call stagger_z(rhoyz, 0.5*(rho_d(i,:,j)+rho_d(i,:,j-1)),  &
+                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                             i, j, k, kms, kme, kde              )
             else
               rhox = 1
               rhoy = 1
+              rhoxy = 1
               rhoz = 1
+              rhoxz = 1
+              rhoyz = 1
             endif
 
 
@@ -479,7 +490,6 @@ CONTAINS
                 corr_vq = rho_s*zy_s*v_s*qz
                 corr_dqdt = rho_s*dzdt_s*qz
             ENDIF
-            !TODO: different staggering for vel
             IF (config_flags%output_ures_fluxes) THEN
                 zx_s = zx(i,k,j)
                 zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i-1,k,j) + zy(i-1,k,j+1))
@@ -529,15 +539,26 @@ CONTAINS
               rho_mean = RHOD_MEAN(i,k,j)
               rhox_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
               rhoy_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
+              rhoxy_mean = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
 
               call stagger_z(rhoz_mean, RHOD_MEAN(i,:,j), &
                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
                              i, j, k, kms, kme, kde                   )
+              call stagger_z(rhoxz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i-1,:,j)), &
+                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                             i, j, k, kms, kme, kde                   )
+              call stagger_z(rhoyz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
+                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                             i, j, k, kms, kme, kde                   )
+
             ELSE
               rho_mean  = 1
               rhox_mean = 1
               rhoy_mean = 1
+              rhoxy_mean = 1
               rhoz_mean = 1
+              rhoxz_mean = 1
+              rhoyz_mean = 1
             ENDIF
 
             !mean variables
@@ -575,11 +596,10 @@ CONTAINS
                 CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + corr_dqdt )/(local_count+1.)
             ENDIF
 
-            !TODO: correct staggering
             IF (config_flags%output_ures_fluxes) THEN
-                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhox )/(local_count+1.)/rhox_mean
-                UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoy )/(local_count+1.)/rhoy_mean
-                UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoz )/(local_count+1.)/rhoz_mean
+                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+                UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
+                UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
                 RUU_TOT_MEAN(i,k,j)  = (local_count*RUU_TOT_MEAN(i,k,j) + ruu_tot(i,k,j) )/(local_count+1.)
                 RVU_TOT_MEAN(i,k,j)  = (local_count*RVU_TOT_MEAN(i,k,j) + rvu_tot(i,k,j) )/(local_count+1.)
                 WWU_TOT_MEAN(i,k,j)  = (local_count*WWU_TOT_MEAN(i,k,j) + wwu_tot(i,k,j) )/(local_count+1.)
@@ -588,9 +608,9 @@ CONTAINS
                 CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + corr_dudt )/(local_count+1.)
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
-                VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhox )/(local_count+1.)/rhox_mean
-                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhoy )/(local_count+1.)/rhoy_mean
-                VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoz )/(local_count+1.)/rhoz_mean
+                VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
+                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+                VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
                 RUV_TOT_MEAN(i,k,j)  = (local_count*RUV_TOT_MEAN(i,k,j) + ruv_tot(i,k,j) )/(local_count+1.)
                 RVV_TOT_MEAN(i,k,j)  = (local_count*RVV_TOT_MEAN(i,k,j) + rvv_tot(i,k,j) )/(local_count+1.)
                 WWV_TOT_MEAN(i,k,j)  = (local_count*WWV_TOT_MEAN(i,k,j) + wwv_tot(i,k,j) )/(local_count+1.)
@@ -599,9 +619,9 @@ CONTAINS
                 CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + corr_dvdt )/(local_count+1.)
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
-                WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhox )/(local_count+1.)/rhox_mean
-                WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoy )/(local_count+1.)/rhoy_mean
-                WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhoz )/(local_count+1.)/rhoz_mean
+                WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
+                WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
+                WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rho_d(i,k,j) )/(local_count+1.)/rho_mean
                 RUW_TOT_MEAN(i,k,j)  = (local_count*RUW_TOT_MEAN(i,k,j) + ruw_tot(i,k,j) )/(local_count+1.)
                 RVW_TOT_MEAN(i,k,j)  = (local_count*RVW_TOT_MEAN(i,k,j) + rvw_tot(i,k,j) )/(local_count+1.)
                 WWW_TOT_MEAN(i,k,j)  = (local_count*WWW_TOT_MEAN(i,k,j) + www_tot(i,k,j) )/(local_count+1.)

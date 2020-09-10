@@ -24,7 +24,7 @@
  io_form_restart                     = 2
  io_form_input                       = 2
  io_form_boundary                    = 2
- auxhist24_interval_m                = 1,
+ auxhist24_interval_m                = 30,
  auxhist24_interval_s                = 0,
  frames_per_auxhist24                = 1000,
  io_form_auxhist24                   = 2
@@ -103,8 +103,8 @@
  m_opt                                = 1
  hesselberg_avg                       = .true.
  output_dry_theta_fluxes              = .true.
- output_th_fluxes                     = 2
- output_q_fluxes                      = 2
+ output_th_fluxes                     = 1
+ output_q_fluxes                      = 1
  output_u_fluxes                      = 1
  output_v_fluxes                      = 1
  output_w_fluxes                      = 1

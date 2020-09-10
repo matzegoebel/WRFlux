@@ -8310,11 +8310,15 @@ END SUBROUTINE phy_bc
     CALL wrf_error_fatal( 'isfflx value invalid for diff_opt=2' )
   END SELECT hflux
 
+    IF((config_flags%use_theta_m == 1  ) .and. (config_flags%output_dry_theta_fluxes==1)) THEN
+      output_dry = .true.
+    ELSE
+      output_dry = .false.
+    ENDIF
     DO  j = j_start, j_end
     DO  i = i_start, i_end
             cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
-            IF((config_flags%use_theta_m == 1  ) .and. config_flags%output_dry_theta_fluxes) THEN
-              output_dry = .true.
+            IF(output_dry) THEN
               th_dry = (thp(i,:,j) + t0)/(1 + rvovrd*moist(i,:,j,P_QV)) - t0
             ELSE
               th_dry = var_mix(i,:,j)

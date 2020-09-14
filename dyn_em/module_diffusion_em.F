@@ -3006,27 +3006,27 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
 
     IF (config_flags%output_sgs_fluxes) THEN
         IF (config_flags%output_usgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_UU(i,k,j) = nba_mij(i,k,j,P_m11)*rho(i,k,j)
             ENDDO
             ENDDO
             ENDDO
         ENDIF
         IF (config_flags%output_vsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_VV(i,k,j) = nba_mij(i,k,j,P_m22)*rho(i,k,j)
             ENDDO
             ENDDO
             ENDDO
         ENDIF
         IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_UV(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
                                                               rho(i-1,k,j-1) + rho(i,k,j-1) )
             ENDDO
@@ -3035,9 +3035,9 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
         ENDIF
         !horizontal fluxes of w (not redundant if pbl scheme is used)
         IF (config_flags%output_wsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
                                                                          fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
                 sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
@@ -3093,9 +3093,9 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
     ENDIF
 
     IF (config_flags%output_thsgs_fluxes) THEN
-      DO j=jts,min(jte,jde-1)
-      DO k=kts,min(kte,kde-1)
-      DO i=its,min(ite,ide-1)
+      DO j=jts,jte
+      DO k=kts,kte
+      DO i=its,ite
           sgs_UTH(i,k,j) = H1(i,k,j)
           sgs_VTH(i,k,j) = H2(i,k,j)
       ENDDO
@@ -3135,9 +3135,9 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                        its, ite, jts, jte, kts, kte      )
 
           IF ( (im == P_QV) .and. config_flags%output_qsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_UQ(i,k,j) = H1(i,k,j)
                 sgs_VQ(i,k,j) = H2(i,k,j)
             ENDDO
@@ -4348,9 +4348,9 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
 
     IF (config_flags%output_sgs_fluxes) THEN
         IF (config_flags%output_usgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
                                                                fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
             ENDDO
@@ -4358,9 +4358,9 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
             ENDDO
         ENDIF
         IF (config_flags%output_vsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
                                                                fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
             ENDDO
@@ -4368,9 +4368,9 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
             ENDDO
         ENDIF
         IF (config_flags%output_wsgs_fluxes) THEN
-            DO j=jts,min(jte,jde-1)
-            DO k=kts,min(kte,kde-1)
-            DO i=its,min(ite,ide-1)
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
                 sgs_WW(i,k,j) = nba_mij(i,k,j,P_m33)*rho(i,k,j)
             ENDDO
             ENDDO
@@ -4424,9 +4424,9 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
 
 
     IF (config_flags%output_thsgs_fluxes) THEN
-      DO j=jts,min(jte,jde-1)
-      DO k=kts+1,min(kte,kde-1)
-      DO i=its,min(ite,ide-1)
+      DO j=jts,jte
+      DO k=kts+1,kte
+      DO i=its,ite
         sgs_WTH(i,k,j) = H3(i,k,j)
       ENDDO
       ENDDO
@@ -4548,9 +4548,9 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
                                      its, ite, jts, jte, kts, kte        )
 
        IF ( (im == P_QV) .and. config_flags%output_qsgs_fluxes) THEN
-        DO j=jts,min(jte,jde-1)
-        DO k = kts+1,min(kte,kde-1)
-        DO i=its,min(ite,ide-1)
+        DO j=jts,jte
+        DO k = kts+1,kte
+        DO i=its,ite
           sgs_WQ(i,k,j) = H3(i,k,j)
         ENDDO
         ENDDO

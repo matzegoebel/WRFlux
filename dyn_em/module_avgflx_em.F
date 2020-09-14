@@ -15,8 +15,9 @@ CONTAINS
   subroutine zero_avgflx(avgflx_rum,avgflx_rvm,avgflx_wwm, &
        & ids, ide, jds, jde, kds, kde,           &
        & ims, ime, jms, jme, kms, kme,           &
-       & its, ite, jts, jte, kts, kte, config_flags,  &
+       & its, ite, jts, jte, kts, kte,           &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1, &
+       & config_flags,                                                                           &
        & th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean, &
        & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,          &
        & u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,                  &
@@ -40,7 +41,6 @@ CONTAINS
     INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
          ims, ime, jms, jme, kms, kme,  &
          its, ite, jts, jte, kts, kte
-    TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_rum,avgflx_rvm,avgflx_wwm
@@ -48,7 +48,9 @@ CONTAINS
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1
 
-    REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::              &
+    TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
+
+    REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::              &
        th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean, &
        q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,          &
        u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,                  &
@@ -100,7 +102,7 @@ CONTAINS
        end DO
     end if
 
-    if (config_flags%output_avgfluxes) then
+    if (present(z_mean) .and. config_flags%output_avgfluxes) then
       DO j=jts,jte
          DO k=kts,kte
             DO i=its,ite
@@ -262,29 +264,10 @@ CONTAINS
          its, ite, jts, jte, kts, kte
 
     INTEGER , INTENT(IN)        :: avgflx_count
-    LOGICAL, INTENT(IN) :: do_cu, last_timestep
-    REAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
-
-    REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
-         ru_m, rv_m, ww_m,             & 
-         U, V, W, ru, rv, ww,  &
-         thm, Q, ph_1, ph_2, phb, zx, zy,  &
-         ruth_tot, rvth_tot, wwth_tot,     &
-         ruq_tot, rvq_tot, wwq_tot,        &
-         ruu_tot, rvu_tot, wwu_tot,        &
-         ruv_tot, rvv_tot, wwv_tot,        &
-         ruw_tot, rvw_tot, www_tot,        &
-         t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp, &
-         SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ, &
-         SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW
-
-    REAL , DIMENSION( kms:kme ) ,    INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
-    REAL , DIMENSION( ims:ime, jms:jme ), INTENT(IN   ) :: mut
-
-
-
-    TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
-
+    LOGICAL, INTENT(IN) :: do_cu
+    REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: ru_m, &
+         rv_m, &
+         ww_m
 
     REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_rum,avgflx_rvm,avgflx_wwm
@@ -293,6 +276,9 @@ CONTAINS
          cfu1,cfd1,dfu1,efu1,dfd1,efd1
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1
+
+
+    TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
        TH_MEAN,THX_MEAN,THY_MEAN,THZ_MEAN,THTH_MEAN,RUTH_TOT_MEAN,RVTH_TOT_MEAN,WWTH_TOT_MEAN, &
@@ -313,6 +299,24 @@ CONTAINS
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        RHOD_MEAN,Z_MEAN
 
+    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
+         U, V, W, ru, rv, ww,  &
+         thm, Q, ph_1, ph_2, phb, zx, zy,  &
+         ruth_tot, rvth_tot, wwth_tot,     &
+         ruq_tot, rvq_tot, wwq_tot,        &
+         ruu_tot, rvu_tot, wwu_tot,        &
+         ruv_tot, rvv_tot, wwv_tot,        &
+         ruw_tot, rvw_tot, www_tot,        &
+         t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp, &
+         SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ, &
+         SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW
+
+    REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
+    REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
+    REAL, OPTIONAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
+    LOGICAL, OPTIONAL, INTENT(IN) :: last_timestep
+
+
     REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
     REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w
 
@@ -331,7 +335,7 @@ CONTAINS
 
     local_count = real(avgflx_count)
 
-    if (config_flags%output_avgfluxes) then
+    if (present(dt) .and. config_flags%output_avgfluxes) then
 
     DO j=jts-1,jte
     DO k=kts,kte

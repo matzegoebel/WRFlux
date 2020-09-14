@@ -2630,7 +2630,6 @@ CONTAINS
                    ENDIF
                 ELSE
                     fac = dz8w(i,k,j)*rho(i,k,j)
-                   !TODO: dz8w correct k index?
                    IF   (config_flags%output_thsgs_fluxes) THEN
                       IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
                          rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)

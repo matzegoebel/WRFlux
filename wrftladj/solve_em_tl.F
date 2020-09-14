@@ -3322,7 +3322,8 @@ BENCH_END(g_bc_end_tim)
                  &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
                  &   k_start    , k_end, f_flux, &
                  &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
-                 &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1 )
+                 &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+                 &   config_flags )
             CALL wrf_debug(200,'In solve_em_tl, after zero_avgflx call')
 
          ENDDO
@@ -3344,7 +3345,8 @@ BENCH_END(g_bc_end_tim)
               &   k_start    , k_end, f_flux, &
               &   grid%cfu1,grid%cfd1,grid%dfu1,grid%efu1,grid%dfd1,grid%efd1,          &
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
-              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1 )
+              &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+              &   config_flags )
          CALL wrf_debug(200,'In solve_em_tl, after upd_avgflx call')
 
       ENDDO

@@ -1285,9 +1285,9 @@ endif
               &   ids, ide, jds, jde, kds, kde,           &
               &   ims, ime, jms, jme, kms, kme,           &
               &   grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), kts, kte,          &
-              &   config_flags,                                       &
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
+              &   config_flags,                                                                          &
               &   grid%th_mean,grid%thx_mean,grid%thy_mean,grid%thz_mean,grid%thth_mean,                 &
               &   grid%ruth_tot_mean,grid%rvth_tot_mean,grid%wwth_tot_mean,                              &
               &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &

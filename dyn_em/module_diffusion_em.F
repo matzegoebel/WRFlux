@@ -5739,7 +5739,7 @@ END SUBROUTINE nonlocal_flux
         DO i = i_start, i_end
           titau(i,k,j) = - xkxavg(i,k,j) * defor(i,k,j)
           mtau(i,k,j) = - xkxavg(i,k,j) * defor(i,k,j)  / ( .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
-                                                            rho(i-1,k,j-1) + rho(i,k,j-1) ))
+                                                                    rho(i-1,k,j-1) + rho(i,k,j-1) ))
 
         END DO
         END DO

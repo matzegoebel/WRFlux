@@ -1181,11 +1181,12 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
              + rdx*( ruth_s(i+1,k,j)-ruth_s(i,k,j) ) )     &
              + rdnw(k)*( wdtn(i,k+1)-wdtn(i,k) ) )
 
-       IF (config_flags%output_thres_fluxes) THEN
-         ruth_tot(i,k,j) = ruth_tot(i,k,j) + ruth_s(i,k,j)
-         rvth_tot(i,k,j) = rvth_tot(i,k,j) + rvth_s(i,k,j)
-         wwth_tot(i,k,j) = wwth_tot(i,k,j) + wdtn(i,k)
-       ENDIF
+!TODO: add small step flux, but treat extra because flux is used to get thetax/x/z
+!~        IF (config_flags%output_thres_fluxes) THEN
+!~          ruth_tot(i,k,j) = ruth_tot(i,k,j) + ruth_s(i,k,j)
+!~          rvth_tot(i,k,j) = rvth_tot(i,k,j) + rvth_s(i,k,j)
+!~          wwth_tot(i,k,j) = wwth_tot(i,k,j) + wdtn(i,k)
+!~        ENDIF
      ENDDO
      ENDDO
    ENDDO

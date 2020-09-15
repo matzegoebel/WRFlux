@@ -8310,7 +8310,7 @@ END SUBROUTINE phy_bc
     CALL wrf_error_fatal( 'isfflx value invalid for diff_opt=2' )
   END SELECT hflux
 
-    IF((config_flags%use_theta_m == 1  ) .and. (config_flags%output_dry_theta_fluxes==1)) THEN
+    IF((config_flags%use_theta_m == 1  ) .and. config_flags%output_dry_theta_fluxes) THEN
       output_dry = .true.
     ELSE
       output_dry = .false.

@@ -349,7 +349,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
       IF ( output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -625,7 +625,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -951,7 +951,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -1173,7 +1173,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -1482,7 +1482,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -1531,7 +1531,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -1570,7 +1570,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -1609,7 +1609,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -1636,7 +1636,7 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -1886,7 +1886,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -2171,7 +2171,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -2426,7 +2426,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
       IF (output_fluxes) THEN
          DO k=kts,ktf
-         DO i=its,ite
+         DO i=i_start,i_end
             fqy_out(i,k,j) = fqy(i,k,jp1)
          ENDDO
          ENDDO
@@ -2643,7 +2643,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -3093,7 +3093,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -3145,7 +3145,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
          IF (output_fluxes) THEN
            DO k = kts,kte
-           DO i=its,ite
+           DO i=i_start,i_end
              fqz_out(i,k,j) = vflux(i,k)
            ENDDO
            ENDDO
@@ -3187,7 +3187,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -3229,7 +3229,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -3267,7 +3267,7 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
 
      IF (output_fluxes) THEN
        DO k = kts,kte
-       DO i=its,ite
+       DO i=i_start,i_end
          fqz_out(i,k,j) = vflux(i,k)
        ENDDO
        ENDDO
@@ -3514,7 +3514,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
       IF ( output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -3785,7 +3785,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -4099,7 +4099,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -4303,7 +4303,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -4577,7 +4577,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -4628,7 +4628,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -4666,7 +4666,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
          
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -4703,7 +4703,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -4727,7 +4727,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
      ENDDO
      IF (output_fluxes) THEN
        DO k = kts,kte
-       DO i=its,ite
+       DO i=i_start,i_end
         fqz_out(i,k,j) = vflux(i,k)
        ENDDO
        ENDDO
@@ -5005,7 +5005,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -5335,7 +5335,7 @@ ELSE IF (horz_order == 5 ) THEN
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -5718,7 +5718,7 @@ ELSE IF ( horz_order == 4 ) THEN
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -5966,7 +5966,7 @@ ELSE IF ( horz_order == 3 ) THEN
 
     IF (output_fluxes) THEN
       DO k=kts,ktf
-      DO i=its,ite
+      DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
       ENDDO
@@ -6383,7 +6383,7 @@ ELSE IF (horz_order == 2 ) THEN
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             !shift z-flux to be on mass points
             IF (k .eq. kte) THEN
                fqz_out(i,k,j) = 0
@@ -6444,7 +6444,7 @@ ELSE IF (horz_order == 2 ) THEN
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             !shift z-flux to be on mass points
             IF (k .eq. kte) THEN
                fqz_out(i,k,j) = 0
@@ -6493,7 +6493,7 @@ ELSE IF (horz_order == 2 ) THEN
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             !shift z-flux to be on mass points
             IF (k .eq. kte) THEN
                fqz_out(i,k,j) = 0
@@ -6543,7 +6543,7 @@ ELSE IF (horz_order == 2 ) THEN
 
         IF (output_fluxes) THEN
           DO k = kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             !shift z-flux to be on mass points
             IF (k .eq. kte) THEN
                fqz_out(i,k,j) = 0
@@ -6580,7 +6580,7 @@ ELSE IF (horz_order == 2 ) THEN
 
      IF (output_fluxes) THEN
        DO k = kts,kte
-       DO i=its,ite
+       DO i=i_start,i_end
          !shift z-flux to be on mass points
          IF (k .eq. kte) THEN
             fqz_out(i,k,j) = 0
@@ -8424,9 +8424,9 @@ SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
     ENDDO
     ENDDO
     
-    DO j=jts,jte
+    DO j=j_start,j_end
     DO k=kts,kte
-    DO i=its,ite
+    DO i=i_start,i_end
       fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
     ENDDO
     ENDDO
@@ -8733,7 +8733,7 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -9133,7 +9133,7 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
          
          IF (output_fluxes) THEN
           DO k=kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -10085,9 +10085,9 @@ SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
   ENDDO
   ENDDO
   
-  DO j=jts,jte
+  DO j=j_start,j_end
   DO k=kts,kte
-  DO i=its,ite
+  DO i=i_start,i_end
     fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
   ENDDO
   ENDDO
@@ -11168,9 +11168,9 @@ SUBROUTINE advect_scalar_mono   ( field, field_old, tendency,    &
     ENDDO
     ENDDO
     
-    DO j=jts,jte
+    DO j=j_start,j_end
     DO k=kts,kte
-    DO i=its,ite
+    DO i=i_start,i_end
       fqz_out(i,k,j) = fqz(i,k,j) + fqzl(i,k,j)
     ENDDO
     ENDDO
@@ -11780,7 +11780,7 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -12157,7 +12157,7 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
 
          IF (output_fluxes) THEN
           DO k=kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -12506,7 +12506,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
      !shift y-flux to be on mass points
      DO j=jts,jte
      DO k=kts,ktf
-     DO i=its,ite
+     DO i=i_start,i_end
        fqy_out(i,k,j) = fqy(i,k,j+1)
      ENDDO
      ENDDO
@@ -12881,7 +12881,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
          IF (output_fluxes) THEN
           DO k=kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             fqz_out(i,k,j) = vflux(i,k)
           ENDDO
           ENDDO
@@ -13236,7 +13236,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
       IF (output_fluxes) THEN
         DO k=kts,ktf
-        DO i=its,ite
+        DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
         ENDDO
@@ -13735,7 +13735,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
          IF (output_fluxes) THEN
           DO k=kts,kte
-          DO i=its,ite
+          DO i=i_start,i_end
             !shift z-flux to be on mass points
             IF (k .eq. kte) THEN
                fqz_out(i,k,j) = 0

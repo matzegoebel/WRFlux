@@ -220,8 +220,8 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
 
     ! set up the small timestep variables
 
-      DO j=j_start, j_end
-      DO i=i_start, i_end
+      DO j=j_start-1, jte
+      DO i=i_start-1, ite
         ww_save(i,kde,j) = 0.
         ww_save(i,1,j) = 0.
       ENDDO
@@ -278,10 +278,10 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
     ENDDO
     ENDDO
 
-      DO j=j_start, j_end
+      DO j=j_start-1, jte
 !      DO k=k_start, min(kde,kte)
       DO k=k_start, kde
-      DO i=i_start, i_end
+      DO i=i_start-1, ite
         ww_save(i,k,j) = ww(i,k,j)
       ENDDO
       ENDDO

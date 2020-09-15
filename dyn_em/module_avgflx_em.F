@@ -416,7 +416,8 @@ CONTAINS
                                                ruth_tot, rvth_tot, wwth_tot,&
                                                ru(i,k,j), rv(i,k,j), ww(i,k,j), th, &
                                                cf1, cf2, cf3, cfn, cfn1, .false.,   &
-                                               i, j, k, kde,                        &
+                                               i, j, k,                             &
+                                               ids, ide, jds, jde, kds, kde,        &
                                                ims, ime, jms, jme, kms, kme         )
             ENDIF
             !staggered q, different vertical velocity needed
@@ -425,50 +426,60 @@ CONTAINS
                                                ruq_tot, rvq_tot, wwq_tot,  &
                                                ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
                                                 cf1, cf2, cf3, cfn, cfn1, .false.,       &
-                                               i, j, k, kde,                             &
+                                               i, j, k,                                  &
+                                               ids, ide, jds, jde, kds, kde,             &
                                                ims, ime, jms, jme, kms, kme              )
             ENDIF
             IF (config_flags%output_ures_fluxes) THEN
                 !(de)stagger in x direction
-                ru_d = 0.5*(ru(i,j,k)+ru(i+1,j,k))
-                rv_d = 0.5*(rv(i-1,j,k)+rv(i,j,k))
-                ww_d = 0.5*(ww(i-1,j,k)+ww(i,j,k))
+                ru_d = 0.5*(ru(i,k,j)+ru(i+1,k,j))
+                rv_d = 0.5*(rv(i-1,k,j)+rv(i,k,j))
+                ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
                 call get_staggered_from_fluxes(ux, uy, uz,                 &
                                                ruu_tot, rvu_tot, wwu_tot,  &
                                                ru_d, rv_d, ww_d, U,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
-                                               i, j, k, kde,                      &
+                                               i, j, k,                           &
+                                               ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
                 !(de)stagger in y direction
-                ru_d = 0.5*(ru(i,j-1,k)+ru(i,j,k))
-                rv_d = 0.5*(rv(i,j+1,k)+rv(i,j,k))
-                ww_d = 0.5*(ww(i,j-1,k)+ww(i,j,k))
+                ru_d = 0.5*(ru(i,k,j-1)+ru(i,k,j))
+                rv_d = 0.5*(rv(i,k,j+1)+rv(i,k,j))
+                ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
                 call get_staggered_from_fluxes(vx, vy, vz,                 &
                                                ruv_tot, rvv_tot, wwv_tot,  &
                                                ru_d, rv_d, ww_d, V,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
-                                               i, j, k, kde,                      &
+                                               i, j, k,                           &
+                                               ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
-                IF (k .eq. kte) THEN
-                    ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
-                    rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
-                    ww_d = 0
+                IF (k .eq. kts) THEN
+                    wx = 0
+                    wy = 0
+                    wz = 0
                 ELSE
-                    ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
-                    rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
-                    ww_d = 0.5*(ww(i,j,k)+ww(i,j,k+1))
-                ENDIF
+                    IF (k .eq. kte) THEN
+                        ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
+                        rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
+                        ww_d = ww(i,k-1,j)
+                    ELSE
+                        ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
+                        rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
+                        ww_d = 0.5*(ww(i,k,j)+ww(i,k+1,j))
+                    ENDIF
 
-                call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                               ruw_tot, rvw_tot, www_tot,  &
-                                               ru_d, rv_d, ww_d, W,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .true.,  &
-                                               i, j, k, kde,                      &
-                                               ims, ime, jms, jme, kms, kme       )
+                    call get_staggered_from_fluxes(wx, wy, wz,                 &
+                                                   ruw_tot, rvw_tot, www_tot,  &
+                                                   ru_d, rv_d, ww_d, W,        &
+                                                   cf1, cf2, cf3, cfn, cfn1, .true.,  &
+                                                   i, j, k,                           &
+                                                   ids, ide, jds, jde, kds, kde,      &
+                                                   ims, ime, jms, jme, kms, kme       )
+                ENDIF
             ENDIF
 
             !compute cartesian corrections
@@ -747,7 +758,8 @@ CONTAINS
                                        ruvar_tot, rvvar_tot, wwvar_tot, &
                                        ru, rv, ww, var,                 &
                                        cf1, cf2, cf3, cfn, cfn1, do_w,  &
-                                       i, j, k, kde,                    &
+                                       i, j, k,                         &
+                                       ids, ide, jds, jde, kds, kde,    &
                                        ims, ime, jms, jme, kms, kme     )
 
     IMPLICIT NONE
@@ -755,21 +767,44 @@ CONTAINS
     REAL, INTENT(OUT) :: varx, vary, varz
     REAL, INTENT(IN) :: ru, rv, ww, cf1, cf2, cf3, cfn, cfn1
     LOGICAL, INTENT(IN) :: do_w
-    INTEGER, INTENT(IN) ::  i, j, k, kde,             &
+    INTEGER, INTENT(IN) ::  i, j, k,                       &
+                            ids, ide, jds, jde, kds, kde,  &
                             ims, ime, jms, jme, kms, kme
     REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
                         ruvar_tot, rvvar_tot, wwvar_tot, var
 
-    varx = ruvar_tot(i,k,j)/ru
-    vary = rvvar_tot(i,k,j)/rv
+    WRITE ( wrf_err_message , FMT=* ) "i,j,k:",i,",",j,",",k
+    if (ru .ne. 0) then
+        varx = ruvar_tot(i,k,j)/ru
+    else
+        varx = var(i,k,j)
+        if (k .lt. kde) then
+            CALL wrf_debug ( 0 , ' Found zero ru when getting staggered variable from flux! Using var(i,k,j)...' )
+            CALL wrf_debug ( 0 , wrf_err_message )
+        endif
+    endif
+    if (rv .ne. 0) then
+        vary = rvvar_tot(i,k,j)/rv
+    else
+        vary = var(i,k,j)
+        if (k .lt. kde) then
+            CALL wrf_debug ( 0 , ' Found zero rv when getting staggered variable from flux! Using var(i,k,j)...' )
+            CALL wrf_debug ( 0 , wrf_err_message )
+        endif
+    endif
+
     if ((do_w) .and. (k .eq. kde)) THEN
       varz = 0
     elseif (k .eq. kde) then
       varz = cfn*var(i,kde-1,j)+cfn1*var(i,kde-2,j)
     elseif ((k .eq. 1) .and. (.not. do_w)) then
       varz = cf1*var(i,1,j)+cf2*var(i,2,j)+cf3*var(i,3,j)
-    else
+    elseif (ww .ne. 0) then
       varz = wwvar_tot(i,k,j)/ww
+    else
+      varz = var(i,k,j)
+      CALL wrf_debug ( 0 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
+      CALL wrf_debug ( 0 , wrf_err_message )
     endif
   end subroutine get_staggered_from_fluxes
 

@@ -436,6 +436,11 @@ CONTAINS
                                                i, j, k,                                  &
                                                ids, ide, jds, jde, kds, kde,             &
                                                ims, ime, jms, jme, kms, kme              )
+                if ((abs(qx) .gt. 0.05) .or. (abs(qy) .gt. 0.05) .or. (abs(qz) .gt. 0.05)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large qx/y/z:", qx, qy, qz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
+
             ENDIF
             IF (config_flags%output_ures_fluxes) THEN
                 !(de)stagger in x direction
@@ -449,6 +454,10 @@ CONTAINS
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
+                if ((abs(ux) .gt. 20) .or. (abs(uy) .gt. 20) .or. (abs(uz) .gt. 20)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large ux/y/z:", ux, uy, uz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
                 !(de)stagger in y direction
@@ -462,6 +471,10 @@ CONTAINS
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
+                if ((abs(vx) .gt. 20) .or. (abs(vy) .gt. 20) .or. (abs(vz) .gt. 20)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large vx/y/z:", vx, vy, vz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
                 IF (k .eq. kts) THEN
@@ -486,6 +499,11 @@ CONTAINS
                                                    i, j, k,                           &
                                                    ids, ide, jds, jde, kds, kde,      &
                                                    ims, ime, jms, jme, kms, kme       )
+                if ((abs(wx) .gt. 20) .or. (abs(wy) .gt. 20) .or. (abs(wz) .gt. 20)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large wx/y/z:", wx, wy, wz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
+
                 ENDIF
             ENDIF
 

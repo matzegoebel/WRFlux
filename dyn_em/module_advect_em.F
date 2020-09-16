@@ -12459,6 +12459,13 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
 
       END IF
 
+      IF (output_fluxes) THEN
+        DO k=kts,ktf
+        DO i=i_start,i_end
+          fqy_out(i,k,j) = fqy(i,k,jp1)
+        ENDDO
+        ENDDO
+      ENDIF
 !  y flux-divergence into tendency
 
         ! Comments on polar boundary conditions
@@ -12507,7 +12514,7 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
      DO j=jts,jte
      DO k=kts,ktf
      DO i=i_start,i_end
-       fqy_out(i,k,j) = fqy(i,k,j+1)
+       fqy_out(i,k,j) = fqy_out(i,k,j+1)
      ENDDO
      ENDDO
      ENDDO

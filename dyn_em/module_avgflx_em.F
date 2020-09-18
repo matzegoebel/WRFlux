@@ -317,8 +317,8 @@ CONTAINS
     LOGICAL, OPTIONAL, INTENT(IN) :: last_timestep
 
 
-    REAL,    DIMENSION( its-1:ite , kts:kte , jts-1:jte ) ::    rho_d, th, thd
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w
+    REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d, th
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    thd, dzdt, u8w, v8w, rho8w
 
     INTEGER :: i,j,k
     REAL :: local_count, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                &

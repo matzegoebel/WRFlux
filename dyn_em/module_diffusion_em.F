@@ -2965,6 +2965,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme)  ::  H1, H2, dummy_tend
 
    INTEGER :: im, ic, is, i, j, k
+   REAL :: rho_stag
 
 !  REAL , DIMENSION(its-1:ite+1, kts:kte, jts-1:jte+1)       ::     xkhh
 
@@ -3038,10 +3039,21 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
             DO j=jts,jte
             DO k=kts,kte
             DO i=its,ite
-                sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                                         fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-                sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23)*rho(i,k,j)* 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                                         fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+                IF (k .eq. kts) THEN
+                  rho_stag = 0.5 * (rho(i-1,k,j) + rho(i,k,j))
+                ELSE
+                  rho_stag = 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                     fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+                ENDIF
+                sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13) * rho_stag
+
+                IF (k .eq. kts) THEN
+                  rho_stag = 0.5 * (rho(i,k,j-1) + rho(i,k,j))
+                ELSE
+                  rho_stag = 0.5 * ( fnm(k) * ( rho(i,k  ,j-1) + rho(i,k  ,j) ) + &
+                                     fnp(k) * ( rho(i,k-1,j-1) + rho(i,k-1,j) ) )
+                ENDIF
+                sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23) * rho_stag
             ENDDO
             ENDDO
             ENDDO
@@ -4215,7 +4227,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
     REAL :: V0_u,V0_v,tao_xz,tao_yz,ustar,cd0
     REAL :: xsfc,psi1,vk2,zrough,lnz
     REAL :: heat_flux, moist_flux, heat_flux0
-    REAL :: cpm
+    REAL :: cpm, rho_stag
 !
 !FINE MODIFICA VARIABILI PER I FLUSSI
 !***************************************************************************
@@ -4351,8 +4363,13 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
             DO j=jts,jte
             DO k=kts,kte
             DO i=its,ite
-                sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                                               fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+                IF (k .eq. kts) THEN
+                  rho_stag = 0.5 * (rho(i-1,k,j) + rho(i,k,j))
+                ELSE
+                  rho_stag = 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                     fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+                ENDIF
+                sgs_WU(i,k,j) = nba_mij(i,k,j,P_m13) * rho_stag
             ENDDO
             ENDDO
             ENDDO
@@ -4361,8 +4378,13 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
             DO j=jts,jte
             DO k=kts,kte
             DO i=its,ite
-                sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * 0.5 * ( fnm(k) * ( rho(i,k  ,j) + rho(i,k  ,j-1) ) +  &
-                                                               fnp(k) * ( rho(i,k-1,j) + rho(i,k-1,j-1) ) )
+                IF (k .eq. kts) THEN
+                  rho_stag = 0.5 * (rho(i,k,j-1) + rho(i,k,j))
+                ELSE
+                  rho_stag = 0.5 * ( fnm(k) * ( rho(i,k  ,j-1) + rho(i,k  ,j) ) + &
+                                     fnp(k) * ( rho(i,k-1,j-1) + rho(i,k-1,j) ) )
+                ENDIF
+                sgs_WV(i,k,j) = nba_mij(i,k,j,P_m23) * rho_stag
             ENDDO
             ENDDO
             ENDDO

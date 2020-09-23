@@ -977,7 +977,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                          msfux, msfuy, msfvx, msfvx_inv,      &
                          msfvy, msftx, msfty,                 &
                          step, config_flags,                  &
-                         ruth_tot, rvth_tot, wwth_tot,        &
+                         ruth_s, rvth_s, wwth_s,              &
                          ids, ide, jds, jde, kds, kde,        &
                          ims, ime, jms, jme, kms, kme,        &
                          its, ite, jts, jte, kts, kte        )
@@ -1005,9 +1005,9 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                                               uam,    &
                                               vam,    &
                                               wwam,   &
-                                              ruth_tot, &
-                                              rvth_tot, &
-                                              wwth_tot
+                                              ruth_s, &
+                                              rvth_s, &
+                                              wwth_s
                                               
   REAL, DIMENSION( ims:ime , jms:jme ),    INTENT(IN   ) :: muu,  &
                                                             muv,  &
@@ -1035,7 +1035,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
   REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f, &
                                               c3h, c4h, c3f, c4f
 !  Local arrays from the stack (note tile size)
-  REAL, DIMENSION (its:ite+1, kts:kte, jts:jte+1) :: ruth_s, rvth_s
+  REAL, DIMENSION (its:ite+1, kts:kte, jts:jte+1) :: ruth, rvth
   REAL, DIMENSION (its:ite, kts:kte) :: wdtn, dvdxi
   REAL, DIMENSION (its:ite) :: dmdt
   INTEGER :: i, j, k, kk, i_start, i_end, j_start, j_end, k_start, k_end
@@ -1152,8 +1152,8 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
    DO j=j_start, j_end+1
    DO k=1,k_end
    DO i=i_start, i_end+1
-      ruth_s(i,k,j) = u(i,k,j)*0.5*(t_1(i,k,j)+t_1(i-1,k,j))
-      rvth_s(i,k,j) = v(i,k,j)*0.5*(t_1(i,k,j)+t_1(i,k,j-1))
+      ruth(i,k,j) = u(i,k,j)*0.5*(t_1(i,k,j)+t_1(i-1,k,j))
+      rvth(i,k,j) = v(i,k,j)*0.5*(t_1(i,k,j)+t_1(i,k,j-1))
    ENDDO
    ENDDO
    ENDDO
@@ -1177,16 +1177,15 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
        t(i,k,j) = t(i,k,j) - dts*msfty(i,j)*(              &
                           ! multiplication by mx needed for RHS terms 1 & 2
                           msftx(i,j)*(                     &
-               rdy*( rvth_s(i,k,j+1)-rvth_s(i,k,j) )       &
-             + rdx*( ruth_s(i+1,k,j)-ruth_s(i,k,j) ) )     &
+               rdy*( rvth(i,k,j+1)-rvth(i,k,j) )       &
+             + rdx*( ruth(i+1,k,j)-ruth(i,k,j) ) )     &
              + rdnw(k)*( wdtn(i,k+1)-wdtn(i,k) ) )
 
-!TODO: add small step flux, but treat extra because flux is used to get thetax/x/z
-!~        IF (config_flags%output_thres_fluxes) THEN
-!~          ruth_tot(i,k,j) = ruth_tot(i,k,j) + ruth_s(i,k,j)
-!~          rvth_tot(i,k,j) = rvth_tot(i,k,j) + rvth_s(i,k,j)
-!~          wwth_tot(i,k,j) = wwth_tot(i,k,j) + wdtn(i,k)
-!~        ENDIF
+       IF (config_flags%output_thres_fluxes) THEN
+         ruth_s(i,k,j) = ruth(i,k,j)
+         rvth_s(i,k,j) = rvth(i,k,j)
+         wwth_s(i,k,j) = wdtn(i,k)
+       ENDIF
      ENDDO
      ENDDO
    ENDDO

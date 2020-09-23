@@ -246,7 +246,7 @@ CONTAINS
        & SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        & RHOD_MEAN,Z_MEAN,                                                                       &
-       & ruth_tot, rvth_tot, wwth_tot, ruq_tot, rvq_tot, wwq_tot,                                &
+       & ruth_tot, rvth_tot, wwth_tot, ruth_s, rvth_s, wwth_s, ruq_tot, rvq_tot, wwq_tot,        &
        & ruu_tot, rvu_tot, wwu_tot, ruv_tot, rvv_tot, wwv_tot, ruw_tot, rvw_tot, www_tot,        &
        & SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ,                                      &
        & SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW,                         &
@@ -303,6 +303,7 @@ CONTAINS
          U, V, W, ru, rv, ww,  &
          thm, Q, ph_1, ph_2, phb, zx, zy,  &
          ruth_tot, rvth_tot, wwth_tot,     &
+         ruth_s, rvth_s, wwth_s,           &
          ruq_tot, rvq_tot, wwq_tot,        &
          ruu_tot, rvu_tot, wwu_tot,        &
          ruv_tot, rvv_tot, wwv_tot,        &
@@ -615,9 +616,9 @@ CONTAINS
                 THY_MEAN(i,k,j) = (local_count*THY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
                 THZ_MEAN(i,k,j) = (local_count*THZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
                 THTH_MEAN(i,k,j) = (local_count*THTH_MEAN(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
-                RUTH_TOT_MEAN(i,k,j)  = (local_count*RUTH_TOT_MEAN(i,k,j) + ruth_tot(i,k,j) )/(local_count+1.)
-                RVTH_TOT_MEAN(i,k,j)  = (local_count*RVTH_TOT_MEAN(i,k,j) + rvth_tot(i,k,j) )/(local_count+1.)
-                WWTH_TOT_MEAN(i,k,j)  = (local_count*WWTH_TOT_MEAN(i,k,j) + wwth_tot(i,k,j) )/(local_count+1.)
+                RUTH_TOT_MEAN(i,k,j)  = (local_count*RUTH_TOT_MEAN(i,k,j) + ruth_tot(i,k,j) + ruth_s(i,k,j) )/(local_count+1.)
+                RVTH_TOT_MEAN(i,k,j)  = (local_count*RVTH_TOT_MEAN(i,k,j) + rvth_tot(i,k,j) + rvth_s(i,k,j) )/(local_count+1.)
+                WWTH_TOT_MEAN(i,k,j)  = (local_count*WWTH_TOT_MEAN(i,k,j) + wwth_tot(i,k,j) + wwth_s(i,k,j) )/(local_count+1.)
                 CORR_UTH_MEAN(i,k,j)  = (local_count*CORR_UTH_MEAN(i,k,j) + corr_uth )/(local_count+1.)
                 CORR_VTH_MEAN(i,k,j)  = (local_count*CORR_VTH_MEAN(i,k,j) + corr_vth )/(local_count+1.)
                 CORR_DTHDT_MEAN(i,k,j)  = (local_count*CORR_DTHDT_MEAN(i,k,j) + corr_dthdt )/(local_count+1.)

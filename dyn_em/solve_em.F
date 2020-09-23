@@ -1331,7 +1331,7 @@ BENCH_START(advance_mu_t_tim)
                           grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,            &
                           grid%msfvy, grid%msftx,grid%msfty,                            &
                           iteration, config_flags,                                      &
-                          grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                  &
+                          grid%ruth_s, grid%rvth_s, grid%wwth_s,                        &
                           ids, ide, jds, jde, kds, kde,      &
                           ims, ime, jms, jme, kms, kme,      &
                           grid%i_start(ij), grid%i_end(ij),  &
@@ -4655,6 +4655,7 @@ BENCH_END(bc_2d_tim)
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
               &   grid%rhod_mean,grid%z_mean,                                                            &
               &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
+              &   grid%ruth_s, grid%rvth_s, grid%wwth_s,                                            &
               &   grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,                                         &
               &   grid%ruu_tot, grid%rvu_tot, grid%wwu_tot,                                         &
               &   grid%ruv_tot, grid%rvv_tot, grid%wwv_tot,                                         &

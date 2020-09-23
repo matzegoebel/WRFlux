@@ -245,7 +245,7 @@ CONTAINS
        & SGS_UV_MEAN,SGS_VV_MEAN,SGS_WV_MEAN,                                                    &
        & SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
-       & RHOD_MEAN,Z_MEAN,                                                                       &
+       & RHOD_MEAN,Z_MEAN,w_diag,                                                                &
        & ruth_tot, rvth_tot, wwth_tot, ruth_s, rvth_s, wwth_s, ruq_tot, rvq_tot, wwq_tot,        &
        & ruu_tot, rvu_tot, wwu_tot, ruv_tot, rvv_tot, wwv_tot, ruw_tot, rvw_tot, www_tot,        &
        & SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ,                                      &
@@ -299,6 +299,8 @@ CONTAINS
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        RHOD_MEAN,Z_MEAN
 
+    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
+
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, V, W, ru, rv, ww,  &
          thm, Q, ph_1, ph_2, phb, zx, zy,  &
@@ -332,7 +334,7 @@ CONTAINS
             corr_uu, corr_vu, corr_dudt, &
             corr_uv, corr_vv, corr_dvdt, &
             corr_uw, corr_vw, corr_dwdt, &
-            wdiag, muz, mu, dphidn
+            muz, mu, dphidn
 
     local_count = real(avgflx_count)
 
@@ -518,7 +520,7 @@ CONTAINS
             dzdt_s = dzdt(i,k,j)
             rho_s = rho8w(i,k,j)
 
-            wdiag = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
+            w_diag(i,k,j) = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
             muz = c1f(k)*mut(i,j)+c2f(k)
 
             IF (config_flags%output_thres_fluxes) THEN
@@ -608,7 +610,7 @@ CONTAINS
             V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
             ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
             OM_MEAN(i,k,j) = (local_count*OM_MEAN(i,k,j) + ww(i,k,j)/muz*rhoz )/(local_count+1.)/rhoz_mean
-            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + wdiag*rhoz )/(local_count+1.)/rhoz_mean
+            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
 
             IF (config_flags%output_thres_fluxes) THEN
                 TH_MEAN(i,k,j) = (local_count*TH_MEAN(i,k,j) + thd(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean

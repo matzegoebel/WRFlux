@@ -4653,7 +4653,7 @@ BENCH_END(bc_2d_tim)
               &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
               &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
-              &   grid%rhod_mean,grid%z_mean,                                                            &
+              &   grid%rhod_mean,grid%z_mean,grid%w_diag,                                                &
               &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
               &   grid%ruth_s, grid%rvth_s, grid%wwth_s,                                            &
               &   grid%ruq_tot, grid%rvq_tot, grid%wwq_tot,                                         &

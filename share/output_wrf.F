@@ -986,6 +986,14 @@ endif
       CALL wrf_put_dom_ti_integer ( fid , 'COMPRESSION' , config_flags%compression , 1 , ierr )
     ENDIF
 
+
+IF (config_flags%output_avgfluxes) THEN
+    CALL wrf_put_dom_ti_logical ( fid , 'HESSELBERG_AVG' , config_flags%hesselberg_avg , 1 , ierr )
+    IF (config_flags%output_th_fluxes .gt. 0) THEN
+        CALL wrf_put_dom_ti_logical ( fid , 'OUTPUT_DRY_THETA_FLUXES' , config_flags%output_dry_theta_fluxes , 1 , ierr )
+    ENDIF
+ENDIF
+
 #if ( (EM_CORE == 1) && (DA_CORE != 1) )
       save_topo_orig = grid%save_topo_from_real
 

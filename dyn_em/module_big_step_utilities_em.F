@@ -5721,7 +5721,9 @@ compiler error, not handled yet
             th_phy_m_t0(i,k,j) = t_new(i,k,j)
             h_diabatic(i,k,j) =  mpten/dt
          END IF
-         t_tend_mp(i,k,j) =  mpten/dt
+         IF (config_flags%output_th_fluxes .eq. 1) THEN
+            t_tend_mp(i,k,j) =  mpten/dt
+         ENDIF
 #endif
 !!!         ! KLUDGE:
 !!!         qvten = 0.0

@@ -131,9 +131,11 @@ CONTAINS
                         sgs_VTH_mean(i,k,j) = 0.
                         sgs_WTH_mean(i,k,j) = 0.
                     endif
-                    t_tend_radlw_mean(i,k,j) = 0.
-                    t_tend_radsw_mean(i,k,j) = 0.
-                    t_tend_mp_mean(i,k,j) = 0.
+                    if (config_flags%output_th_fluxes .eq. 1) then
+                        t_tend_radlw_mean(i,k,j) = 0.
+                        t_tend_radsw_mean(i,k,j) = 0.
+                        t_tend_mp_mean(i,k,j) = 0.
+                    endif
                 endif
                 if (config_flags%output_q_fluxes > 0) then
                     if (config_flags%output_qres_fluxes) then
@@ -154,7 +156,9 @@ CONTAINS
                         sgs_VQ_mean(i,k,j) = 0.
                         sgs_WQ_mean(i,k,j) = 0.
                     endif
-                    q_tend_mp_mean(i,k,j) = 0.
+                    if (config_flags%output_q_fluxes .eq. 1) then
+                        q_tend_mp_mean(i,k,j) = 0.
+                    endif
                 endif
                 if (config_flags%output_u_fluxes > 0) then
                     if (config_flags%output_ures_fluxes) then
@@ -703,12 +707,12 @@ CONTAINS
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + corr_dwdt )/(local_count+1.)
             ENDIF
           ENDIF
-            IF (config_flags%output_th_fluxes > 0) THEN
+            IF (config_flags%output_th_fluxes .eq. 1) THEN
                 T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/(local_count+1.)
                 T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/(local_count+1.)
                 T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/(local_count+1.)
             ENDIF
-            IF (config_flags%output_q_fluxes > 0) THEN
+            IF (config_flags%output_q_fluxes .eq. 1) THEN
                 Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
             ENDIF
 

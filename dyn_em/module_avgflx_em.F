@@ -34,6 +34,9 @@ CONTAINS
        & sgs_UV_mean,sgs_VV_mean,sgs_WV_mean,                                                    &
        & sgs_UW_mean,sgs_VW_mean,sgs_WW_mean,                                                    &
        & t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
+       & u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
+       & v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
+       & w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
        & rhod_mean,z_mean                                                                        )
 
     IMPLICIT NONE
@@ -67,6 +70,9 @@ CONTAINS
        sgs_UV_mean,sgs_VV_mean,sgs_WV_mean,                                                    &
        sgs_UW_mean,sgs_VW_mean,sgs_WW_mean,                                                    &
        t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
+       u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
+       v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
+       w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
        rhod_mean,z_mean
 
 
@@ -168,6 +174,10 @@ CONTAINS
                         sgs_UV_mean(i,k,j) = 0.
                         sgs_WU_mean(i,k,j) = 0.
                     endif
+                    if (config_flags%output_u_fluxes .eq. 1) then
+                        u_tend_pg_mean(i,k,j) = 0.
+                        u_tend_cor_curv_mean(i,k,j) = 0.
+                    endif
                 endif
                 if (config_flags%output_v_fluxes > 0) then
                     if (config_flags%output_vres_fluxes) then
@@ -186,6 +196,10 @@ CONTAINS
                         sgs_UV_mean(i,k,j) = 0.
                         sgs_VV_mean(i,k,j) = 0.
                         sgs_WV_mean(i,k,j) = 0.
+                    endif
+                    if (config_flags%output_v_fluxes .eq. 1) then
+                        v_tend_pg_mean(i,k,j) = 0.
+                        v_tend_cor_curv_mean(i,k,j) = 0.
                     endif
                 endif
                 if (config_flags%output_w_fluxes > 0) then
@@ -207,6 +221,10 @@ CONTAINS
                         sgs_UW_mean(i,k,j) = 0.
                         sgs_VW_mean(i,k,j) = 0.
                         sgs_WW_mean(i,k,j) = 0.
+                    endif
+                    if (config_flags%output_w_fluxes .eq. 1) then
+                        w_tend_pg_mean(i,k,j) = 0.
+                        w_tend_cor_curv_mean(i,k,j) = 0.
                     endif
                 endif
 
@@ -245,12 +263,18 @@ CONTAINS
        & SGS_UV_MEAN,SGS_VV_MEAN,SGS_WV_MEAN,                                                    &
        & SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
+       & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
+       & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
+       & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
        & RHOD_MEAN,Z_MEAN,w_diag,                                                                &
        & ruth_tot, rvth_tot, wwth_tot, ruth_s, rvth_s, wwth_s, ruq_tot, rvq_tot, wwq_tot,        &
        & ruu_tot, rvu_tot, wwu_tot, ruv_tot, rvv_tot, wwv_tot, ruw_tot, rvw_tot, www_tot,        &
        & SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ,                                      &
        & SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW,                         &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                                      &
+       & u_tend_pg,u_tend_cor_curv,                                                              &
+       & v_tend_pg,v_tend_cor_curv,                                                              &
+       & w_tend_pg,w_tend_cor_curv,                                                              &
        & U, V, W, ru, rv, ww, thm, Q,                                                            &
        & ph_1, ph_2, phb, zx, zy,                                                                &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
@@ -297,6 +321,9 @@ CONTAINS
        SGS_UV_MEAN,SGS_VV_MEAN,SGS_WV_MEAN,                                                    &
        SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
+       U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
+       V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
+       W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
        RHOD_MEAN,Z_MEAN
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
@@ -311,6 +338,9 @@ CONTAINS
          ruv_tot, rvv_tot, wwv_tot,        &
          ruw_tot, rvw_tot, www_tot,        &
          t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp, &
+         u_tend_pg,u_tend_cor_curv,                         &
+         v_tend_pg,v_tend_cor_curv,                         &
+         w_tend_pg,w_tend_cor_curv,                         &
          SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ, &
          SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW
 
@@ -681,14 +711,21 @@ CONTAINS
             IF (config_flags%output_q_fluxes > 0) THEN
                 Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
             ENDIF
-            !TODO: other mom sources (coriolis, curvature, small time step)
-!~             IF (config_flags%output_u_fluxes > 0) THEN
-!~             ENDIF
-!~             IF (config_flags%output_v_fluxes > 0) THEN
-!~             ENDIF
-!~             IF (config_flags%output_w_fluxes > 0) THEN
-!~             ENDIF
-          !TODO: temperature and humidity tendencies from cumulus scheme
+
+            !TODO: other mom sources (small time step,...)
+            IF (config_flags%output_u_fluxes .eq. 1) THEN
+                U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/(local_count+1.)
+                U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/(local_count+1.)
+            ENDIF
+            IF (config_flags%output_v_fluxes .eq. 1) THEN
+                V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/(local_count+1.)
+                V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/(local_count+1.)
+            ENDIF
+            IF (config_flags%output_w_fluxes .eq. 1) THEN
+                W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/(local_count+1.)
+                W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/(local_count+1.)
+            ENDIF
+
           IF (config_flags%output_sgs_fluxes) THEN
             IF (config_flags%output_thsgs_fluxes) THEN
                 sgs_UTH_mean(i,k,j) = (local_count*sgs_UTH_mean(i,k,j) + sgs_UTH(i,k,j) ) / (local_count+1.)

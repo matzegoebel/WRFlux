@@ -189,6 +189,9 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
+                         u_tend_pg,u_tend_cor_curv,                       &
+                         v_tend_pg,v_tend_cor_curv,                       &
+                         w_tend_pg,w_tend_cor_curv,                       &
                          ftx, fty, ftz,                                   &
                          fux, fuy, fuz, fvx, fvy, fvz, fwx, fwy, fwz, qv, &
                          mu_tend, u_save, v_save, w_save, ph_save,        &
@@ -271,6 +274,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                           w_save, &
                                                          ph_save, &
                                                           t_save, &
+                                       u_tend_pg,u_tend_cor_curv, &
+                                       v_tend_pg,v_tend_cor_curv, &
+                                       w_tend_pg,w_tend_cor_curv, &
                                                   ftx, fty, ftz,  &
                                                   fux, fuy, fuz,  &
                                                   fvx, fvy, fvz,  &
@@ -338,7 +344,10 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL, INTENT( OUT ) :: max_horiz_cfl
    REAL, INTENT( OUT ) :: max_vert_cfl
 
-   REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy, thdry
+   REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy, thdry, &
+                                                      ru_tend_old,         &
+                                                      rv_tend_old,         &
+                                                      rw_tend_old
 
    REAL    :: kdift, khdq, kvdq, cfn, cfn1, cf1, cf2, cf3
    INTEGER :: i,j,k
@@ -647,6 +656,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                   ims, ime, jms, jme, kms, kme,      &
                   its, ite, jts, jte, kts, kte      )
 
+     ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+     rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
      CALL horizontal_pressure_gradient( ru_tend,rv_tend,                 &
                                          ph,alt,p,pb,al,php,cqu,cqv,     &
                                          muu,muv,mu,c1h,c2h,fnm,fnp,rdnw,&
@@ -658,14 +669,42 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                          ids, ide, jds, jde, kds, kde,   &
                                          ims, ime, jms, jme, kms, kme,   &
                                          its, ite, jts, jte, kts, kte   )
+     IF (config_flags%output_u_fluxes .eq. 1) THEN
+          DO j = jts,jte
+          DO k = kts,kte
+          DO i = its,ite
+            u_tend_pg(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))
+          ENDDO
+          ENDDO
+          ENDDO
+     ENDIF
+     IF (config_flags%output_v_fluxes .eq. 1) THEN
+          DO j = jts,jte
+          DO k = kts,kte
+          DO i = its,ite
+            v_tend_pg(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))
+          ENDDO
+          ENDDO
+          ENDDO
+     ENDIF
 
      IF (non_hydrostatic) THEN
+          rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
           CALL pg_buoy_w( rw_tend, p, cqw, mu, mub,       &
                           c1f,c2f,                        &
                           rdnw, rdn, g, msftx, msfty,     &
                           ids, ide, jds, jde, kds, kde,   &
                           ims, ime, jms, jme, kms, kme,   &
                           its, ite, jts, jte, kts, kte   )
+          IF (config_flags%output_w_fluxes .eq. 1) THEN
+                DO j = jts,jte
+                DO k = kts,kte
+                DO i = its,ite
+                  w_tend_pg(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))
+                ENDDO
+                ENDDO
+                ENDDO
+          ENDIF
      ENDIF
 
      CALL w_damp   ( rw_tend, max_vert_cfl,             &
@@ -677,6 +716,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                       ims, ime, jms, jme, kms, kme,     &
                       its, ite, jts, jte, kts, kte     )
 
+     ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+     rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+     rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
      IF(config_flags%pert_coriolis) THEN
 
           CALL perturbation_coriolis ( ru, rv, rw,                   &
@@ -713,6 +755,33 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                        ims, ime, jms, jme, kms, kme,   &
                        its, ite, jts, jte, kts, kte   )
 
+     IF (config_flags%output_u_fluxes .eq. 1) THEN
+          DO j = jts,jte
+          DO k = kts,kte
+          DO i = its,ite
+            u_tend_cor_curv(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))
+          ENDDO
+          ENDDO
+          ENDDO
+     ENDIF
+     IF (config_flags%output_v_fluxes .eq. 1) THEN
+          DO j = jts,jte
+          DO k = kts,kte
+          DO i = its,ite
+            v_tend_cor_curv(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))
+          ENDDO
+          ENDDO
+          ENDDO
+     ENDIF
+     IF (config_flags%output_w_fluxes .eq. 1) THEN
+          DO j = jts,jte
+          DO k = kts,kte
+          DO i = its,ite
+            w_tend_cor_curv(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))
+          ENDDO
+          ENDDO
+          ENDDO
+     ENDIF
 ! Damping option added for Held-Suarez test (also uses lw option HELDSUAREZ)
       IF (config_flags%ra_lw_physics == HELDSUAREZ) THEN
          CALL held_suarez_damp ( ru_tend, rv_tend,               &   

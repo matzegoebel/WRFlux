@@ -806,6 +806,9 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
+                         ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
+                         ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
+                         ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
                          ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot                                          &
                          ,grid%ruu_tot, grid%rvu_tot, grid%wwu_tot                                             &
                          ,grid%ruv_tot, grid%rvv_tot, grid%wwv_tot                                             &
@@ -4604,6 +4607,9 @@ BENCH_END(bc_2d_tim)
                  &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
                  &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
                  &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+                 &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
+                 &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
+                 &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
                  &   grid%rhod_mean,grid%z_mean                                                             )
             CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
          ENDDO
@@ -4653,6 +4659,9 @@ BENCH_END(bc_2d_tim)
               &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
               &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
+              &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
+              &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
               &   grid%rhod_mean,grid%z_mean,grid%w_diag,                                                &
               &   grid%ruth_tot, grid%rvth_tot, grid%wwth_tot,                                      &
               &   grid%ruth_s, grid%rvth_s, grid%wwth_s,                                            &
@@ -4663,6 +4672,9 @@ BENCH_END(bc_2d_tim)
               &   grid%sgs_uth,grid%sgs_vth,grid%sgs_wth,grid%sgs_uq,grid%sgs_vq,grid%sgs_wq,            &
               &   grid%sgs_uu,grid%sgs_wu,grid%sgs_uv,grid%sgs_vv,grid%sgs_wv,grid%sgs_uw,grid%sgs_vw,grid%sgs_ww,  &
               &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,               &
+              &   grid%u_tend_pg,grid%u_tend_cor_curv,                                              &
+              &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
+              &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
               &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
               &   grid%t_2, moist(:,:,:,P_QV),                                                      &
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy,                                 &

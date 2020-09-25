@@ -764,6 +764,9 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
+                         ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
+                         ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
+                         ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
                          ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot                                          &
                          ,grid%ruu_tot, grid%rvu_tot, grid%wwu_tot                                             &
                          ,grid%ruv_tot, grid%rvv_tot, grid%wwv_tot                                             &

@@ -180,8 +180,22 @@ state   real    t_tend_radlw_mean    ikj     dyn_em          1               -  
 state   real    t_tend_radsw_mean    ikj     dyn_em          1               -               h{24} "T_TEND_RADSW_MEAN"      "time-averaged dry theta tendency from RAD scheme, shortwave" "K s-1"
 state   real    t_tend_mp_mean       ikj     dyn_em          1               -               h{24} "T_TEND_MP_MEAN"         "time-averaged dry theta tendency from MP scheme" "K s-1"
 state   real    q_tend_mp_mean       ikj     dyn_em          1               -               h{24} "Q_TEND_MP_MEAN"         "time-averaged water vapor mixing ratio tendency from MP scheme" "s-1"
+state   real    u_tend_pg_mean       ikj     dyn_em          1               X               h{24} "U_TEND_PG_MEAN"         "time-averaged u tendency from pressure gradient force" "m s-2"
+state   real    v_tend_pg_mean       ikj     dyn_em          1               Y               h{24} "V_TEND_PG_MEAN"         "time-averaged v tendency from pressure gradient force" "m s-2"
+state   real    w_tend_pg_mean       ikj     dyn_em          1               Z               h{24} "W_TEND_PG_MEAN"         "time-averaged w tendency from pressure gradient force" "m s-2"
+state   real    u_tend_cor_curv_mean ikj     dyn_em          1               X               h{24} "U_TEND_COR_CURV_MEAN"   "time-averaged u tendency from coriolis force and curvature" "m s-2"
+state   real    v_tend_cor_curv_mean ikj     dyn_em          1               Y               h{24} "V_TEND_COR_CURV_MEAN"   "time-averaged v tendency from coriolis force and curvature" "m s-2"
+state   real    w_tend_cor_curv_mean ikj     dyn_em          1               Z               h{24} "W_TEND_COR_CURV_MEAN"   "time-averaged w tendency from coriolis force and curvature" "m s-2"
 
-state   real    t_tend_mp            ikj      dyn_em          1               -               -     "T_TEND_MP"          "instantaneous dry theta-tendency from MP scheme" "K s-1"
+state   real    t_tend_mp            ikj     dyn_em          1               -               -     "T_TEND_MP"          "instantaneous dry theta-tendency from MP scheme" "K s-1"
+state   real    u_tend_pg            ikj     dyn_em          1               X               -     "U_TEND_PG"          "instantaneous u tendency from pressure gradient force" "m s-2"
+state   real    v_tend_pg            ikj     dyn_em          1               Y               -     "V_TEND_PG"          "instantaneous v tendency from pressure gradient force" "m s-2"
+state   real    w_tend_pg            ikj     dyn_em          1               Z               -     "W_TEND_PG"          "instantaneous w tendency from pressure gradient force" "m s-2"
+state   real    u_tend_cor_curv      ikj     dyn_em          1               X               -     "U_TEND_COR_CURV"    "instantaneous u tendency from coriolis force and curvature" "m s-2"
+state   real    v_tend_cor_curv      ikj     dyn_em          1               Y               -     "V_TEND_COR_CURV"    "instantaneous v tendency from coriolis force and curvature" "m s-2"
+state   real    w_tend_cor_curv      ikj     dyn_em          1               Z               -     "W_TEND_COR_CURV"    "instantaneous w tendency from coriolis force and curvature" "m s-2"
+
+
 
 #namelist options
 
@@ -219,14 +233,14 @@ package  mean_q_1       output_q_fluxes==1        -  state:w_diag,rhod_mean,u_me
 package  mean_q_2       output_q_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot,rvq_tot,wwq_tot,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,corr_uq,corr_vq,corr_dqdt,q_tend_mp_mean
 package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,z_mean,sgs_uq,sgs_vq,sgs_wq,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean,q_tend_mp_mean
 
-package  mean_u_1       output_u_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,ux_mean,uy_mean,uz_mean,ruu_tot,rvu_tot,wwu_tot,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean
+package  mean_u_1       output_u_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,ux_mean,uy_mean,uz_mean,ruu_tot,rvu_tot,wwu_tot,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean,u_tend_pg,u_tend_pg_mean,u_tend_cor_curv,u_tend_cor_curv_mean
 package  mean_u_2       output_u_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,ux_mean,uy_mean,uz_mean,ruu_tot,rvu_tot,wwu_tot,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt
 package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,z_mean,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean
 
-package  mean_v_1       output_v_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,vx_mean,vy_mean,vz_mean,ruv_tot,rvv_tot,wwv_tot,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean
+package  mean_v_1       output_v_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,vx_mean,vy_mean,vz_mean,ruv_tot,rvv_tot,wwv_tot,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean,v_tend_pg,v_tend_pg_mean,v_tend_cor_curv,v_tend_cor_curv_mean
 package  mean_v_2       output_v_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,vx_mean,vy_mean,vz_mean,ruv_tot,rvv_tot,wwv_tot,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt
 package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,z_mean,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean
 
-package  mean_w_1       output_w_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,wx_mean,wy_mean,wz_mean,ruw_tot,rvw_tot,www_tot,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean
+package  mean_w_1       output_w_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,wx_mean,wy_mean,wz_mean,ruw_tot,rvw_tot,www_tot,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean,w_tend_pg,w_tend_pg_mean,w_tend_cor_curv,w_tend_cor_curv_mean
 package  mean_w_2       output_w_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,wx_mean,wy_mean,wz_mean,ruw_tot,rvw_tot,www_tot,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt
 package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,z_mean,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean

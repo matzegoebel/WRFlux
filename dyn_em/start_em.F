@@ -1309,6 +1309,9 @@ endif
               &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
               &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
+              &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
+              &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
               &   grid%rhod_mean,grid%z_mean                                                             )
 
          call wrf_debug(200,'In start_em, after zero_avgflx call')

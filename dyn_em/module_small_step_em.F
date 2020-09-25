@@ -1162,11 +1162,18 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      DO i=i_start, i_end
        wdtn(i,1  )=0.
        wdtn(i,kde)=0.
+       IF (config_flags%output_thres_fluxes) THEN
+         wwth_s(i,1,j) = 0.
+         wwth_s(i,kde,j) = 0.
+       ENDIF
      ENDDO
      DO k=2,k_end
      DO i=i_start, i_end
         ! for scalar eqn RHS term 3
         wdtn(i,k)= ww(i,k,j)*(fnm(k)*t_1(i,k  ,j)+fnp(k)*t_1(i,k-1,j))
+        IF (config_flags%output_thres_fluxes) THEN
+          wwth_s(i,k,j) = wdtn(i,k)
+        ENDIF
      ENDDO
      ENDDO
 ! scalar eqn, RHS terms 1, 2 and 3
@@ -1180,14 +1187,18 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                rdy*( rvth(i,k,j+1)-rvth(i,k,j) )       &
              + rdx*( ruth(i+1,k,j)-ruth(i,k,j) ) )     &
              + rdnw(k)*( wdtn(i,k+1)-wdtn(i,k) ) )
-
+     ENDDO
+     ENDDO
+   ENDDO
+   DO j=j_start, j_end+1
+   DO k=1,k_end
+   DO i=i_start, i_end+1
        IF (config_flags%output_thres_fluxes) THEN
          ruth_s(i,k,j) = ruth(i,k,j)
          rvth_s(i,k,j) = rvth(i,k,j)
-         wwth_s(i,k,j) = wdtn(i,k)
        ENDIF
-     ENDDO
-     ENDDO
+   ENDDO
+   ENDDO
    ENDDO
 END SUBROUTINE advance_mu_t
           

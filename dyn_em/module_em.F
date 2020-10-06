@@ -669,7 +669,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                          ids, ide, jds, jde, kds, kde,   &
                                          ims, ime, jms, jme, kms, kme,   &
                                          its, ite, jts, jte, kts, kte   )
-     IF (config_flags%output_u_fluxes .eq. 1) THEN
+     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -678,7 +678,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF (config_flags%output_v_fluxes .eq. 1) THEN
+     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -696,7 +696,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                           ids, ide, jds, jde, kds, kde,   &
                           ims, ime, jms, jme, kms, kme,   &
                           its, ite, jts, jte, kts, kte   )
-          IF (config_flags%output_w_fluxes .eq. 1) THEN
+          IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
                 DO j = jts,jte
                 DO k = kts,kte
                 DO i = its,ite
@@ -755,7 +755,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                        ims, ime, jms, jme, kms, kme,   &
                        its, ite, jts, jte, kts, kte   )
 
-     IF (config_flags%output_u_fluxes .eq. 1) THEN
+     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -764,7 +764,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF (config_flags%output_v_fluxes .eq. 1) THEN
+     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -773,7 +773,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF (config_flags%output_w_fluxes .eq. 1) THEN
+     IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite

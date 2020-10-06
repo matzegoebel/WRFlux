@@ -656,8 +656,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                   ims, ime, jms, jme, kms, kme,      &
                   its, ite, jts, jte, kts, kte      )
 
-     ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
-     rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+       ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+     ENDIF
+     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+       rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+     ENDIF
      CALL horizontal_pressure_gradient( ru_tend,rv_tend,                 &
                                          ph,alt,p,pb,al,php,cqu,cqv,     &
                                          muu,muv,mu,c1h,c2h,fnm,fnp,rdnw,&
@@ -689,7 +693,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
 
      IF (non_hydrostatic) THEN
-          rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
+          IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+            rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
+          ENDIF
           CALL pg_buoy_w( rw_tend, p, cqw, mu, mub,       &
                           c1f,c2f,                        &
                           rdnw, rdn, g, msftx, msfty,     &
@@ -716,9 +722,16 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                       ims, ime, jms, jme, kms, kme,     &
                       its, ite, jts, jte, kts, kte     )
 
-     ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
-     rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
-     rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
+     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+       ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+     ENDIF
+     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+       rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+     ENDIF
+     IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+       rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
+     ENDIF
+
      IF(config_flags%pert_coriolis) THEN
 
           CALL perturbation_coriolis ( ru, rv, rw,                   &

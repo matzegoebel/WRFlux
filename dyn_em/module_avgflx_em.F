@@ -457,8 +457,8 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,        &
                                                ims, ime, jms, jme, kms, kme         )
 
+                !TODO: remove these warnings!
                 if ((abs(thetax) .gt. 50) .or. (abs(thetay) .gt. 50) .or. (abs(thetaz) .gt. 50)) then
-                !TODO: also do for other variables!
                     WRITE ( wrf_err_message , FMT=* ) "Found large thetax/y/z:", thetax, thetay, thetaz, "at i,j,k:",i,",",j,",",k
                     CALL wrf_debug ( 0 , wrf_err_message )
                 endif

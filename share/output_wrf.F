@@ -987,6 +987,9 @@ endif
     ENDIF
 
 
+CALL wrf_put_dom_ti_logical ( fid , 'PERIODIC_X' , config_flags%periodic_x , 1 , ierr )
+CALL wrf_put_dom_ti_logical ( fid , 'PERIODIC_Y' , config_flags%periodic_y , 1 , ierr )
+
 IF (config_flags%output_avgfluxes) THEN
     CALL wrf_put_dom_ti_logical ( fid , 'HESSELBERG_AVG' , config_flags%hesselberg_avg , 1 , ierr )
     IF (config_flags%output_th_fluxes .gt. 0) THEN

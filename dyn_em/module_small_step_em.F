@@ -1267,6 +1267,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
                       dnw, fnm, fnp, rdnw, rdn,   &
                       cf1, cf2, cf3, msftx, msfty,&
                       config_flags, top_lid,      &
+                      rk_step, w_tend_pg,         &
                       ids,ide, jds,jde, kds,kde,  & ! domain dims
                       ims,ime, jms,jme, kms,kme,  & ! memory dims
                       its,ite, jts,jte, kts,kte  )  ! tile   dims
@@ -1281,6 +1282,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
   INTEGER,      INTENT(IN   )    :: ims,ime, jms,jme, kms,kme
   INTEGER,      INTENT(IN   )    :: its,ite, jts,jte, kts,kte
   LOGICAL,      INTENT(IN   )    :: top_lid
+  INTEGER,      INTENT(IN   )    :: rk_step
       REAL, DIMENSION( ims:ime , kms:kme , jms:jme ), &
             INTENT(INOUT) ::                          &
                                              t_2ave,  &
@@ -1329,9 +1331,13 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
                                 epssm
       REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f, &
                                                   c3h, c4h, c3f, c4f
+
+      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) :: w_tend_pg
+
 !  Stack based 3d data, tile size.
       REAL, DIMENSION( its:ite ) :: mut_inv, msft_inv
       REAL, DIMENSION( its:ite, kts:kte ) :: rhs, wdwn
+      REAL, DIMENSION (its:ite, kts:kte, jts:jte) :: w_old
       INTEGER :: i,j,k, i_start, i_end, j_start, j_end, k_start, k_end
       REAL, DIMENSION (kts:kte) :: dampwt
       real :: htop,hbot,hdepth,hk
@@ -1385,6 +1391,11 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
     DO i=i_start, i_end
       rhs(i,1) = 0.
     ENDDO
+
+    IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+      w_old(its:ite, kts:kte, jts:jte) = w(its:ite, kts:kte, jts:jte)
+    ENDIF
+
   j_loop_w:  DO j = j_start, j_end
     DO i=i_start, i_end
        msft_inv(i) = 1./msfty(i,j)
@@ -1496,6 +1507,15 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
        w (i,k,j)=w (i,k,j)-gamma(i,k,j)*w(i,k+1,j)
     ENDDO
     ENDDO
+
+    IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+      DO k = kts,kte
+      DO i = its,ite
+        !recover small step tendency and decouple from mu
+        w_tend_pg(i,k,j) = w_tend_pg(i,k,j) + (w(i,k,j) - dts*rw_tend(i,k,j) - w_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))/config_flags%dt
+      ENDDO
+      ENDDO
+    ENDIF
 
     IF (config_flags%damp_opt .eq. 3) THEN
       DO k=k_end+1,2,-1

@@ -664,6 +664,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
                         emdiv,                         &
                         rdnw, config_flags, spec_zone, &
                         non_hydrostatic, top_lid,      &
+                        rk_step, u_tend_pg, v_tend_pg, &
                         ids, ide, jds, jde, kds, kde,  &
                         ims, ime, jms, jme, kms, kme,  &
                         its, ite, jts, jte, kts, kte  )
@@ -675,6 +676,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
       INTEGER,      INTENT(IN   )    :: ims,ime, jms,jme, kms,kme
       INTEGER,      INTENT(IN   )    :: its,ite, jts,jte, kts,kte
       INTEGER,      INTENT(IN   )    :: spec_zone
+      INTEGER,      INTENT(IN   )    :: rk_step
       REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  &
             INTENT(INOUT) ::                          &
                                                   u,  &
@@ -713,8 +715,12 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
       REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f, &
                                                   c3h, c4h, c3f, c4f
     
+      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) ::              &
+                                                                        u_tend_pg,  &
+                                                                        v_tend_pg
 !  Local 3d array from the stack (note tile size)
       REAL, DIMENSION (its:ite, kts:kte) :: dpn, dpxy
+      REAL, DIMENSION (its:ite, kts:kte, jts:jte) :: ruv_tend_s
       REAL, DIMENSION (its:ite) :: mudf_xy
       REAL                      :: dx, dy
       INTEGER :: i,j,k, i_start, i_end, j_start, j_end, k_start, k_end
@@ -865,10 +871,22 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    END IF
    DO k = k_start, k_end
      DO i = i_start_up, i_end_up
-       u(i,k,j)=u(i,k,j)-dts*cqu(i,k,j)*dpxy(i,k)+(c1h(k)*mudf_xy(i))
+       ruv_tend_s(i,k,j) = -dts*cqu(i,k,j)*dpxy(i,k)+(c1h(k)*mudf_xy(i))
+       u(i,k,j)=u(i,k,j) + ruv_tend_s(i,k,j)
      ENDDO
    ENDDO
    ENDDO u_outer_j_loop
+
+   IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     DO j = jts,jte
+     DO k = kts,kte
+     DO i = its,ite
+       u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + ruv_tend_s(i,k,j)/(c1h(k)*muu(i,j)+c2h(k))/config_flags%dt
+     ENDDO
+     ENDDO
+     ENDDO
+   ENDIF
+
 ! now v
   v_outer_j_loop: DO j = j_start_v_tend, j_end_v_tend
    DO k = k_start, k_end
@@ -939,11 +957,23 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
      END IF
      DO k = k_start, k_end
        DO i = i_start, i_end
-         v(i,k,j)=v(i,k,j)-dts*cqv(i,k,j)*dpxy(i,k)+(c1h(k)*mudf_xy(i))
+         ruv_tend_s(i,k,j) = -dts*cqv(i,k,j)*dpxy(i,k)+(c1h(k)*mudf_xy(i))
+         v(i,k,j)=v(i,k,j) + ruv_tend_s(i,k,j)
        ENDDO
      ENDDO
    END IF
   ENDDO  v_outer_j_loop
+
+  IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+    DO j = jts,jte
+    DO k = kts,kte
+    DO i = its,ite
+      v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + ruv_tend_s(i,k,j)/(c1h(k)*muv(i,j)+c2h(k))/config_flags%dt
+    ENDDO
+    ENDDO
+    ENDDO
+  ENDIF
+
   ! The check for j_start_vp and j_end_vp makes sure that the edges in v
   ! are not updated.  Let's add a polar boundary condition check here for
   ! safety to ensure that v at the poles never gets to be non-zero in the
@@ -976,7 +1006,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                          dnw, fnm, fnp, rdnw,                 &
                          msfux, msfuy, msfvx, msfvx_inv,      &
                          msfvy, msftx, msfty,                 &
-                         step, config_flags,                  &
+                         step, config_flags, rk_step,         &
                          ruth_s, rvth_s, wwth_s,              &
                          ids, ide, jds, jde, kds, kde,        &
                          ims, ime, jms, jme, kms, kme,        &
@@ -988,6 +1018,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
   INTEGER,      INTENT(IN   )    :: ims,ime, jms,jme, kms,kme
   INTEGER,      INTENT(IN   )    :: its,ite, jts,jte, kts,kte
   INTEGER,      INTENT(IN   )    :: step
+  INTEGER,      INTENT(IN   )    :: rk_step
   REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),   &
             INTENT(IN   ) ::                       &
                                               u,   &
@@ -1162,20 +1193,29 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      DO i=i_start, i_end
        wdtn(i,1  )=0.
        wdtn(i,kde)=0.
-       IF (config_flags%output_thres_fluxes) THEN
-         wwth_s(i,1,j) = 0.
-         wwth_s(i,kde,j) = 0.
-       ENDIF
      ENDDO
      DO k=2,k_end
      DO i=i_start, i_end
         ! for scalar eqn RHS term 3
         wdtn(i,k)= ww(i,k,j)*(fnm(k)*t_1(i,k  ,j)+fnp(k)*t_1(i,k-1,j))
-        IF (config_flags%output_thres_fluxes) THEN
-          wwth_s(i,k,j) = wdtn(i,k)
-        ENDIF
      ENDDO
      ENDDO
+     IF ((rk_step == 3) .and. (config_flags%output_thres_fluxes)) THEN
+       IF (step == 1) THEN
+         DO k=1,kde
+         DO i=i_start, i_end
+            wwth_s(i,k,j) = wdtn(i,k)*dts/config_flags%dt
+         ENDDO
+         ENDDO
+       ELSE
+         DO k=1,kde
+         DO i=i_start, i_end
+            wwth_s(i,k,j) = wwth_s(i,k,j) + wdtn(i,k)*dts/config_flags%dt
+         ENDDO
+         ENDDO
+       ENDIF
+     ENDIF
+
 ! scalar eqn, RHS terms 1, 2 and 3
 ! multiply by msfty to uncouple result for Theta from map scale factor
      DO k=1,k_end
@@ -1190,16 +1230,28 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      ENDDO
      ENDDO
    ENDDO
-   DO j=j_start, j_end+1
-   DO k=1,k_end
-   DO i=i_start, i_end+1
-       IF (config_flags%output_thres_fluxes) THEN
-         ruth_s(i,k,j) = ruth(i,k,j)
-         rvth_s(i,k,j) = rvth(i,k,j)
-       ENDIF
-   ENDDO
-   ENDDO
-   ENDDO
+   IF ((rk_step == 3) .and. (config_flags%output_thres_fluxes)) THEN
+     IF (step == 1) THEN
+       DO j=j_start, j_end+1
+       DO k=1,k_end
+       DO i=i_start, i_end+1
+         ruth_s(i,k,j) = ruth(i,k,j)*dts/config_flags%dt
+         rvth_s(i,k,j) = rvth(i,k,j)*dts/config_flags%dt
+       ENDDO
+       ENDDO
+       ENDDO
+     ELSE
+       DO j=j_start, j_end+1
+       DO k=1,k_end
+       DO i=i_start, i_end+1
+         ruth_s(i,k,j) = ruth_s(i,k,j) + ruth(i,k,j)*dts/config_flags%dt
+         rvth_s(i,k,j) = rvth_s(i,k,j) + rvth(i,k,j)*dts/config_flags%dt
+       ENDDO
+       ENDDO
+       ENDDO
+     ENDIF
+   ENDIF
+
 END SUBROUTINE advance_mu_t
           
 !------------------------------------------------------------

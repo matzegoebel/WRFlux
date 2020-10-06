@@ -1221,6 +1221,7 @@ BENCH_START(advance_uv_tim)
                            grid%emdiv,                                            &
                            grid%rdnw, config_flags,grid%spec_zone,                &
                            config_flags%non_hydrostatic, config_flags%top_lid,    &
+                           rk_step, grid%u_tend_pg, grid%v_tend_pg,               &
                            ids, ide, jds, jde, kds, kde,                          &
                            ims, ime, jms, jme, kms, kme,                          &
                            grid%i_start(ij), grid%i_end(ij),                      &
@@ -1333,7 +1334,7 @@ BENCH_START(advance_mu_t_tim)
                           grid%dnw, grid%fnm, grid%fnp, grid%rdnw,                      &
                           grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,            &
                           grid%msfvy, grid%msftx,grid%msfty,                            &
-                          iteration, config_flags,                                      &
+                          iteration, config_flags, rk_step,                             &
                           grid%ruth_s, grid%rvth_s, grid%wwth_s,                        &
                           ids, ide, jds, jde, kds, kde,      &
                           ims, ime, jms, jme, kms, kme,      &

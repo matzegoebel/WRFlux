@@ -673,11 +673,14 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                          ids, ide, jds, jde, kds, kde,   &
                                          ims, ime, jms, jme, kms, kme,   &
                                          its, ite, jts, jte, kts, kte   )
+
+     ! reconstruct momentum tendencies from pressure gradient
+     ! and decouple from dry mass and map scale factors
      IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
-            u_tend_pg(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))
+            u_tend_pg(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))*msfuy(i,j)
           ENDDO
           ENDDO
           ENDDO
@@ -686,7 +689,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
-            v_tend_pg(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))
+            v_tend_pg(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))*msfvx(i,j)
           ENDDO
           ENDDO
           ENDDO
@@ -706,7 +709,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                 DO j = jts,jte
                 DO k = kts,kte
                 DO i = its,ite
-                  w_tend_pg(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))
+                  w_tend_pg(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))*msfty(i,j)
                 ENDDO
                 ENDDO
                 ENDDO
@@ -768,11 +771,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                        ims, ime, jms, jme, kms, kme,   &
                        its, ite, jts, jte, kts, kte   )
 
+     ! reconstruct momentum tendencies from coriolis and curvature
+     ! and decouple from dry mass and map scale factors
      IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
-            u_tend_cor_curv(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))
+            u_tend_cor_curv(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))*msfuy(i,j)
           ENDDO
           ENDDO
           ENDDO
@@ -781,7 +786,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
-            v_tend_cor_curv(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))
+            v_tend_cor_curv(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))*msfvx(i,j)
           ENDDO
           ENDDO
           ENDDO
@@ -790,7 +795,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
-            w_tend_cor_curv(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))
+            w_tend_cor_curv(i,k,j) = (rw_tend(i,k,j) - rw_tend_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))*msfty(i,j)
           ENDDO
           ENDDO
           ENDDO

@@ -38,7 +38,7 @@ basedir = os.path.expanduser(basedir)
 
 figloc = basedir + "figures/"
 
-#%%getvars
+#%%open dataset
 def fix_coords(data, dx, dy):
     """Removes coordinates not needed in idealized simulation"""
 
@@ -602,7 +602,10 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
     total_tend = total_tendency(dat_inst, var, **attrs)
 
     if dim_stag is not None:
-        grid["DZDNW_STAG"] = stagger_like(grid["DZDNW"], total_tend, cyclic=cyclic, **stagger_const)
+        if dim_stag == "bottom_top":
+            grid["DZDNW_STAG"] = grid["DZ"]/grid["DN"]
+        else:
+            grid["DZDNW_STAG"] = stagger_like(grid["DZDNW"], total_tend, cyclic=cyclic, **stagger_const)
     else:
         grid["DZDNW_STAG"] = grid["DZDNW"]
 
@@ -678,6 +681,9 @@ def scatter_tend_forcing(tend, forcing, var, rhodm_stag, plot_diff=False, hue="e
         color = pdatf.x
     elif hue == "y":
         color = pdatf.y
+    else:
+        raise ValueError("Hue {} not supported".format(hue))
+
     if hue != "eta":
         color = (color - color.min())/(color.max() - color.min())
 

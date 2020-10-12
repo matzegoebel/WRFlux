@@ -8055,7 +8055,8 @@ END SUBROUTINE phy_bc
          IF (config_flags%output_usgs_fluxes) THEN
             sgs_WU(i,kde,j) = 0.
             DO k=ktf,kts,-1
-               temp = (d(k) - u_2(i,k,j))/(dt*rdzw(i,k,j))* rho(i,k,j)
+               rdz_w = -g/(dnw(k))/muavg_u(i,k,j) !includes rho
+               temp = (d(k) - u_2(i,k,j))/(dt*rdz_w)
                sgs_WU(i,k,j) = temp + sgs_WU(i,k+1,j)
             ENDDO
          ENDIF
@@ -8175,7 +8176,8 @@ END SUBROUTINE phy_bc
          IF (config_flags%output_vsgs_fluxes) THEN
             sgs_WV(i,kde,j) = 0.
             DO k=ktf,kts,-1
-               temp = (d(k) - v_2(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)
+               rdz_w = -g/(dnw(k))/muavg_v(i,k,j)!includes rho
+               temp = (d(k) - v_2(i,k,j))/(dt*rdz_w)
                sgs_WV(i,k,j) = temp + sgs_WV(i,k+1,j)
             ENDDO
          ENDIF
@@ -8233,9 +8235,10 @@ END SUBROUTINE phy_bc
 
           IF (config_flags%output_wsgs_fluxes) THEN
             sgs_WW(i,kde,j) = 0.
-            DO k=ktf,kts,-1
-               temp = (d1(k) - w_2(i,k+1,j))/(dt*rdz(i,k+1,j))
-               temp = temp * ( fnm(k+1)*rho(i,k+1,j) + fnp(k+1)*rho(i,k,j) )
+            sgs_WW(i,kde-1,j) = 0.
+            DO k=ktf-1,kts,-1
+               rdz_z = -g/dn(k+1)/(c1f(k+1)*mu(i,j) + c2f(k+1))!includes rho
+               temp = (d1(k) - w_2(i,k+1,j) )/(dt*rdz_z)
                sgs_WW(i,k,j) = temp + sgs_WW(i,k+1,j)
             ENDDO
          ENDIF
@@ -8400,8 +8403,9 @@ END SUBROUTINE phy_bc
             ENDIF
             sgs_WTH(i,kde,j) = 0.
             DO k=ktf,kts,-1
+                  rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))!includes rho
                   temp = d1(k) - th_dry(k)
-                  temp = temp/(dt*rdzw(i,k,j))* rho(i,k,j)
+                  temp = temp/(dt*rdz_w)
                   sgs_WTH(i,k,j) = temp + sgs_WTH(i,k+1,j)
             ENDDO
          ENDIF
@@ -8532,7 +8536,8 @@ END SUBROUTINE phy_bc
            IF (config_flags%output_qsgs_fluxes) THEN
            sgs_WQ(i,kde,j) = 0.
            DO k=ktf,kts,-1
-               temp = (d(k) - var_mix(i,k,j))/(dt*rdzw(i,k,j)) * rho(i,k,j)
+               rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j)+c2h(k))!includes rho
+               temp = (d(k) - var_mix(i,k,j))/(dt*rdz_w)
                sgs_WQ(i,k,j) = temp + sgs_WQ(i,k+1,j)
            ENDDO
            ENDIF

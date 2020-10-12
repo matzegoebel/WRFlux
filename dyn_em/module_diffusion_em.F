@@ -7930,8 +7930,7 @@ END SUBROUTINE phy_bc
    REAL, DIMENSION( its:ite, kts:kte, jts:jte)         :: xkxavg,   &
                                                           xkxavg_w, &
                                                           rhoavg,   &
-                                                          nlflux_rho, &
-                                                          nlflux_rho_dry
+                                                          nlflux_rho
    REAL, DIMENSION( its-1:ite+1, jts-1:jte+1 )         :: gamvavg, gamuavg
    REAL, DIMENSION( its-1:ite+1, jts-1:jte+1 )         :: tao_xz, tao_yz
    REAL, DIMENSION( its-1:ite+1, kts:kte, jts-1:jte+1 ):: muavg_u,muavg_v
@@ -7944,7 +7943,7 @@ END SUBROUTINE phy_bc
    INTEGER :: i_start, i_end, j_start, j_end
  
    REAL :: V0_u,V0_v,ustar,beta
-   REAL :: heat_flux, moist_flux,temp
+   REAL :: heat_flux, moist_flux,temp,qfac
    REAL :: cpm,rdz_w,rhoavg_u,rhoavg_v,rdz_z
    LOGICAL :: output_dry
 ! End declarations.
@@ -8299,10 +8298,6 @@ END SUBROUTINE phy_bc
      DO i = i_start, i_end
         nlflux_rho(i,k,j) = nlflux(i,k,j) * &
                            (fnm(k)*rho (i,k,j)+fnp(k)*rho (i,k-1,j))
-        nlflux_rho_dry(i,k,j) = nlflux_rho(i,k,j)
-        IF(config_flags%use_theta_m == 1)THEN
-          nlflux_rho(i,k,j) = nlflux_rho(i,k,j)*(1.+rvovrd*moist(i,k,j,P_QV))
-        ENDIF
      ENDDO
      ENDDO
      ENDDO
@@ -8360,24 +8355,30 @@ END SUBROUTINE phy_bc
                   - dt*rdz_w*nlflux_rho(i,k+1,j)        &
                   + dt*rdz_w*hfx(i,j)/cpm
           ELSE
+             qfac = 1.+rvovrd*moist(i,kts,j,P_QV)
              d(k) = var_mix(i,kts,j)                    &
-                  - dt*rdz_w*nlflux_rho(i,k+1,j)        &
-                  + dt*rdz_w*((1.+rvovrd*moist(i,kts,j,P_QV))*hfx(i,j)/cpm+1.61*theta(i,kts,j)*qfx(i,j))
+                  - dt*rdz_w*nlflux_rho(i,k+1,j)*qfac   &
+                  + dt*rdz_w*(qfac*hfx(i,j)/cpm+1.61*theta(i,kts,j)*qfx(i,j))
              IF (output_dry) THEN
                   d1(k) = th_dry(kts)                       &
-                        - dt*rdz_w*nlflux_rho_dry(i,k+1,j)  &
+                        - dt*rdz_w*nlflux_rho(i,k+1,j)      &
                         + dt*rdz_w*hfx(i,j)/cpm
              ENDIF
           ENDIF
  
           DO  k = kts+1, ktf-1
             rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))
+            IF(config_flags%use_theta_m == 1)THEN
+                qfac = 1.+rvovrd*moist(i,k,j,P_QV)
+            ELSE
+                qfac = 1.
+            ENDIF
             a(k)  = -rdz_w*rdz(i,k,j)*xkxavg(i,k,j)*dt
             b(k)  = 1.+rdz_w*(rdz(i,k+1,j)*xkxavg(i,k+1,j)+rdz(i,k,j)*xkxavg(i,k,j))*dt
             c(k)  = -rdz_w*rdz(i,k+1,j)*xkxavg(i,k+1,j)*dt
-            d(k)  = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + var_mix(i,k,j)
+            d(k)  = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*qfac*dt + var_mix(i,k,j)
             IF (output_dry) THEN
-              d1(k) = -rdz_w*(nlflux_rho_dry(i,k+1,j)-nlflux_rho_dry(i,k,j))*dt + th_dry(k)
+              d1(k) = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + th_dry(k)
             ENDIF
           ENDDO
  

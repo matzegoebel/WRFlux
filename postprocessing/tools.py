@@ -120,6 +120,18 @@ def make_list(o):
     return o
 
 
+def avg_xy(data, avg_dims):
+    """Average data over the given dimensions even
+    if the actual present dimension has '_stag' added"""
+
+    avg_dims_final = avg_dims.copy()
+    for i,d in enumerate(avg_dims):
+        if (d + "_stag" in data.dims):
+            avg_dims_final.append(d + "_stag")
+            if (d not in data.dims):
+                avg_dims_final.remove(d)
+
+    return data.mean(avg_dims_final)
 #%%manipulate datasets
 
 def select_ind(a, axis=0, indeces=0):
@@ -345,18 +357,17 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         d3s = "bottom_top"
         d3 = "bottom_top_stag"
         vcoord = grid["ZNW"]
-        dz = diff(grid["Z"], "bottom_top", grid["ZNW"])
+        dz = grid["DZ"]
     else:
         d3 = "bottom_top"
         d3s = "bottom_top_stag"
         vcoord = grid["ZNU"]
-        dz = diff(grid["ZW"], "bottom_top_stag", grid["ZNU"])
+        dz = grid["DZW"]
 
     sgs["Z"] = -diff(dat["SGS_W{}_MEAN".format(VAR)], d3s, new_coord=vcoord)
     dz_stag = stagger_like(dz, sgs["Z"], cyclic=cyclic, **stagger_const)
     sgs["Z"] = sgs["Z"]/dz_stag
     for d, v in zip(["x", "y"], ["U", "V"]):
-        #TODO: add msftxy here
         #compute corrections
         du = d.upper()
         if mapfac is None:
@@ -391,8 +402,8 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
     return sgs
 
 
-def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const,
-             cartesian=False, recalc_w=True, fluxnames=None):
+def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=False,
+             recalc_w=True, hor_avg=False, avg_dims=None, fluxnames=None):
 
 
     if fluxnames is None:
@@ -409,48 +420,77 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const,
     else:
         w = data["OM_MEAN"]*grid["DZDN"] #TODO: average with dzdn or mu online?
     vmean = {"X" : data["U_MEAN"], "Y" : data["V_MEAN"], "Z" : w}
-
-    flux = data[fluxnames]
-    flux = flux.rename(dict(zip(fluxnames, ["X", "Y", "Z"])))
+    if hor_avg:
+        for k in vmean.keys():
+            vmean[k] = avg_xy(vmean[k], avg_dims)
+    tot_flux = data[fluxnames]
+    tot_flux = tot_flux.rename(dict(zip(fluxnames, ["X", "Y", "Z"])))
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in ["X", "Y", "Z"]:
+        if hor_avg and (d.lower() in avg_dims):
+            continue
         kw = dict(ref=var_stag[d], cyclic=cyclic, **stagger_const)
         rho_stag = stagger_like(data["RHOD_MEAN"], **kw).drop("z")
         vel_stag = stagger_like(vmean[d], **kw)
-        mean_flux[d] = var_stag[d]*rho_stag*vel_stag
+        var_stag_d = var_stag[d]
+        mean_flux[d] = var_stag_d*rho_stag*vel_stag
+
         if d in ["X", "Y"]:
-            dzdnw_d = stagger_like(grid["DZDNW"], **kw)
+            if VAR == "W":
+                dzdnw_d = stagger_like(grid["DZDN"], **kw)
+            else:
+                dzdnw_d = stagger_like(grid["DZDNW"], **kw)
             mean_flux[d] = dzdnw_d * mean_flux[d]
 
-    flux = xr.concat([flux, mean_flux], "comp")
-    flux["comp"] = ["tot", "mean"]
 
     #advective tendency from fluxes
-    adv = xr.Dataset()
-    for d in ["x", "y"]:
-        du = d.upper()
-        cyc = cyclic[d]
-        if d in flux[du].dims:
-            ds = d
-            d = d + "_stag"
+    adv = {}
+    fluxes = {"tot" : tot_flux, "mean" : mean_flux}
+    for comp, flux in fluxes.items():
+        adv_i = xr.Dataset()
+        mf = mapfac
+        if (comp == "mean") and hor_avg:
+            mf = avg_xy(mapfac, avg_dims)
+
+        for d in ["x", "y"]:
+            du = d.upper()
+            cyc = cyclic[d]
+            if du not in flux.data_vars:
+                continue
+            if d in flux[du].dims:
+                ds = d
+                d = d + "_stag"
+            else:
+                ds = d + "_stag"
+            dx = grid["D" + du]
+            adv_i[du] = -diff(flux[du], ds, data[d], cyclic=cyc)*mf[du]/dx
+        if VAR == "W":
+            adv_i["Z"] = -diff(flux["Z"], "bottom_top", grid["ZNW"])/grid["DN"]
+            #TODO: not quite correct for top
+            adv_i = adv_i.where((adv_i.bottom_top_stag > 0) * (adv_i.bottom_top_stag < 1) , 0)
         else:
-            ds = d + "_stag"
-        dx = grid["D" + du]
-        adv[du] = -diff(flux[du], ds, data[d], cyclic=cyc)*mapfac[du]/dx
+            adv_i["Z"] = -diff(flux["Z"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
 
-    if VAR == "W":
-        adv["Z"] = -diff(flux["Z"], "bottom_top", grid["ZNW"])/grid["DN"]
-        #TODO: not quite correct for top
-        adv = adv.where((adv.bottom_top_stag > 0) * (adv.bottom_top_stag < 1) , 0)
-    else:
-        adv["Z"] = -diff(flux["Z"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
+        adv[comp] = adv_i
 
+    if hor_avg:
+        adv["tot"] = avg_xy(adv["tot"], avg_dims)
+        fluxes["tot"] = avg_xy(fluxes["tot"], avg_dims)
+        for d in avg_dims:
+            #put total advective component of averaged dimension in mean flux (not yet set)
+            adv["mean"][d.upper()] = adv["tot"][d.upper()]
+            fluxes["mean"][d.upper()] = fluxes["tot"][d.upper()]
+    keys = adv.keys()
+    adv = xr.concat(adv.values(), "comp")
+    adv["comp"] = list(keys)
+    flux = xr.concat(fluxes.values(), "comp")
+    flux["comp"] = list(fluxes.keys())
     #Divide by coordinate metric for convenience (except vertical flux)
-    adv = adv/grid["DZDNW_STAG"]
+    adv = adv/grid["DZDN_STAG"]
     for d in ["X", "Y"]:
-        flux[d] = flux[d]/stagger_like(grid["DZDNW"], flux[d], cyclic=cyclic, **stagger_const)
+        flux[d] = flux[d]/stagger_like(grid["DZDNW"], flux[d], cyclic=cyclic, **stagger_const)#TODO correct for all vars?
 
     #resolved turbulent fluxes and tendencies
     flux = flux.reindex(comp=["tot", "mean", "res"])
@@ -520,18 +560,7 @@ def total_tendency(dat_inst, var, **attrs):
 
     return total_tend
 #%%prepare variables
-
-def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
-
-    VAR = var.upper()
-    dim_stag = None #for momentum: staggering dimension
-    if var == "u":
-        dim_stag = "x"
-    elif var == "v":
-        dim_stag = "y"
-    elif var == "w":
-        dim_stag = "bottom_top"
-
+def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     attrs = dat_inst.attrs
     dat_inst.attrs = {}
 
@@ -547,7 +576,6 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
     #computational grid
     grid = dat_inst[["ZNU","ZNW","DNW","DN"]].isel(Time=0, drop=True)
     grid["DN"] = grid["DN"].rename(bottom_top="bottom_top_stag").assign_coords(bottom_top_stag=grid["ZNW"][:-1]).reindex(bottom_top_stag=grid["ZNW"])
-    dt = int(dat_mean.Time[1] - dat_mean.Time[0])*1e-9
     grid["DX"] = attrs["DX"]
     grid["DY"] = attrs["DY"]
     grid["ZW"] = dat_mean["Z_MEAN"]
@@ -555,13 +583,32 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
     grid["DZW"] = diff(grid["ZW"], "bottom_top_stag", grid["ZNU"])
     grid["DZ"] = diff(grid["Z"], "bottom_top", grid["ZNW"])
     grid["DZDNW"] = grid["DZW"]/grid["DNW"]
-    grid["DZDN"] = diff(grid["Z"], "bottom_top", grid["ZNW"])/grid["DN"]
+    grid["DZDN"] = grid["DZ"]/grid["DN"]
 
     stagger_const = dat_inst[["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]].isel(Time=0, drop=True)
 
     dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"], z=grid["Z"], zw=grid["ZW"])
     dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
     dat_inst = dat_inst.sel(Time=times)
+
+    #check if periodic bc can be used in staggering operations
+    cyclic = {d : bool(attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
+    cyclic["bottom_top"] = False
+
+    return dat_mean, dat_inst, grid, cyclic, stagger_const, attrs
+
+def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=False, avg_dims=None):
+
+    dt = int(dat_mean.Time[1] - dat_mean.Time[0])*1e-9
+
+    VAR = var.upper()
+    dim_stag = None #for momentum: staggering dimension
+    if var == "u":
+        dim_stag = "x"
+    elif var == "v":
+        dim_stag = "y"
+    elif var == "w":
+        dim_stag = "bottom_top"
 
     #mapscale factors
     if var in ["u","v"]:
@@ -582,10 +629,6 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
     dat_mean["WD{}_TOT_MEAN".format(VAR)] = dat_mean["WW{}_TOT_MEAN".format(VAR)] + dat_mean["CORR_U{}".format(VAR)] + \
                                             dat_mean["CORR_V{}".format(VAR)] + dat_mean["CORR_D{}DT".format(VAR)]
 
-    #check if periodic bc can be used in staggering operations
-    cyclic = {d : bool(attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
-    cyclic["bottom_top"] = False
-
     #density and dry air mass
     rhodm = dat_mean["RHOD_MEAN"]
     dat_inst["MUT"] = dat_inst["C2H"]+ dat_inst["C1H"]*(dat_inst["MU"]+ dat_inst["MUB"])
@@ -603,14 +646,11 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
 
     if dim_stag is not None:
         if dim_stag == "bottom_top":
-            grid["DZDNW_STAG"] = grid["DZ"]/grid["DN"]
+            grid["DZDN_STAG"] = grid["DZDN"]
         else:
-            grid["DZDNW_STAG"] = stagger_like(grid["DZDNW"], total_tend, cyclic=cyclic, **stagger_const)
+            grid["DZDN_STAG"] = stagger_like(grid["DZDNW"], total_tend, cyclic=cyclic, **stagger_const)
     else:
-        grid["DZDNW_STAG"] = grid["DZDNW"]
-
-    #Divide by coordinate metric for convenience
-    total_tend = total_tend/grid["DZDNW_STAG"]
+        grid["DZDN_STAG"] = grid["DZDNW"]
 
     #derivative of z wrt x,y,t
     dzdd = xr.Dataset()
@@ -654,7 +694,16 @@ def prepare(dat_mean, dat_inst, var, t_avg=False, t_avg_interval=None):
 
     sources = dat_mean["RHOD_MEAN_STAG"]*sources + sgs.sum("dir", skipna=False)
 
-    return dat_mean, dat_inst, total_tend, sgs, sources, attrs, grid, dim_stag, stagger_const, cyclic, mapfac, dzdd, dzdd_s
+    if hor_avg:
+        sources = avg_xy(sources, avg_dims)
+        total_tend = avg_xy(total_tend, avg_dims)
+        dat_mean["RHOD_MEAN"] = avg_xy(dat_mean["RHOD_MEAN"], avg_dims)
+        dat_mean["RHOD_MEAN_STAG"] = avg_xy(dat_mean["RHOD_MEAN_STAG"], avg_dims)
+        grid = avg_xy(grid, avg_dims)
+    #Divide by coordinate metric for convenience
+    total_tend = total_tend/grid["DZDN_STAG"]
+
+    return dat_mean, dat_inst, total_tend, sgs, sources, grid, dim_stag, mapfac, dzdd, dzdd_s
 
 
 #%% plotting

@@ -493,10 +493,10 @@ if [ -n "$WRF_CHEM" ] ; then
       fi
     fi 
   else
-    compileflags="${compileflags} "
+    compileflags="${compileflags}!-DMNT=1"
   fi
 else
-  compileflags="${compileflags} "
+  compileflags="${compileflags}!-DMNT=1"
 fi
 
 if [ -n "$WRFPLUS" ] ; then

@@ -457,7 +457,7 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,        &
                                                ims, ime, jms, jme, kms, kme         )
 
-                !TODO: remove these warnings!
+                !TODOm: remove these warnings!
                 if ((abs(thetax) .gt. 50) .or. (abs(thetay) .gt. 50) .or. (abs(thetaz) .gt. 50)) then
                     WRITE ( wrf_err_message , FMT=* ) "Found large thetax/y/z:", thetax, thetay, thetaz, "at i,j,k:",i,",",j,",",k
                     CALL wrf_debug ( 0 , wrf_err_message )
@@ -716,7 +716,6 @@ CONTAINS
                 Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
             ENDIF
 
-            !TODO: other mom sources (small time step,...)
             IF (config_flags%output_u_fluxes .eq. 1) THEN
                 U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/(local_count+1.)
                 U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/(local_count+1.)

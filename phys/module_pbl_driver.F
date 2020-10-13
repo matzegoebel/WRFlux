@@ -2583,10 +2583,10 @@ CONTAINS
 
         subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, config_flags, &
                                & rublten, rvblten, rqvblten, rthblten,                &
-                               & dz8w, rho, qv, thdry,                                &
+                               & dnw, qv, thdry,                                      &
                                & ids, ide, jds, jde, kds, kde,                        &
                                & ims, ime, jms, jme, kms, kme,                        &
-                               & i_start,i_end,j_start,j_end, k_start, k_end, num_tiles)
+                               & i_start,i_end,j_start,j_end                          )
 
         USE module_state_description
         USE module_model_constants
@@ -2595,27 +2595,29 @@ CONTAINS
         IMPLICIT NONE
 
         INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
-                                       ims, ime, jms, jme, kms, kme, k_start, k_end, num_tiles
-                                       
-        INTEGER, DIMENSION(num_tiles), INTENT(IN) :: i_start,i_end,j_start,j_end
+                                       ims, ime, jms, jme, kms, kme,  &
+                                       i_start,i_end,j_start,j_end
         TYPE ( grid_config_rec_type ), INTENT(IN) :: config_flags
 
         REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
-             rublten, rvblten, rqvblten, rthblten, dz8w, rho, qv, thdry
+             rublten, rvblten, rqvblten, rthblten, qv, thdry
+
+        REAL,     DIMENSION( kms:kme ) , INTENT(IN) :: dnw
 
         REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: sgs_wth, sgs_wq, sgs_wu, sgs_wv
-        
+
         REAL :: fac, rthblten_corr
         INTEGER :: i,j,k, ij
 
-        !$OMP PARALLEL DO   &
-        !$OMP PRIVATE ( ij,i,j,k )
+        ! Extract vertical SGS fluxes from PBL scheme tendencies by integrating from the top down
+        ! assuming zero flux at the top F(kte) = 0
+        ! Cartesian tendency equation for A: d(rho(k)*A(k))/dt ~ rho(k) * A_tend(k) = - (F(k+1) - F(k))/dzw(k)
+        ! -> Flux: F(k) = F(k+1) + d(rho(k)*A(k))/dt*dzw(k) ~ F(k+1) +  d(mu(k)*A(k))/dt*dnw(k)/(-g)
 
-        DO ij = 1 , num_tiles
-          DO j=j_start(ij),j_end(ij)
-            DO k=k_end,k_start,-1
-              DO i=i_start(ij),i_end(ij)
-                IF (k==k_end) THEN
+          DO j=j_start,j_end
+            DO k=kde,kds,-1
+              DO i=i_start,i_end
+                IF (k==kde) THEN
                    IF (config_flags%output_thsgs_fluxes) THEN
                      sgs_wth(i,k,j) = 0
                    ENDIF
@@ -2629,9 +2631,10 @@ CONTAINS
                      sgs_wv(i,k,j) = 0
                    ENDIF
                 ELSE
-                    fac = dz8w(i,k,j)*rho(i,k,j)
+                   fac = -dnw(k)/g
                    IF   (config_flags%output_thsgs_fluxes) THEN
                       IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
+                         !convert tendency from dry to moist theta
                          rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)
                       ELSE
                          rthblten_corr = rthblten(i,k,j)
@@ -2642,20 +2645,16 @@ CONTAINS
                      sgs_wq(i,k,j) = sgs_wq(i,k+1,j) + rqvblten(i,k,j)*fac
                    ENDIF
                    IF (config_flags%output_usgs_fluxes) THEN
-                     sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + rublten(i,k,j)*fac
+                     sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + 0.5*(rublten(i,k,j) + rublten(i-1,k,j))*fac
                    ENDIF
                    IF (config_flags%output_vsgs_fluxes) THEN
-                     sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + rvblten(i,k,j)*fac
+                     sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + 0.5*(rvblten(i,k,j) + rvblten(i,k,j-1))*fac
                    ENDIF
                 ENDIF
 
               END DO
             END DO
           END DO
-        ENDDO
-
-        !$OMP END PARALLEL DO
-
 
         end subroutine fluxes_from_bl_tend
 

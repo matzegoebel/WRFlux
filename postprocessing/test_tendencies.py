@@ -17,6 +17,7 @@ import tools
 import xarray as xr
 import config_test as conf
 import numpy as np
+import pytest
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 
@@ -26,12 +27,15 @@ os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "s"
+exist = "o"
 debug = False
+raise_on_error = True
+thresh = 0.02
+cut_boundaries = True
 #%%settings
 
-def test_budget(exist="s", debug=False):
-
+def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
+#%%
     #Define parameter grid for simulations
     param_grids = {}
     thm={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
@@ -45,25 +49,31 @@ def test_budget(exist="s", debug=False):
 
     for label, param_grid in param_grids.items():
         print("Test " + label)
-        param_combs, combs, param_grid_flat, composite_params = misc_tools.grid_combinations(param_grid, conf.params)
+        param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        kw = dict(param_grid=param_grid, param_combs=param_combs, combs=combs, composite_params=composite_params)
-        submit_jobs(init=True, exist=exist, debug=debug, config_file="config_test", **kw)
-        combs = submit_jobs(init=False, wait=True, pool_jobs=True, exist=exist, config_file="config_test", **kw)
+        submit_jobs(init=True, exist=exist, debug=debug, config_file="config_test", param_combs=param_combs)
+        combs = submit_jobs(init=False, wait=True, pool_jobs=True, exist=exist, config_file="config_test", param_combs=param_combs)
 
         print("\n\n\n")
         #postprocessing
-        for i in range(len(combs)):
-            IDi, IDi_d = misc_tools.output_id_from_config(param_combs[i], param_grid, conf.param_names, conf.runID)
-            print("Run: {} \n".format(IDi_d))
+        for cname, comb in combs.iterrows():
+            IDi = comb["fname"]
+            print("Run: {} \n".format(cname))
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in ["q", "th", "u", "v", "w"]:
-                print("Variable: " + var)
                 forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False, correct=True, recalc_w=True)
+                if cut_boundaries:
+                    forcing = forcing[:,1:-1,1:-1,1:-1]
+                    total_tend = total_tend[:,1:-1,1:-1,1:-1]
                 value_range = total_tend.max() - total_tend.min()
                 max_error = abs(forcing - total_tend).max()
-                assert max_error/value_range < 0.02
+                e = max_error/value_range
+                if e > thresh:
+                    print("Variable {} FAILED!".format(var))
+                if raise_on_error:
+                     assert e < thresh
+
                 #TODO: more tests: mean_flux,...
 
 #%%
@@ -121,4 +131,4 @@ def delete_test_data():
             shutil.rmtree(d)
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug)
+    test_budget(exist=exist, debug=debug, raise_on_error=raise_on_error, thresh=thresh)

@@ -4377,7 +4377,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
         DO j=jts,jte
         DO k = kts,ktf
         DO i=its,ite
-          fqx_out(i,k,j) = ru(i,k,j)*(field(i,k,j)+field(i-1,k,j))
+          fqx_out(i,k,j) = ru(i,k,j)*(field(i,k,j)+field(i-1,k,j))*0.5
         ENDDO
         ENDDO
         ENDDO
@@ -4406,7 +4406,7 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
         DO j=jts,jte
         DO k = kts,ktf
         DO i=its,ite
-          fqy_out(i,k,j) = rv(i,k,j)*(field(i,k,j)+field(i,k,j-1))
+          fqy_out(i,k,j) = rv(i,k,j)*(field(i,k,j)+field(i,k,j-1))*0.5
         ENDDO
         ENDDO
         ENDDO
@@ -6134,7 +6134,7 @@ ELSE IF (horz_order == 2 ) THEN
         DO k = kts,ktf
         DO i=its,ite
           fqx_out(i,k,j) = (fzm(k)*ru(i,k,j)+fzp(k)*ru(i,k-1,j))      &
-                               *(w(i,k,j)+w(i-1,k,j))
+                               *(w(i,k,j)+w(i-1,k,j))*0.5
         ENDDO
         ENDDO
         ENDDO
@@ -6143,7 +6143,7 @@ ELSE IF (horz_order == 2 ) THEN
         DO k = kts,ktf
         DO i=its,ite
           fqy_out(i,k,j) = (fzm(k)*rv(i,k,j)+fzp(k)*rv(i,k-1,j))      &
-                                 *(w(i,k,j)+w(i,k,j-1))
+                                 *(w(i,k,j)+w(i,k,j-1))*0.5
         ENDDO
         ENDDO
         ENDDO

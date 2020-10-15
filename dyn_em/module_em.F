@@ -437,7 +437,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    !  advection tendencies
    CALL nl_get_time_step ( 1, time_step )
 
-   IF ((rk_step == 3) .and. config_flags%output_ures_fluxes) THEN
+   IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_ures_fluxes) THEN
      output_fluxes = .true.
    ELSE
      output_fluxes = .false.
@@ -472,7 +472,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                    its, ite, jts, jte, kts, kte )
       ENDIF
 
-     IF ((rk_step == 3) .and. config_flags%output_vres_fluxes) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_vres_fluxes) THEN
         output_fluxes = .true.
      ELSE
         output_fluxes = .false.
@@ -509,7 +509,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
 
    IF (non_hydrostatic) THEN
-     IF ((rk_step == 3) .and. config_flags%output_wres_fluxes) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_wres_fluxes) THEN
         output_fluxes = .true.
      ELSE
         output_fluxes = .false.
@@ -544,7 +544,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((rk_step == 3) .and. config_flags%output_thres_fluxes) THEN
+      IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_thres_fluxes) THEN
         output_fluxes = .true.
       ELSE
         output_fluxes = .false.
@@ -656,10 +656,10 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                   ims, ime, jms, jme, kms, kme,      &
                   its, ite, jts, jte, kts, kte      )
 
-     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
        ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
        rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
      ENDIF
      CALL horizontal_pressure_gradient( ru_tend,rv_tend,                 &
@@ -676,7 +676,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ! reconstruct momentum tendencies from pressure gradient
      ! and decouple from dry mass and map scale factors
-     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -685,7 +685,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -696,7 +696,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
 
      IF (non_hydrostatic) THEN
-          IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+          IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
             rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
           ENDIF
           CALL pg_buoy_w( rw_tend, p, cqw, mu, mub,       &
@@ -705,7 +705,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                           ids, ide, jds, jde, kds, kde,   &
                           ims, ime, jms, jme, kms, kme,   &
                           its, ite, jts, jte, kts, kte   )
-          IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+          IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
                 DO j = jts,jte
                 DO k = kts,kte
                 DO i = its,ite
@@ -725,13 +725,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                       ims, ime, jms, jme, kms, kme,     &
                       its, ite, jts, jte, kts, kte     )
 
-     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
        ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
        rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
        rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
      ENDIF
 
@@ -773,7 +773,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ! reconstruct momentum tendencies from coriolis and curvature
      ! and decouple from dry mass and map scale factors
-     IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -782,7 +782,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite
@@ -791,7 +791,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
           DO j = jts,jte
           DO k = kts,kte
           DO i = its,ite

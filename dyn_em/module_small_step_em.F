@@ -877,7 +877,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    ENDDO
    ENDDO u_outer_j_loop
 
-   IF ((rk_step == 3) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
      DO j = jts,jte
      DO k = kts,kte
      DO i = its,ite
@@ -964,7 +964,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    END IF
   ENDDO  v_outer_j_loop
 
-  IF ((rk_step == 3) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+  IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
     DO j = jts,jte
     DO k = kts,kte
     DO i = its,ite
@@ -1200,7 +1200,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
         wdtn(i,k)= ww(i,k,j)*(fnm(k)*t_1(i,k  ,j)+fnp(k)*t_1(i,k-1,j))
      ENDDO
      ENDDO
-     IF ((rk_step == 3) .and. (config_flags%output_thres_fluxes)) THEN
+     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_thres_fluxes)) THEN
        IF (step == 1) THEN
          DO k=1,kde
          DO i=i_start, i_end
@@ -1230,7 +1230,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      ENDDO
      ENDDO
    ENDDO
-   IF ((rk_step == 3) .and. (config_flags%output_thres_fluxes)) THEN
+   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_thres_fluxes)) THEN
      IF (step == 1) THEN
        DO j=j_start, j_end+1
        DO k=1,k_end
@@ -1392,7 +1392,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
       rhs(i,1) = 0.
     ENDDO
 
-    IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+    IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
       w_old(its:ite, kts:kte, jts:jte) = w(its:ite, kts:kte, jts:jte)
     ENDIF
 
@@ -1508,7 +1508,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
     ENDDO
     ENDDO
 
-    IF ((rk_step == 3) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+    IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
       DO k = kts,kte
       DO i = its,ite
         !recover small step tendency and decouple from mu

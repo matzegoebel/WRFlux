@@ -555,12 +555,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           DO j = jms,jme
           DO k = kms,kme
           DO i = ims,ime
-            thdry(i,k,j) = (t(i,k,j)+t0)/(1.+R_v/R_d*qv(i,k,j)) - t0
+            thdry(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
           ENDDO
           ENDDO
           ENDDO
       ELSE
-        advect_thdry = .false.
+          advect_thdry = .false.
       ENDIF
 
 ! 11/2016 ERM: Use WENO for theta flux on 3rd RK step if using WENO_SCALAR or WENOPD_SCALAR

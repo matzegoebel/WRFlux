@@ -29,9 +29,9 @@ XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
 exist = "o"
 debug = False
-raise_on_error = True
+raise_on_error = False
 thresh = 0.02
-cut_boundaries = True
+cut_boundaries = False
 #%%settings
 
 def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
@@ -44,8 +44,9 @@ def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], thm=thm)
     o = np.arange(2,7)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
-    param_grids["WENO advection"] = odict(moist_adv_opt=[3,4], momentum_adv_opt=[3])
+    param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3])
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5])
+    param_grids["MP rad"] = odict(mp_physics=[2])
 
     for label, param_grid in param_grids.items():
         print("Test " + label)
@@ -75,7 +76,7 @@ def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
                      assert e < thresh
 
                 #TODO: more tests: mean_flux,...
-
+                # test mp physics, rad, coriolis,..
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)

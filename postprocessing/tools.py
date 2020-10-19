@@ -40,48 +40,35 @@ figloc = basedir + "figures/"
 
 #%%open dataset
 def fix_coords(data, dx, dy):
-    """Removes coordinates not needed in idealized simulation"""
+    """Assign time and space coordinates"""
 
-
+    #assign time coordinate
     if "XTIME" in data:
         data = data.assign_coords(Time=data.XTIME)
+        data = data.drop("XTIME")
     else:
         time = data.Times.astype(str).values
         time = pd.DatetimeIndex([datetime.fromisoformat(str(t)) for t in time])
-        t0 = time
-        if "file" in data.dims:
-            try:
-                t0 = time[0]
-            except IndexError:
-                t0 = time
-            if (t0 != time).any():
-                raise RuntimeError("Time stams not equal among all files")
         data = data.drop("Times")
         data = data.assign_coords(Time=time)
 
-    for c in ["XLONG", "XLAT","XTIME"]:
-        for a in ["", "_U", "_V"]:
-            ca = c + a
-            if ca in data.coords:
-                data = data.drop(ca)
-    for dim, res, dimn in zip(["south_north", "west_east"], [dy, dx], ["y", "x"]):
-        for stag in [True, False]:
-            dimc = dim
-            s = ""
+    #assign x and y coordinates and rename dimensions
+    for dim_old, res, dim_new in zip(["south_north", "west_east"], [dy, dx], ["y", "x"]):
+        for stag in [False, True]:
             if stag:
-                s = "_stag"
-                dimc = dim + s
+                dim_old = dim_old + "_stag"
+                dim_new = dim_new + "_stag"
+            if dim_old in data.dims:
+                data[dim_old] = np.arange(data.sizes[dim_old]) * res
+                data[dim_old] = data[dim_old] - (data[dim_old][-1] + res)/2
+                data[dim_old] = data[dim_old].assign_attrs({"units" : "m"})
+                data = data.rename({dim_old : dim_new})
 
-            if dimc in data.dims:
-                data[dimc] = np.arange(data.sizes[dimc]) * res
-                data[dimc] = data[dimc] - (data[dimc][-1] + res)/2
-                data[dimc] = data[dimc].assign_attrs({"units" : "m"})
-                data = data.rename({dimc : dimn+s})
+    #assign vertical coordinate
     if ("ZNW" in data) and ("bottom_top_stag" in data.dims):
         data = data.assign_coords(bottom_top_stag=data["ZNW"].isel(Time=0,drop=True))
     if ("ZNU" in data) and ("bottom_top" in data.dims):
         data = data.assign_coords(bottom_top=data["ZNU"].isel(Time=0,drop=True))
-
 
     return data
 
@@ -490,7 +477,11 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
     #Divide by coordinate metric for convenience (except vertical flux)
     adv = adv/grid["DZDN_STAG"]
     for d in ["X", "Y"]:
-        flux[d] = flux[d]/stagger_like(grid["DZDNW"], flux[d], cyclic=cyclic, **stagger_const)#TODO correct for all vars?
+        if "bottom_top_stag" in flux[d].dims:
+            dzdn = grid["DZDN"]
+        else:
+            dzdn = grid["DZDNW"]
+        flux[d] = flux[d]/stagger_like(dzdn, flux[d], cyclic=cyclic, **stagger_const)
 
     #resolved turbulent fluxes and tendencies
     flux = flux.reindex(comp=["tot", "mean", "res"])
@@ -677,13 +668,14 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         dat_mean["WD_MEAN"] = dat_mean["WD_MEAN"] + dzdd_s[d]*stagger_like(dat_mean[v + "_MEAN"], dzdd_s[d], cyclic=cyclic, **stagger_const)
 
     #additional sources
-    qfac = 1
     if var == "th":
         sources = dat_mean["T_TEND_MP_MEAN"] + dat_mean["T_TEND_RADSW_MEAN"] + dat_mean["T_TEND_RADLW_MEAN"]
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
-            qfac = 1 + metconst.Rv.m/metconst.Rd.m*dat_mean["Q_MEAN"]
-            sources = sources*qfac
-            print("WARNING: Q_TEND_MP_MEAN should also be taken into account")#TODO
+            #TODO: correct sources?
+            r = metconst.Rv.m/metconst.Rd.m
+            sources = sources*(1 + r*dat_mean["Q_MEAN"])
+            #add mp tendency
+            sources = sources + dat_mean["Q_TEND_MP_MEAN"]*r*(dat_mean["TH_MEAN"] + 300)
     elif var == "q":
         sources = dat_mean["Q_TEND_MP_MEAN"]
     else:

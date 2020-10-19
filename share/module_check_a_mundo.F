@@ -3100,6 +3100,21 @@
          model_config_rec%output_avgfluxes = .true.
       endif
 
+      if (model_config_rec%output_thres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
+       model_config_rec%output_dry_theta_fluxes) then
+         DO i = 1, model_config_rec % max_dom
+            if ((model_config_rec%scalar_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%scalar_adv_opt(i) == WENOPD_SCALAR) .or. &
+               (model_config_rec%moist_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%moist_adv_opt(i) == WENOPD_SCALAR)) then
+               CALL wrf_debug ( 0, 'WARNING: trying to output resolved fluxes for dry theta although use_theta_m=1.', &
+                                   'This leads to an unbalanced dry theta budget if using WENO advection for theta!')
+            endif
+            if (model_config_rec%scalar_adv_opt(i) == MONOTONIC) then
+               CALL wrf_debug ( 0, 'WARNING: trying to output resolved fluxes for dry theta although use_theta_m=1.', &
+                                   'This leads to an unbalanced dry theta budget if using monotonic advection for water vapor!')
+            endif
+         ENDDO
+      endif
+
    END SUBROUTINE set_physics_rconfigs
 
 !=======================================================================

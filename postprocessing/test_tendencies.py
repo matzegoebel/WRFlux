@@ -32,9 +32,10 @@ exist = "s"
 debug = False
 thresh = 0.02
 cut_boundaries = False
+cartesian = False
 #%%settings
 
-def test_budget(exist="s", debug=False, thresh=0.02):
+def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True):
 #%%
     #Define parameter grid for simulations
     param_grids = {}
@@ -64,7 +65,7 @@ def test_budget(exist="s", debug=False, thresh=0.02):
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in ["q", "th", "u", "v", "w"]:
-                forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False, correct=True, recalc_w=True)
+                forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True)
                 if cut_boundaries:
                     forcing = forcing[:,1:-1,1:-1,1:-1]
                     total_tend = total_tend[:,1:-1,1:-1,1:-1]
@@ -138,4 +139,4 @@ def delete_test_data():
             shutil.rmtree(d)
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug, thresh=thresh)
+    test_budget(exist=exist, debug=debug, thresh=thresh, cartesian=cartesian)

@@ -452,14 +452,14 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             else:
                 ds = d + "_stag"
             dx = grid["D" + du]
-            adv_i[du] = -diff(flux[du], ds, data[d], cyclic=cyc)*mf[du]/dx
+            adv_i[du] = -diff(flux[du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
         if VAR == "W":
             adv_i["Z"] = -diff(flux["Z"], "bottom_top", grid["ZNW"])/grid["DN"]
             #TODO: not quite correct for top
             adv_i = adv_i.where((adv_i.bottom_top_stag > 0) * (adv_i.bottom_top_stag < 1) , 0)
         else:
             adv_i["Z"] = -diff(flux["Z"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-
+        adv_i["Z"] = adv_i["Z"]*mf["Y"]
         adv[comp] = adv_i
 
     if hor_avg:

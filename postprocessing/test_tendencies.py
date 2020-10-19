@@ -16,6 +16,7 @@ import os
 import tools
 import xarray as xr
 import config_test as conf
+import pandas as pd
 import numpy as np
 import pytest
 xr.set_options(arithmetic_join="exact")
@@ -27,20 +28,19 @@ os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "o"
+exist = "s"
 debug = False
-raise_on_error = False
 thresh = 0.02
 cut_boundaries = False
 #%%settings
 
-def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
+def test_budget(exist="s", debug=False, thresh=0.02):
 #%%
     #Define parameter grid for simulations
     param_grids = {}
     thm={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], thm=thm)
-    param_grids["PBL schemes"] = odict(bl_pbl_physics=[*np.arange(1,13), 99])
+    # param_grids["PBL schemes"] = odict(bl_pbl_physics=[*np.arange(1,13), 99])
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], thm=thm)
     o = np.arange(2,7)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
@@ -48,6 +48,7 @@ def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5])
     param_grids["MP rad"] = odict(mp_physics=[2])
 
+    failed = {}
     for label, param_grid in param_grids.items():
         print("Test " + label)
         param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
@@ -72,11 +73,16 @@ def test_budget(exist="s", debug=False, raise_on_error=True, thresh=0.02):
                 e = max_error/value_range
                 if e > thresh:
                     print("Variable {} FAILED!".format(var))
-                if raise_on_error:
-                     assert e < thresh
+                    if cname in failed:
+                        failed[cname].append(var)
+                    else:
+                        failed[cname] = [var]
+
+    if failed != {}:
+        raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n {}".format(pd.DataFrame(failed).T.to_string()))
 
                 #TODO: more tests: mean_flux,...
-                # test mp physics, rad, coriolis,..
+                # test mp physics, coriolis, map scale factors
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
@@ -132,4 +138,4 @@ def delete_test_data():
             shutil.rmtree(d)
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug, raise_on_error=raise_on_error, thresh=thresh)
+    test_budget(exist=exist, debug=debug, thresh=thresh)

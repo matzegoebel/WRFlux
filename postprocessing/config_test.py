@@ -39,7 +39,7 @@ param_names = {"thm" : ["thd", "thm", "thdm"],
 
 
 params["start_time"] = "2018-06-20_12:00:00" #format %Y-%m-%d_%H:%M:%S
-params["end_time"] = "2018-06-20_12:20:00" #format %Y-%m-%d_%H:%M:%S
+params["end_time"] = "2018-06-20_14:00:00" #format %Y-%m-%d_%H:%M:%S
 
 params["n_rep"] = 1 #number of repetitions for each configuration
 
@@ -104,8 +104,6 @@ params["output_dry_theta_fluxes"] = True
 
 
 params["restart_interval_m"] = 30 #restart interval (min)
-
-split_output_res = 0 #dx (m) below which to split output in one timestep per file
 
 registries = ["Registry.EM_COMMON", "registry.hyb_coord", "registry.les", "registry.io_boilerplate"] #registries to look for default namelist parameters
 

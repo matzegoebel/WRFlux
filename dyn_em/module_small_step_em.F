@@ -881,7 +881,8 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
      DO j = jts,jte
      DO k = kts,kte
      DO i = its,ite
-       u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + ruv_tend_s(i,k,j)/(c1h(k)*muu(i,j)+c2h(k))/config_flags%dt
+       !uncouple tendency from mu and map-scale factor
+       u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + ruv_tend_s(i,k,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k))/config_flags%dt
      ENDDO
      ENDDO
      ENDDO
@@ -968,7 +969,8 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
     DO j = jts,jte
     DO k = kts,kte
     DO i = its,ite
-      v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + ruv_tend_s(i,k,j)/(c1h(k)*muv(i,j)+c2h(k))/config_flags%dt
+      !uncouple tendency from mu and map-scale factor
+      v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + ruv_tend_s(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))/config_flags%dt
     ENDDO
     ENDDO
     ENDDO
@@ -1338,6 +1340,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
       REAL, DIMENSION( its:ite ) :: mut_inv, msft_inv
       REAL, DIMENSION( its:ite, kts:kte ) :: rhs, wdwn
       REAL, DIMENSION (its:ite, kts:kte, jts:jte) :: w_old
+      REAL :: rw_tend_s
       INTEGER :: i,j,k, i_start, i_end, j_start, j_end, k_start, k_end
       REAL, DIMENSION (kts:kte) :: dampwt
       real :: htop,hbot,hdepth,hk
@@ -1511,8 +1514,9 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
       DO k = kts,kte
       DO i = its,ite
-        !recover small step tendency and decouple from mu
-        w_tend_pg(i,k,j) = w_tend_pg(i,k,j) + (w(i,k,j) - dts*rw_tend(i,k,j) - w_old(i,k,j))/(c1f(k)*mut(i,j)+c2f(k))/config_flags%dt
+        !recover small step tendency and decouple from mu and map-scale factor
+        rw_tend_s = (w(i,k,j) - dts*rw_tend(i,k,j) - w_old(i,k,j))/config_flags%dt
+        w_tend_pg(i,k,j) = w_tend_pg(i,k,j) + rw_tend_s*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
       ENDDO
       ENDDO
     ENDIF

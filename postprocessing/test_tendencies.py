@@ -12,6 +12,8 @@ from run_wrf.submit_jobs import submit_jobs
 import shutil
 from run_wrf import misc_tools
 from collections import OrderedDict as odict
+from run_wrf.misc_tools import Capturing
+from collections import Counter
 import os
 import tools
 import xarray as xr
@@ -32,10 +34,11 @@ exist = "s"
 debug = False
 thresh = 0.02
 cut_boundaries = False
-cartesian = False
+cartesian = True
+plot = True
 #%%settings
 
-def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True):
+def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True, plot=False):
 #%%
     #Define parameter grid for simulations
     param_grids = {}
@@ -51,14 +54,19 @@ def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True):
 
     failed = {}
     for label, param_grid in param_grids.items():
-        print("Test " + label)
+        print("\n\n\nTest " + label)
         param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        submit_jobs(init=True, exist=exist, debug=debug, config_file="config_test", param_combs=param_combs)
-        combs = submit_jobs(init=False, wait=True, pool_jobs=True, exist=exist, config_file="config_test", param_combs=param_combs)
-
-        print("\n\n\n")
-        #postprocessing
+        combs, output = capture_submit(init=True, exist=exist, debug=debug, config_file="config_test", param_combs=param_combs)
+        c = Counter(output)
+        if c['wrf: SUCCESS COMPLETE IDEAL INIT'] + c['Skipping...'] != len(combs):
+            raise RuntimeError("Error in initializing simulations!")
+        combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist, config_file="config_test", param_combs=param_combs)
+        c = Counter(output)
+        if c['d01 {} wrf: SUCCESS COMPLETE WRF'.format(conf.params["end_time"])] + c['Skipping...'] != len(combs):
+            raise RuntimeError("Error in running simulations!")
+        print("\n\n")
+        #%% postprocessing
         for cname, comb in combs.iterrows():
             IDi = comb["fname"]
             print("Run: {} \n".format(cname))
@@ -72,18 +80,20 @@ def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True):
                 value_range = total_tend.max() - total_tend.min()
                 max_error = abs(forcing - total_tend).max()
                 e = max_error/value_range
+                if plot:
+                    tools.scatter_tend_forcing(total_tend, forcing, var, cut_boundaries=cut_boundaries, savefig=False)
+
                 if e > thresh:
                     print("Variable {} FAILED!".format(var))
                     if cname in failed:
                         failed[cname].append(var)
                     else:
                         failed[cname] = [var]
-
+#%%
     if failed != {}:
-        raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n {}".format(pd.DataFrame(failed).T.to_string()))
-
+        raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}".format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
                 #TODO: more tests: mean_flux,...
-                # test mp physics, coriolis, map scale factors
+                # test coriolis
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
@@ -137,6 +147,17 @@ def delete_test_data():
     for d in [os.environ["wrf_res"] + "/test/pytest", os.environ["wrf_runs"] + "/pytest"]:
         if os.path.isdir(d):
             shutil.rmtree(d)
+
+def capture_submit(*args, **kwargs):
+    try:
+        with Capturing() as output:
+            combs = submit_jobs(*args, **kwargs)
+    except Exception as e:
+        print(output)
+        raise(e)
+
+    return combs, output
+
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug, thresh=thresh, cartesian=cartesian)
+    test_budget(exist=exist, debug=debug, thresh=thresh, cartesian=cartesian, plot=plot)

@@ -24,6 +24,7 @@ vnames = ["u", "v", "w"]
 tex_names = {"th" : "\\theta", "q" : "q_\\mathrm{v}"}
 units_dict = {"th" : "K ", "q" : "", **{v : "ms$^{-1}$" for v in vnames}}
 units_dict_tend = {"th" : "Ks$^{-1}$", "q" : "s$^{-1}$", **{v : "ms$^{-2}$" for v in vnames}}
+units_dict_tend_rho = {"th" : "kg m$^{-3}$Ks$^{-1}$", "q" : "kg m$^{-3}$s$^{-1}$", **{v : "kg m$^{-2}$s$^{-2}$" for v in vnames}}
 
 #%%definitions
 host = socket.gethostname()
@@ -381,7 +382,10 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         corr_sgs = corr_sgs*stagger_like(dzdd[du], corr_sgs, cyclic=cyclic)
 
         dx = grid["D" + du]
-        sgs[du] = (-diff(sgsflux, ds, new_coord=sgs[d], cyclic=cyc)/dx + corr_sgs)*m
+        sgs[du] = -diff(sgsflux, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
+        if VAR == "W":
+            m = mapfac["Y"]
+        sgs[du] = sgs[du] + corr_sgs*m
     sgs = sgs.to_array("dir")
     if VAR == "W":
         sgs[:,:,[0,-1]] = 0
@@ -700,8 +704,12 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
 #%% plotting
 
-def scatter_tend_forcing(tend, forcing, var, rhodm_stag, plot_diff=False, hue="eta", cut_boundaries=False, savefig=True, fname=None):
-
+def scatter_tend_forcing(tend, forcing, var, rhodm_stag=None, plot_diff=False, hue="eta", cut_boundaries=False, savefig=True, fname=None):
+    if rhodm_stag is None:
+        rhodm_stag = 1
+        units_d = units_dict_tend_rho
+    else:
+        units_d = units_dict_tend
     pdat = xr.concat([tend/rhodm_stag, forcing/rhodm_stag], "comp")
     if cut_boundaries:
         pdat = pdat[:,:,1:-1,1:-1,1:-1]
@@ -750,7 +758,7 @@ def scatter_tend_forcing(tend, forcing, var, rhodm_stag, plot_diff=False, hue="e
     ylabel = "Total ${}$ forcing".format(tex_name)
     if plot_diff:
         ylabel += " - " + xlabel
-    units = " ({})".format(units_dict_tend[var])
+    units = " ({})".format(units_d[var])
     plt.xlabel(xlabel + units)
     plt.ylabel(ylabel + units)
 

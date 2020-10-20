@@ -78,8 +78,8 @@ params["ra_sw_physics"] = 1
 params["sf_surface_physics"] = 1
 
 params["km_opt"] = 2
-# params["khdif"] = 0.
-# params["kvdif"] = 0.
+params["khdif"] = 0.
+params["kvdif"] = 0.
 params["use_theta_m"] = 1
 params["mix_isotropic"] = 0
 params["momentum_adv_opt"] = 1

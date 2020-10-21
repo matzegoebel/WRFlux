@@ -30,15 +30,17 @@ os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "s"
-debug = False
-thresh = 0.02
+exist = "o"
+debug = True
+thresh_thdry = 0.02
+thresh = 0.003
 cut_boundaries = False
 cartesian = True
 plot = True
 #%%settings
 
-def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True, plot=False):
+def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
+                cartesian=True, plot=False):
 #%%
     #Define parameter grid for simulations
     param_grids = {}
@@ -57,23 +59,26 @@ def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True, plot=False)
         print("\n\n\nTest " + label)
         param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        combs, output = capture_submit(init=True, exist=exist, debug=debug, config_file="config_test", param_combs=param_combs)
+        combs, output = capture_submit(init=True, exist=exist, debug=debug,
+                                       config_file="config_test", param_combs=param_combs)
         c = Counter(output)
         if c['wrf: SUCCESS COMPLETE IDEAL INIT'] + c['Skipping...'] != len(combs):
             raise RuntimeError("Error in initializing simulations!")
-        combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist, config_file="config_test", param_combs=param_combs)
+        combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
+                                       config_file="config_test", param_combs=param_combs)
         c = Counter(output)
         if c['d01 {} wrf: SUCCESS COMPLETE WRF'.format(conf.params["end_time"])] + c['Skipping...'] != len(combs):
             raise RuntimeError("Error in running simulations!")
         print("\n\n")
-        #%% postprocessing
+        #% postprocessing
         for cname, comb in combs.iterrows():
             IDi = comb["fname"]
             print("Run: {} \n".format(cname))
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in ["q", "th", "u", "v", "w"]:
-                forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True)
+                forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs,
+                                                     cartesian=cartesian, correct=True, recalc_w=True)
                 if cut_boundaries:
                     forcing = forcing[:,1:-1,1:-1,1:-1]
                     total_tend = total_tend[:,1:-1,1:-1,1:-1]
@@ -82,8 +87,12 @@ def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True, plot=False)
                 e = max_error/value_range
                 if plot:
                     tools.scatter_tend_forcing(total_tend, forcing, var, cut_boundaries=cut_boundaries, savefig=False)
-
-                if e > thresh:
+                print("{0}: {1:.3f}%".format(var, e.values*100))
+                if (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1) and (var == "th"):
+                    thresh_v = thresh_thdry
+                else:
+                    thresh_v = thresh
+                if e > thresh_v:
                     print("Variable {} FAILED!".format(var))
                     if cname in failed:
                         failed[cname].append(var)
@@ -91,9 +100,9 @@ def test_budget(exist="s", debug=False, thresh=0.02, cartesian=True, plot=False)
                         failed[cname] = [var]
 #%%
     if failed != {}:
-        raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}".format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
-                #TODO: more tests: mean_flux,...
-                # test coriolis
+        raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}"\
+                           .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
+                #TODO: more tests: mean_flux,..., which input_sounding?
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
@@ -160,4 +169,5 @@ def capture_submit(*args, **kwargs):
 
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug, thresh=thresh, cartesian=cartesian, plot=plot)
+    test_budget(exist=exist, debug=debug, thresh=thresh, thresh_thdry=thresh_thdry,
+                cartesian=cartesian, plot=plot)

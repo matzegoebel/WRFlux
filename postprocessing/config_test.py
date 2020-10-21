@@ -68,14 +68,14 @@ params["dt_f"] = 3  #time step (s), if None calculated as dt = 6 s/m *dx/1000; c
 params["radt_min"] = 1
 params["spec_hfx"] = None
 
-params["input_sounding"] = "meanwind" #name of input sounding to use (final name is then created: input_sounding_$name)
+params["input_sounding"] = "unstable" #name of input sounding to use (final name is then created: input_sounding_$name)
 
 #other standard namelist parameters
 params["mp_physics"] = 0
 params["bl_pbl_physics"] = 0
 params["ra_lw_physics"] = 1
 params["ra_sw_physics"] = 1
-params["sf_surface_physics"] = 1
+params["sf_surface_physics"] = 2
 
 params["km_opt"] = 2
 params["khdif"] = 0.

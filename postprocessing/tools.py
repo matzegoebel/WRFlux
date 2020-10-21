@@ -46,13 +46,14 @@ def fix_coords(data, dx, dy):
     #assign time coordinate
     if "XTIME" in data:
         data = data.assign_coords(Time=data.XTIME)
-        data = data.drop("XTIME")
     else:
         time = data.Times.astype(str).values
         time = pd.DatetimeIndex([datetime.fromisoformat(str(t)) for t in time])
-        data = data.drop("Times")
         data = data.assign_coords(Time=time)
 
+    for v in ["XTIME", "Times"]:
+        if v in data:
+            data = data.drop(v)
     #assign x and y coordinates and rename dimensions
     for dim_old, res, dim_new in zip(["south_north", "west_east"], [dy, dx], ["y", "x"]):
         for stag in [False, True]:
@@ -463,7 +464,8 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             adv_i = adv_i.where((adv_i.bottom_top_stag > 0) * (adv_i.bottom_top_stag < 1) , 0)
         else:
             adv_i["Z"] = -diff(flux["Z"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-        adv_i["Z"] = adv_i["Z"]*mf["Y"]
+        if not cartesian:
+           adv_i["Z"] = adv_i["Z"]*mf["Y"]
         adv[comp] = adv_i
 
     if hor_avg:
@@ -560,12 +562,10 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     dat_inst.attrs = {}
 
     #strip first time as it contains only zeros
-    times = dat_mean.Time
     dat_mean = dat_mean.sel(Time=dat_mean.Time[1:])
 
     if t_avg:
-        #TODO: does this work?
-        avg_kwargs = dict(Time=t_avg_interval, coord_func={"Time" : partial(select_ind, index=-1)}, boundary="trim")
+        avg_kwargs = dict(Time=t_avg_interval, coord_func={"Time" : partial(select_ind, indeces=-1)}, boundary="trim")
         dat_mean = dat_mean.coarsen(**avg_kwargs).mean()
 
     #computational grid
@@ -584,7 +584,11 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
 
     dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"], z=grid["Z"], zw=grid["ZW"])
     dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
-    dat_inst = dat_inst.sel(Time=times)
+    #select start and end points of averaging intervals
+    dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
+    for v in dat_inst.coords:
+        if ("XLAT" in v) or ("XLONG" in v):
+            dat_inst = dat_inst.drop(v)
 
     #check if periodic bc can be used in staggering operations
     cyclic = {d : bool(attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
@@ -621,7 +625,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         dat_mean[f] = dat_mean[f]/(-9.81)
     dat_mean["SGS_VU_MEAN"] = dat_mean["SGS_UV_MEAN"]
     #resolved vertical flux with diagnosed vertical velocity
-    dat_mean["WD{}_TOT_MEAN".format(VAR)] = dat_mean["WW{}_TOT_MEAN".format(VAR)] + dat_mean["CORR_U{}".format(VAR)] + \
+    #TODO change mapfac?
+    dat_mean["WD{}_TOT_MEAN".format(VAR)] = dat_mean["WW{}_TOT_MEAN".format(VAR)]*mapfac["Y"] + dat_mean["CORR_U{}".format(VAR)] + \
                                             dat_mean["CORR_V{}".format(VAR)] + dat_mean["CORR_D{}DT".format(VAR)]
 
     #density and dry air mass
@@ -675,7 +680,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     if var == "th":
         sources = dat_mean["T_TEND_MP_MEAN"] + dat_mean["T_TEND_RADSW_MEAN"] + dat_mean["T_TEND_RADLW_MEAN"]
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
-            #TODO: correct sources?
+            #convert sources from dry to moist theta
             r = metconst.Rv.m/metconst.Rd.m
             sources = sources*(1 + r*dat_mean["Q_MEAN"])
             #add mp tendency

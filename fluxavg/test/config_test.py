@@ -18,7 +18,9 @@ from run_wrf import misc_tools
 '''Simulations settings'''
 params = {} #parameter dict for params not used in param_grid
 
-wrf_dir_pre = "WRF_fluxmod" #prefix for WRF build directory (_debug or _mpi are appended automatically)
+fpath = os.path.realpath(__file__)
+fpath = fpath[:fpath.index("/fluxavg")]
+wrf_dir_pre = fpath.split("/")[-1] #prefix for WRF build directory (_debug or _mpi are appended automatically)
 ideal_case = "em_les" #idealized WRF case
 runID = "pytest" #name for this simulation series
 

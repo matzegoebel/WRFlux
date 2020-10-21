@@ -42,6 +42,9 @@ plot = True
 def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
                 cartesian=True, plot=False):
 #%%
+
+    setup_test_init_module()
+
     #Define parameter grid for simulations
     param_grids = {}
     thm={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
@@ -102,6 +105,8 @@ def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
     if failed != {}:
         raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
+  #  setup_test_init_module(restore=True)
+
                 #TODO: more tests: mean_flux,..., which input_sounding?
 #%%
 def load_data(IDi):
@@ -166,6 +171,26 @@ def capture_submit(*args, **kwargs):
         raise(e)
 
     return combs, output
+
+def setup_test_init_module(restore=False):
+    fpath = os.path.realpath(__file__)
+    test_path = fpath[:fpath.index("test_tendencies.py")]
+    fname = "module_initialize_ideal.F"
+    wrf_path = fpath[:fpath.index("/fluxavg/")]
+    fpath = wrf_path + "/dyn_em/" + fname
+    with open(fpath) as f:
+        org_file = f.read()
+    with open(test_path + fname + ".test") as f:
+        test_file = f.read()
+    if (test_file != org_file) or restore:
+        if restore:
+            shutil.copy(fpath + ".org", fpath)
+        else:
+            shutil.copy(fpath, fpath + ".org")
+            shutil.copy(test_path + fname + ".test", fpath)
+        os.chdir(code_path)
+        os.system("./compile em_les > log 2> err")
+
 
 #%%
 if __name__ == "__main__":

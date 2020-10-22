@@ -14,6 +14,7 @@ from run_wrf import misc_tools
 from collections import OrderedDict as odict
 from run_wrf.misc_tools import Capturing
 from collections import Counter
+import matplotlib.pyplot as plt
 import os
 import tools
 import xarray as xr
@@ -30,17 +31,22 @@ os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "o"
-debug = True
+exist = "s"
+
 thresh_thdry = 0.02
 thresh = 0.003
+
+variables = ["q", "th", "u", "v", "w"]
 cut_boundaries = False
+bounds = {"x" : slice(1,-1), "y" : slice(1,-1), "z" : slice(1,-1)}
+bounds = {"z" : slice(1,None)}
 cartesian = True
-plot = True
+plot = False
+
+
 #%%settings
 
-def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
-                cartesian=True, plot=False):
+def test_budget():
 #%%
 
     setup_test_init_module()
@@ -62,40 +68,47 @@ def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
         print("\n\n\nTest " + label)
         param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        combs, output = capture_submit(init=True, exist=exist, debug=debug,
-                                       config_file="config_test", param_combs=param_combs)
+        combs, output = capture_submit(init=True, exist=exist, config_file="config_test", param_combs=param_combs)
         c = Counter(output)
         if c['wrf: SUCCESS COMPLETE IDEAL INIT'] + c['Skipping...'] != len(combs):
             raise RuntimeError("Error in initializing simulations!")
+            # print("Error in initializing simulations!")
+            # continue
         combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
                                        config_file="config_test", param_combs=param_combs)
         c = Counter(output)
         if c['d01 {} wrf: SUCCESS COMPLETE WRF'.format(conf.params["end_time"])] + c['Skipping...'] != len(combs):
             raise RuntimeError("Error in running simulations!")
+            # print("Error in running simulations!")
+            # continue
         print("\n\n")
         #% postprocessing
         for cname, comb in combs.iterrows():
             IDi = comb["fname"]
-            print("Run: {} \n".format(cname))
+            print("\n Run: {}".format(cname))
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
-            for var in ["q", "th", "u", "v", "w"]:
+            for var in variables:
                 forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs,
                                                      cartesian=cartesian, correct=True, recalc_w=True)
                 if cut_boundaries:
-                    forcing = forcing[:,1:-1,1:-1,1:-1]
-                    total_tend = total_tend[:,1:-1,1:-1,1:-1]
+                    for d in ["x", "y", "z"]:
+                        if d not in bounds:
+                            bounds[d] = slice(None)
+                    forcing = forcing[:, bounds["z"], bounds["y"], bounds["x"]]
+                    total_tend = total_tend[:, bounds["z"], bounds["y"], bounds["x"]]
                 value_range = total_tend.max() - total_tend.min()
                 max_error = abs(forcing - total_tend).max()
                 e = max_error/value_range
-                if plot:
-                    tools.scatter_tend_forcing(total_tend, forcing, var, cut_boundaries=cut_boundaries, savefig=False)
                 print("{0}: {1:.3f}%".format(var, e.values*100))
                 if (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1) and (var == "th"):
                     thresh_v = thresh_thdry
                 else:
                     thresh_v = thresh
                 if e > thresh_v:
+                    if plot:
+                        fig = tools.scatter_tend_forcing(total_tend, forcing, var, savefig=False)
+                        fig.suptitle(cname)
                     print("Variable {} FAILED!".format(var))
                     if cname in failed:
                         failed[cname].append(var)
@@ -105,9 +118,10 @@ def test_budget(exist="s", debug=False, thresh=0.02, thresh_thdry=0.002,
     if failed != {}:
         raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
-  #  setup_test_init_module(restore=True)
+    setup_test_init_module(restore=True)
 
                 #TODO: more tests: mean_flux,..., which input_sounding?
+                #assert notnan -> w(k=0) should be there?! set flux at kts to zero!
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
@@ -176,23 +190,22 @@ def setup_test_init_module(restore=False):
     fpath = os.path.realpath(__file__)
     test_path = fpath[:fpath.index("test_tendencies.py")]
     fname = "module_initialize_ideal.F"
-    wrf_path = fpath[:fpath.index("/fluxavg/")]
+    wrf_path = "{}/{}".format(conf.build_path, conf.wrf_dir_pre)
     fpath = wrf_path + "/dyn_em/" + fname
     with open(fpath) as f:
         org_file = f.read()
-    with open(test_path + fname + ".test") as f:
+    with open(test_path + "TEST_" + fname) as f:
         test_file = f.read()
     if (test_file != org_file) or restore:
         if restore:
             shutil.copy(fpath + ".org", fpath)
         else:
             shutil.copy(fpath, fpath + ".org")
-            shutil.copy(test_path + fname + ".test", fpath)
-        os.chdir(code_path)
+            shutil.copy(test_path + "TEST_" + fname, fpath)
+        os.chdir(wrf_path)
         os.system("./compile em_les > log 2> err")
 
 
 #%%
 if __name__ == "__main__":
-    test_budget(exist=exist, debug=debug, thresh=thresh, thresh_thdry=thresh_thdry,
-                cartesian=cartesian, plot=plot)
+    test_budget()

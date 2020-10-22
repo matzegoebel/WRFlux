@@ -709,15 +709,13 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
 #%% plotting
 
-def scatter_tend_forcing(tend, forcing, var, rhodm_stag=None, plot_diff=False, hue="eta", cut_boundaries=False, savefig=True, fname=None):
+def scatter_tend_forcing(tend, forcing, var, rhodm_stag=None, plot_diff=False, hue="eta", savefig=True, fname=None):
     if rhodm_stag is None:
         rhodm_stag = 1
         units_d = units_dict_tend_rho
     else:
         units_d = units_dict_tend
     pdat = xr.concat([tend/rhodm_stag, forcing/rhodm_stag], "comp")
-    if cut_boundaries:
-        pdat = pdat[:,:,1:-1,1:-1,1:-1]
 
     if plot_diff:
         pdat[1] = pdat[1] - pdat[0]

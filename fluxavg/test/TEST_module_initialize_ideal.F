@@ -647,11 +647,13 @@ CONTAINS
                                    ims,ime, jms,jme, kms,kme,&
                                    its,ite, jts,jte, kts,kte )
 
-   DO j = jts, jte
-      DO i = its, ite
-         grid%tslb(i,:,j) = 300
-      END DO
-   END DO
+   DO j=jts,MIN(jte,jde-1)
+      DO k=1,model_config_rec%num_soil_layers
+         DO i=its,MIN(ite,ide-1)
+           grid%tslb(i,k,j)= 300.
+         ENDDO
+      ENDDO
+   ENDDO
 
    END SELECT ideal_landmap
 

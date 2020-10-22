@@ -65,7 +65,7 @@ params["dz0"] = 40 #height of first model level (m)
 params["dzmax"] = 200 #if nz is None and for dz_method=0 only: specify maximum vertical grid spacing instead of nz; either float or "dx" to make it equal to dx
 params["dz_method"] = 3 #method for creating vertical grid as defined in vertical_grid.py
 
-params["dt_f"] = 3  #time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
+params["dt_f"] = 2  #time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
 #minimum time between radiation calls (min); if radt is not specified: radt=max(radt_min, 10*dt)
 params["radt_min"] = 1
 params["spec_hfx"] = None

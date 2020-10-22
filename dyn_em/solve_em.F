@@ -1221,7 +1221,6 @@ BENCH_START(advance_uv_tim)
                            grid%emdiv,                                            &
                            grid%rdnw, config_flags,grid%spec_zone,                &
                            config_flags%non_hydrostatic, config_flags%top_lid,    &
-                           rk_step, grid%u_tend_pg, grid%v_tend_pg,               &
                            ids, ide, jds, jde, kds, kde,                          &
                            ims, ime, jms, jme, kms, kme,                          &
                            grid%i_start(ij), grid%i_end(ij),                      &
@@ -1444,7 +1443,6 @@ BENCH_START(advance_w_tim)
                            grid%rdn, grid%cf1, grid%cf2, grid%cf3,     &
                            grid%msftx, grid%msfty,                     &
                            config_flags,  config_flags%top_lid,        &
-                           rk_step, grid%w_tend_pg,                    &
                            ids,ide, jds,jde, kds,kde,                  &
                            ims,ime, jms,jme, kms,kme,                  &
                            grid%i_start(ij), grid%i_end(ij),           &
@@ -4549,6 +4547,18 @@ BENCH_END(bc_2d_tim)
                            k_start, k_end                                   )
 !                          its, ite, jts, jte, k_start, min(k_end,kde-1),   &
 
+      CALL recover_small_step_tendencies( grid%u_tend_pg, grid%v_tend_pg, grid%w_tend_pg,             &
+                                          grid%u_1, grid%u_2, grid%v_1, grid%v_2, grid%w_1, grid%w_2, &
+                                          grid%ru_tend, grid%rv_tend, rw_tend,                        &
+                                          grid%mut, grid%muu, grid%muv,                               &
+                                          grid%c1h, grid%c2h, grid%c1f, grid%c2f,                     &
+                                          grid%msfuy, grid%msfvx, grid%msfty,                         &
+                                          config_flags,                                               &
+                                          ids, ide, jds, jde, kds, kde,                               &
+                                          ims, ime, jms, jme, kms, kme,                               &
+                                          grid%i_start(ij), grid%i_end(ij),                           &
+                                          grid%j_start(ij), grid%j_end(ij),                           &
+                                          k_start, k_end                                              )
    END DO
    !$OMP END PARALLEL DO
 

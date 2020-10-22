@@ -3105,10 +3105,16 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
     ENDIF
 
     IF (config_flags%output_thsgs_fluxes) THEN
-      DO j=jts,jte
-      DO k=kts,kte
+      DO j=jts,min(jte,jde-1)
+      DO k=kts,min(kte,kde-1)
       DO i=its,ite
           sgs_UTH(i,k,j) = H1(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+      DO j=jts,jte
+      DO k=kts,min(kte,kde-1)
+      DO i=its,min(ite,ide-1)
           sgs_VTH(i,k,j) = H2(i,k,j)
       ENDDO
       ENDDO
@@ -3147,10 +3153,16 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                        its, ite, jts, jte, kts, kte      )
 
           IF ( (im == P_QV) .and. config_flags%output_qsgs_fluxes) THEN
-            DO j=jts,jte
-            DO k=kts,kte
+            DO j=jts,min(jte,jde-1)
+            DO k=kts,min(kte,kde-1)
             DO i=its,ite
                 sgs_UQ(i,k,j) = H1(i,k,j)
+            ENDDO
+            ENDDO
+            ENDDO
+            DO j=jts,jte
+            DO k=kts,min(kte,kde-1)
+            DO i=its,min(ite,ide-1)
                 sgs_VQ(i,k,j) = H2(i,k,j)
             ENDDO
             ENDDO

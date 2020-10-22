@@ -6131,8 +6131,9 @@ ELSE IF (horz_order == 2 ) THEN
 
       IF (output_fluxes) THEN
         DO j=jts,jte
-        DO k = kts,ktf
+        DO k = kts+1,ktf
         DO i=its,ite
+         !TODO: what about kte and kts?
           fqx_out(i,k,j) = (fzm(k)*ru(i,k,j)+fzp(k)*ru(i,k-1,j))      &
                                *(w(i,k,j)+w(i-1,k,j))*0.5
         ENDDO
@@ -6140,8 +6141,9 @@ ELSE IF (horz_order == 2 ) THEN
         ENDDO
 
         DO j=jts,jte
-        DO k = kts,ktf
+        DO k = kts+1,ktf
         DO i=its,ite
+          !TODO: what about kte and kts?
           fqy_out(i,k,j) = (fzm(k)*rv(i,k,j)+fzp(k)*rv(i,k-1,j))      &
                                  *(w(i,k,j)+w(i,k,j-1))*0.5
         ENDDO

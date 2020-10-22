@@ -375,7 +375,7 @@ CONTAINS
     if (present(dt) .and. config_flags%output_avgfluxes) then
 
     DO j=jts-1,jte
-    DO k=kts,kte
+    DO k=kts,min(kte,kde-1)
     DO i=its-1,ite
       !calculate dry density
       mu = c1h(k)*mut(i,j)+c2h(k)
@@ -398,6 +398,17 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
+    k = kde
+    DO j=jts-1,jte
+    DO i=its-1,ite
+      rho_d(i,k,j) = rho_d(i,k-1,j)
+      RHOD_MEAN(i,k,j) = RHOD_MEAN(i,k-1,j)
+      IF (config_flags%output_thres_fluxes) THEN
+        thd(i,k,j) = thd(i,k-1,j)
+        th(i,k,j) = th(i,k-1,j)
+      ENDIF
+    ENDDO
+    ENDDO
 
     IF (config_flags%output_res_fluxes) THEN
         DO j=jts-1,jte+1
@@ -418,6 +429,7 @@ CONTAINS
         ENDDO
     ENDIF
 
+   !TODO only go until kte-1?
     DO j=jts,jte
       DO k=kts,kte
         DO i=its,ite

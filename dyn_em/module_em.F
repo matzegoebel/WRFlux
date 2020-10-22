@@ -556,6 +556,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           DO k = kms,kme
           DO i = ims,ime
             thdry(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
+            t_tend_dummy(i,k,j) = 0
           ENDDO
           ENDDO
           ENDDO
@@ -678,7 +679,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ! and decouple from dry mass and map scale factors
      IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
-          DO k = kts,kte
+          DO k = kts,min(kte,kde-1)
           DO i = its,ite
             u_tend_pg(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))*msfuy(i,j)
           ENDDO
@@ -687,7 +688,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
      IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
-          DO k = kts,kte
+          DO k = kts,min(kte,kde-1)
           DO i = its,ite
             v_tend_pg(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))*msfvx(i,j)
           ENDDO
@@ -775,7 +776,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ! and decouple from dry mass and map scale factors
      IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
           DO j = jts,jte
-          DO k = kts,kte
+          DO k = kts,min(kte,kde-1)
           DO i = its,ite
             u_tend_cor_curv(i,k,j) = (ru_tend(i,k,j) - ru_tend_old(i,k,j))/(c1h(k)*muu(i,j)+c2h(k))*msfuy(i,j)
           ENDDO
@@ -784,7 +785,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
      IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
           DO j = jts,jte
-          DO k = kts,kte
+          DO k = kts,min(kte,kde-1)
           DO i = its,ite
             v_tend_cor_curv(i,k,j) = (rv_tend(i,k,j) - rv_tend_old(i,k,j))/(c1h(k)*muv(i,j)+c2h(k))*msfvx(i,j)
           ENDDO

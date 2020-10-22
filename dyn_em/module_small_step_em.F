@@ -879,7 +879,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
 
    IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
      DO j = jts,jte
-     DO k = kts,kte
+     DO k = kts,min(kte,kde-1)
      DO i = its,ite
        !uncouple tendency from mu and map-scale factor
        u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + ruv_tend_s(i,k,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k))/config_flags%dt
@@ -967,7 +967,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
 
   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
     DO j = jts,jte
-    DO k = kts,kte
+    DO k = kts,min(kte,kde-1)
     DO i = its,ite
       !uncouple tendency from mu and map-scale factor
       v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + ruv_tend_s(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))/config_flags%dt

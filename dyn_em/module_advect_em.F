@@ -5004,7 +5004,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
      ENDIF
 
     IF (output_fluxes) THEN
-      DO k=kts,ktf
+      DO k=kts+1,ktf
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5169,8 +5169,8 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts,ktf
-        DO i=its,ite
+        DO k = kts+1,ktf
+        DO i=its+1,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
         ENDDO
@@ -5334,7 +5334,7 @@ ELSE IF (horz_order == 5 ) THEN
      ENDIF
 
     IF (output_fluxes) THEN
-      DO k=kts,ktf
+      DO k=kts+1,ktf
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5499,7 +5499,7 @@ ELSE IF (horz_order == 5 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts,ktf
+        DO k = kts+1,ktf
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5612,7 +5612,7 @@ ELSE IF ( horz_order == 4 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts,ktf
+        DO k = kts+1,ktf
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5717,7 +5717,7 @@ ELSE IF ( horz_order == 4 ) THEN
        END IF
 
     IF (output_fluxes) THEN
-      DO k=kts,ktf
+      DO k=kts+1,ktf
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5860,7 +5860,7 @@ ELSE IF ( horz_order == 3 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts,ktf
+        DO k = kts+1,ktf
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5965,7 +5965,7 @@ ELSE IF ( horz_order == 3 ) THEN
        END IF
 
     IF (output_fluxes) THEN
-      DO k=kts,ktf
+      DO k=kts+1,ktf
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -6133,7 +6133,7 @@ ELSE IF (horz_order == 2 ) THEN
         DO j=jts,jte
         DO k = kts+1,ktf
         DO i=its,ite
-         !TODO: what about kte and kts?
+         !TODOm: what about kte?
           fqx_out(i,k,j) = (fzm(k)*ru(i,k,j)+fzp(k)*ru(i,k-1,j))      &
                                *(w(i,k,j)+w(i-1,k,j))*0.5
         ENDDO
@@ -6143,7 +6143,7 @@ ELSE IF (horz_order == 2 ) THEN
         DO j=jts,jte
         DO k = kts+1,ktf
         DO i=its,ite
-          !TODO: what about kte and kts?
+          !TODOm: what about kte?
           fqy_out(i,k,j) = (fzm(k)*rv(i,k,j)+fzp(k)*rv(i,k-1,j))      &
                                  *(w(i,k,j)+w(i,k,j-1))*0.5
         ENDDO
@@ -6162,6 +6162,16 @@ ELSE IF (horz_order == 2 ) THEN
 
    ENDIF horizontal_order_test
 
+
+   !set sfc values to 0
+   IF (output_fluxes) THEN
+     DO j=jts,jte
+     DO i=its,ite
+       fqx_out(i,kts,j) = 0.
+       fqy_out(i,kts,j) = 0.
+     ENDDO
+     ENDDO
+   ENDIF
 
 !  pick up the the horizontal radiation boundary conditions.
 !  (these are the computations that don't require 'cb'.
@@ -13646,6 +13656,16 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
                                                                       )
        ENDDO
 
+   ENDIF
+
+   !set sfc values to 0
+   IF (output_fluxes) THEN
+     DO j=jts,jte
+     DO i=its,ite
+       fqx_out(i,kts,j) = 0.
+       fqy_out(i,kts,j) = 0.
+     ENDDO
+     ENDDO
    ENDIF
 
 !-------------------- vertical advection

@@ -3037,21 +3037,22 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
         !horizontal fluxes of w (not redundant if pbl scheme is used)
         IF (config_flags%output_wsgs_fluxes) THEN
             DO j=jts,jte
-            DO k=kts,kte
+            DO k=kts+1,kte
             DO i=its,ite
-                IF (k .eq. kts) THEN
-                  !SGS w-tendency at sfc is 0
-                  sgs_UW(i,k,j) = 0.
-                  sgs_VW(i,k,j) = 0.
-                ELSE
-                  rho_stag = 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
-                                     fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
-                  sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13) * rho_stag
-                  rho_stag = 0.5 * ( fnm(k) * ( rho(i,k  ,j-1) + rho(i,k  ,j) ) + &
-                                     fnp(k) * ( rho(i,k-1,j-1) + rho(i,k-1,j) ) )
-                  sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23) * rho_stag
-                ENDIF
+               rho_stag = 0.5 * ( fnm(k) * ( rho(i-1,k  ,j) + rho(i,k  ,j) ) + &
+                                  fnp(k) * ( rho(i-1,k-1,j) + rho(i,k-1,j) ) )
+               sgs_UW(i,k,j) = nba_mij(i,k,j,P_m13) * rho_stag
+               rho_stag = 0.5 * ( fnm(k) * ( rho(i,k  ,j-1) + rho(i,k  ,j) ) + &
+                                  fnp(k) * ( rho(i,k-1,j-1) + rho(i,k-1,j) ) )
+               sgs_VW(i,k,j) = nba_mij(i,k,j,P_m23) * rho_stag
             ENDDO
+            ENDDO
+            ENDDO
+            DO j=jts,jte
+            DO i=its,ite
+                !SGS w-tendency at sfc is 0
+                sgs_UW(i,kts,j) = 0.
+                sgs_VW(i,kts,j) = 0.
             ENDDO
             ENDDO
         ENDIF

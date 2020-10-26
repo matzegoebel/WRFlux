@@ -417,13 +417,13 @@ CONTAINS
             dzdt(i,k,j) = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
             call stagger_z(u8w(i,k,j), U(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
+                           k, kms, kme, kde              )
             call stagger_z(v8w(i,k,j), V(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
+                           k, kms, kme, kde              )
             call stagger_z(rho8w(i,k,j), rho_d(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                           i, j, k, kms, kme, kde              )
+                           k, kms, kme, kde              )
         ENDDO
         ENDDO
         ENDDO
@@ -445,10 +445,10 @@ CONTAINS
               rhoz = rho8w(i,k,j)
               call stagger_z(rhoxz, 0.5*(rho_d(i,:,j)+rho_d(i-1,:,j)),  &
                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                             i, j, k, kms, kme, kde              )
+                             k, kms, kme, kde              )
               call stagger_z(rhoyz, 0.5*(rho_d(i,:,j)+rho_d(i,:,j-1)),  &
                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                             i, j, k, kms, kme, kde              )
+                             k, kms, kme, kde              )
             else
               rhox = 1
               rhoy = 1
@@ -817,11 +817,11 @@ CONTAINS
 
   subroutine stagger_z(var_stag, var,                      &
                        cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                       i, j, k, kms, kme, kde              )
+                       k, kms, kme, kde                    )
 
     REAL, INTENT(OUT) :: var_stag
     REAL, INTENT(IN) :: cf1, cf2, cf3, cfn, cfn1
-    INTEGER, INTENT(IN) ::  i, j, k, kms, kme, kde
+    INTEGER, INTENT(IN) ::  k, kms, kme, kde
     REAL, DIMENSION(kms:kme) , INTENT(IN) :: var, fnm, fnp
 
     if ( k .eq. kde) then

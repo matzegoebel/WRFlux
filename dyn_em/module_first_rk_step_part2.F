@@ -756,8 +756,8 @@ BENCH_START(update_phy_ten_tim)
 
          if (config_flags%output_sgs_fluxes .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
             !get turbulent fluxes from PBL scheme tendencies
-            call fluxes_from_bl_tend(grid%sgs_wth, grid%sgs_wq,                           &
-                             & grid%sgs_wu, grid%sgs_wv, config_flags,                    &
+            call fluxes_from_bl_tend(grid%ftz_sgs, grid%fqz_sgs,                           &
+                             & grid%fuz_sgs, grid%fvz_sgs, config_flags,                    &
                              & grid%rublten, grid%rvblten, grid%rqvblten, grid%rthblten,  &
                              & grid%dnw, grid%moist(:,:,:,P_QV), th_phy,                  &
                              & ids, ide, jds, jde, kds, kde,                              &
@@ -973,8 +973,8 @@ BENCH_END(tke_rhs_tim)
                                                chem_tend, num_chem,                                       &
                                                scalar_tend, num_scalar,                                   &
                                                tracer_tend, num_tracer,                                   &
-                                               grid%sgs_wth, grid%sgs_wq,                                 &
-                                               grid%sgs_wu, grid%sgs_wv, grid%sgs_ww,                     &
+                                               grid%ftz_sgs, grid%fqz_sgs,                                 &
+                                               grid%fuz_sgs, grid%fvz_sgs, grid%fwz_sgs,                     &
                                                grid%u_2, grid%v_2,grid%w_2,grid%dt,                       &
                                                grid%t_2,grid%u_base,grid%v_base,grid%t_base,grid%qv_base, &
                                                grid%mut,grid%tke_2,th_phy,config_flags,                   &
@@ -1007,8 +1007,8 @@ BENCH_START(vert_diff_tim)
                                       chem_tend, num_chem,                       &
                                       scalar_tend, num_scalar,                     &
                                       tracer_tend, num_tracer,                     &
-                                      grid%sgs_wth, grid%sgs_wq,                                 &
-                                      grid%sgs_wu, grid%sgs_wv, grid%sgs_ww,                     &
+                                      grid%ftz_sgs, grid%fqz_sgs,                                 &
+                                      grid%fuz_sgs, grid%fvz_sgs, grid%fwz_sgs,                     &
                                       grid%u_2, grid%v_2,                                  &
                                       grid%t_2,grid%u_base,grid%v_base,grid%t_base,grid%qv_base,          &
                                       grid%tke_2, th_phy, config_flags,              &
@@ -1043,8 +1043,8 @@ BENCH_START(hor_diff_tim)
                                       chem_tend, num_chem,                   &
                                       scalar_tend, num_scalar,                 &
                                       tracer_tend, num_tracer,                 &
-                                      grid%sgs_uth, grid%sgs_vth, grid%sgs_uq, grid%sgs_vq,             &
-                                      grid%sgs_uu, grid%sgs_uv, grid%sgs_vv, grid%sgs_uw, grid%sgs_vw,  &
+                                      grid%ftx_sgs, grid%fty_sgs, grid%fqx_sgs, grid%fqy_sgs,             &
+                                      grid%fux_sgs, grid%fvx_sgs, grid%fvy_sgs, grid%fwx_sgs, grid%fwy_sgs,  &
                                       grid%t_2, th_phy,                           &
                                       grid%tke_2, config_flags,              &
                                       grid%defor11, grid%defor22, grid%defor12,             &

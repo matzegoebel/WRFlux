@@ -36,13 +36,14 @@ exist = "s"
 thresh_thdry = 0.02
 thresh = 0.003
 
-variables = ["q", "th", "u", "v", "w"]
+variables = ["q", "t", "u", "v", "w"]
+# variables = ["q"]
 cut_boundaries = False
-bounds = {"x" : slice(1,-1), "y" : slice(1,-1), "z" : slice(1,-1)}
-bounds = {"z" : slice(1,None)}
+bounds = {"x" : slice(1,-1), "y" : slice(1,-1), "bottom_top" : slice(1,-1)}
+bounds = {"bottom_top" : slice(None,-1)}
 cartesian = True
 plot = False
-
+plot_diff = False
 
 #%%settings
 
@@ -89,39 +90,50 @@ def test_budget():
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
-                forcing, total_tend = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs,
-                                                     cartesian=cartesian, correct=True, recalc_w=True)
+                forcing, total_tend, adv, sgs, sources = get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs,
+                                                         cartesian=cartesian, correct=True, recalc_w=True)
                 if cut_boundaries:
-                    for d in ["x", "y", "z"]:
+                    bounds_v = bounds.copy()
+                    for d in ["x", "y", "bottom_top"]:
                         if d not in bounds:
-                            bounds[d] = slice(None)
-                    forcing = forcing[:, bounds["z"], bounds["y"], bounds["x"]]
-                    total_tend = total_tend[:, bounds["z"], bounds["y"], bounds["x"]]
+                            bounds_v[d] = slice(None)
+                        if d not in forcing.dims:
+                            bounds_v[d + "_stag"] = bounds_v[d]
+                            del bounds_v[d]
+                    forcing = forcing[bounds_v]
+                    total_tend = total_tend[bounds_v]
                 value_range = total_tend.max() - total_tend.min()
                 max_error = abs(forcing - total_tend).max()
                 e = max_error/value_range
                 print("{0}: {1:.3f}%".format(var, e.values*100))
-                if (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1) and (var == "th"):
+                if (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1) and (var == "t"):
                     thresh_v = thresh_thdry
                 else:
                     thresh_v = thresh
                 if e > thresh_v:
                     if plot:
-                        fig = tools.scatter_tend_forcing(total_tend, forcing, var, savefig=False)
+                        fig = tools.scatter_tend_forcing(total_tend, forcing, var, plot_diff=plot_diff, savefig=False)
                         fig.suptitle(cname)
                     print("Variable {} FAILED!".format(var))
                     if cname in failed:
                         failed[cname].append(var)
                     else:
                         failed[cname] = [var]
+
+                #check for nans
+                for n, dat in zip(["total tendency", "advection", "SGS diffusion", "sources"], [total_tend, adv, sgs, sources]):
+                    dat = tools.find_nans(dat)
+                    if len(dat) != 0:
+                        print("WARNING: found NaNs in {}:\n{}".format(n, dat))
+                        #TODO also check fluxes!
 #%%
     if failed != {}:
         raise RuntimeError("Forcing unequal total tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()])))
-    setup_test_init_module(restore=True)
+    #setup_test_init_module(restore=True)
 
-                #TODO: more tests: mean_flux,..., which input_sounding?
-                #assert notnan -> w(k=0) should be there?! set flux at kts to zero!
+                #TODO: more tests: mean_flux,...
+                #w(kte)??
 #%%
 def load_data(IDi):
     dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
@@ -149,16 +161,14 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, 
                                           recalc_w=recalc_w)
 
     if correct and cartesian:
-        corr = dat_mean[["CORR_U{}".format(VAR), "CORR_V{}".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
+        corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
         adv, total_tend = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
                                                       dzdd, grid, adv, total_tend, cyclic, stagger_const)
 
     #add all forcings
-    forcing = adv["Z"].sel(comp="tot", drop=True) + sources
-    for d in XY:
-        forcing = forcing + adv[d].sel(comp="tot", drop=True)
+    forcing = adv.sel(comp="tot", drop=True).sum("dir") + sources
 
-    return forcing, total_tend
+    return forcing, total_tend, adv, sgs, sources
 
 @pytest.fixture(autouse=True)
 def run_around_tests():
@@ -181,7 +191,7 @@ def capture_submit(*args, **kwargs):
         with Capturing() as output:
             combs = submit_jobs(*args, **kwargs)
     except Exception as e:
-        print(output)
+        print("\n".join(output))
         raise(e)
 
     return combs, output

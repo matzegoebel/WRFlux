@@ -992,7 +992,7 @@ CALL wrf_put_dom_ti_logical ( fid , 'PERIODIC_Y' , config_flags%periodic_y , 1 ,
 
 IF (config_flags%output_avgfluxes) THEN
     CALL wrf_put_dom_ti_logical ( fid , 'HESSELBERG_AVG' , config_flags%hesselberg_avg , 1 , ierr )
-    IF (config_flags%output_th_fluxes .gt. 0) THEN
+    IF (config_flags%output_t_fluxes .gt. 0) THEN
         CALL wrf_put_dom_ti_logical ( fid , 'OUTPUT_DRY_THETA_FLUXES' , config_flags%output_dry_theta_fluxes , 1 , ierr )
     ENDIF
 ENDIF

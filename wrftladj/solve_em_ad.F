@@ -767,10 +767,10 @@ BENCH_START(rk_tend_tim)
                          ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
                          ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
                          ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
-                         ,grid%ruth_tot, grid%rvth_tot, grid%wwth_tot                                          &
-                         ,grid%ruu_tot, grid%rvu_tot, grid%wwu_tot                                             &
-                         ,grid%ruv_tot, grid%rvv_tot, grid%wwv_tot                                             &
-                         ,grid%ruw_tot, grid%rvw_tot, grid%www_tot, moist(:,:,:,P_QV)                          &
+                         ,grid%ftz_adv, grid%fty_adv, grid%ftz_adv                                          &
+                         ,grid%fux_adv, grid%fuy_adv, grid%fuz_adv                                             &
+                         ,grid%fvx_adv, grid%fvy_adv, grid%fvz_adv                                             &
+                         ,grid%fwx_adv, grid%fwy_adv, grid%fwz_adv, moist(:,:,:,P_QV)                          &
                          ,mu_tend, grid%u_save, grid%v_save, w_save, ph_save                                   &
                          ,grid%t_save, mu_save, grid%rthften                                                   &
                          ,grid%ru, grid%rv, grid%rw, grid%ww                                                   &

@@ -30,18 +30,19 @@ package   avgflxcugd     do_avgflx_cugd==1           -             state:avgflx_
 
 # 3D mean values
 state   real    rhod_mean          ikj    dyn_em            1               -               h{24} "RHOD_MEAN"           "time-averaged dry density"  "kg m-3"
+state   real    mut_mean           ij     dyn_em            1               -               h{24} "MUT_MEAN"            "time-averaged dry air mass in column"  "Pa"
 state   real    z_mean             ikj    dyn_em            1               Z               h{24} "Z_MEAN"              "time-averaged geopotential height"  "m"
 
 state   real    u_mean             ikj    dyn_em            1               X               h{24} "U_MEAN"              "time-averaged x-wind component"  "m s-1"
 state   real    v_mean             ikj    dyn_em            1               Y               h{24} "V_MEAN"              "time-averaged y-wind component"  "m s-1"
-state   real    om_mean            ikj    dyn_em            1               Z               h{24} "OM_MEAN"             "time-averaged eta-dot"  "s-1"
+state   real    ww_mean            ikj    dyn_em            1               Z               h{24} "WW_MEAN"             "time-averaged mu-coupled eta-dot"  "Pa s-1"
 state   real    wd_mean            ikj    dyn_em            1               Z               h{24} "WD_MEAN"             "time-averaged diagnosed z-wind component"   "m s-1"
 state   real    zwind_mean         ikj    dyn_em            1               Z               h{24} "W_MEAN"              "time-averaged prognosed z-wind component"   "m s-1"
 
-state   real    th_mean            ikj    dyn_em            1               -               h{24} "TH_MEAN"             "time-averaged dry potential temperature" "K"
-state   real    thx_mean           ikj    dyn_em            1               X               h{24} "THX_MEAN"            "time-averaged dry/moist potential temperature staggered in x-direction depending on advection order" "K"
-state   real    thy_mean           ikj    dyn_em            1               Y               h{24} "THY_MEAN"            "time-averaged dry/moist potential temperature staggered in y-direction depending on advection order" "K"
-state   real    thz_mean           ikj    dyn_em            1               Z               h{24} "THZ_MEAN"            "time-averaged dry/moist potential temperature staggered in z-direction depending on advection order" "K"
+state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry potential temperature" "K"
+state   real    tx_mean            ikj    dyn_em            1               X               h{24} "TX_MEAN"             "time-averaged dry/moist potential temperature staggered in x-direction depending on advection order" "K"
+state   real    ty_mean            ikj    dyn_em            1               Y               h{24} "TY_MEAN"             "time-averaged dry/moist potential temperature staggered in y-direction depending on advection order" "K"
+state   real    tz_mean            ikj    dyn_em            1               Z               h{24} "TZ_MEAN"             "time-averaged dry/moist potential temperature staggered in z-direction depending on advection order" "K"
 
 state   real    q_mean             ikj    dyn_em            1               -               h{24} "Q_MEAN"              "time-averaged water vapor mixing ratio" ""
 state   real    qx_mean            ikj    dyn_em            1               X               h{24} "QX_MEAN"             "time-averaged water vapor mixing ratio staggered in x-direction depending on advection order" "K"
@@ -62,118 +63,118 @@ state   real    wz_mean            ikj    dyn_em            1               -   
 
 
 # mean fluxes
-state   real    ruth_tot_mean      ikj    dyn_em            1               X               h{24} "RUTH_TOT_MEAN"           "time-averaged mu-coupled total dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    rvth_tot_mean      ikj    dyn_em            1               Y               h{24} "RVTH_TOT_MEAN"           "time-averaged mu-coupled total dry/moist theta flux in y direction"   "Pa K m s-1"
-state   real    wwth_tot_mean      ikj    dyn_em            1               Z               h{24} "WWTH_TOT_MEAN"           "time-averaged mu-coupled total dry/moist theta flux in eta direction" "Pa K s-1"
-state   real    ruq_tot_mean       ikj    dyn_em            1               X               h{24} "RUQ_TOT_MEAN"            "time-averaged mu-coupled total moisture flux in x direction"   "Pa m s-1"
-state   real    rvq_tot_mean       ikj    dyn_em            1               Y               h{24} "RVQ_TOT_MEAN"            "time-averaged mu-coupled total moisture flux in y direction"   "Pa m s-1"
-state   real    wwq_tot_mean       ikj    dyn_em            1               Z               h{24} "WWQ_TOT_MEAN"            "time-averaged mu-coupled total moisture flux in eta direction" "Pa s-1"
+state   real    ftx_adv_mean       ikj    dyn_em            1               X               h{24} "FTX_ADV_MEAN"            "time-averaged advective dry/moist theta flux in x direction"   "K m s-1"
+state   real    fty_adv_mean       ikj    dyn_em            1               Y               h{24} "FTY_ADV_MEAN"            "time-averaged advective dry/moist theta flux in y direction"   "K m s-1"
+state   real    ftz_adv_mean       ikj    dyn_em            1               Z               h{24} "FTZ_ADV_MEAN"            "time-averaged advective dry/moist theta flux in z direction"   "K m s-1"
+state   real    fqx_adv_mean       ikj    dyn_em            1               X               h{24} "FQX_ADV_MEAN"            "time-averaged advective moisture flux in x direction"   "m s-1"
+state   real    fqy_adv_mean       ikj    dyn_em            1               Y               h{24} "FQY_ADV_MEAN"            "time-averaged advective moisture flux in y direction"   "m s-1"
+state   real    fqz_adv_mean       ikj    dyn_em            1               Z               h{24} "FQZ_ADV_MEAN"            "time-averaged advective moisture flux in z direction"   "m s-1"
 
-state   real    ruu_tot_mean       ikj    dyn_em            1               -               h{24} "RUU_TOT_MEAN"            "time-averaged mu-coupled total x-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvu_tot_mean       ikj    dyn_em            1               XY              h{24} "RVU_TOT_MEAN"            "time-averaged mu-coupled total x-momentum flux in y direction"   "Pa m2 s-2"
-state   real    wwu_tot_mean       ikj    dyn_em            1               XZ              h{24} "WWU_TOT_MEAN"            "time-averaged mu-coupled total x-momentum flux in eta direction" "Pa m s-2"
+state   real    fux_adv_mean       ikj    dyn_em            1               -               h{24} "FUX_ADV_MEAN"            "time-averaged advective x-momentum flux in x direction"   "m2 s-2"
+state   real    fuy_adv_mean       ikj    dyn_em            1               XY              h{24} "FUY_ADV_MEAN"            "time-averaged advective x-momentum flux in y direction"   "m2 s-2"
+state   real    fuz_adv_mean       ikj    dyn_em            1               XZ              h{24} "FUZ_ADV_MEAN"            "time-averaged advective x-momentum flux in z direction"   "m2 s-2"
 
-state   real    ruv_tot_mean       ikj    dyn_em            1               XY              h{24} "RUV_TOT_MEAN"            "time-averaged mu-coupled total y-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvv_tot_mean       ikj    dyn_em            1               -               h{24} "RVV_TOT_MEAN"            "time-averaged mu-coupled total y-momentum flux in y direction"   "Pa m2 s-2"
-state   real    wwv_tot_mean       ikj    dyn_em            1               YZ              h{24} "WWV_TOT_MEAN"            "time-averaged mu-coupled total y-momentum flux in eta direction" "Pa m s-2"
+state   real    fvx_adv_mean       ikj    dyn_em            1               XY              h{24} "FVX_ADV_MEAN"            "time-averaged advective y-momentum flux in x direction"   "m2 s-2"
+state   real    fvy_adv_mean       ikj    dyn_em            1               -               h{24} "FVY_ADV_MEAN"            "time-averaged advective y-momentum flux in y direction"   "m2 s-2"
+state   real    fvz_adv_mean       ikj    dyn_em            1               YZ              h{24} "FVZ_ADV_MEAN"            "time-averaged advective y-momentum flux in z direction"   "m2 s-2"
 
-state   real    ruw_tot_mean       ikj    dyn_em            1               XZ              h{24} "RUW_TOT_MEAN"            "time-averaged mu-coupled total w-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvw_tot_mean       ikj    dyn_em            1               YZ              h{24} "RVW_TOT_MEAN"            "time-averaged mu-coupled total w-momentum flux in y direction"   "Pa m2 s-2"
-state   real    www_tot_mean       ikj    dyn_em            1               -               h{24} "WWW_TOT_MEAN"            "time-averaged mu-coupled total w-momentum flux in eta direction" "Pa m s-2"
+state   real    fwx_adv_mean       ikj    dyn_em            1               XZ              h{24} "FWX_ADV_MEAN"            "time-averaged advective w-momentum flux in x direction"   "m2 s-2"
+state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective w-momentum flux in y direction"   "m2 s-2"
+state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective w-momentum flux in z direction"   "m2 s-2"
 
 #other instantaneous variables
 state   real    w_diag               ikj      dyn_em         1               Z               h "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"
 
 #variances
 
-state   real    thth_mean          ikj    dyn_em            1               -               h{24} "THTH_MEAN"           "time-averaged dry/moist potential temperature variance"  "K2"
+state   real    tt_mean            ikj    dyn_em            1               -               h{24} "TT_MEAN"             "time-averaged dry/moist potential temperature variance"  "K2"
 state   real    qq_mean            ikj    dyn_em            1               -               h{24} "QQ_MEAN"             "time-averaged water vapor mixing ratio variance"  ""
 
-#instantaneous total resolved fluxes
+#instantaneous resolved fluxes
 
-state   real    ruth_tot             ikj      dyn_em         1               X               - "RUTH_TOT"           "instantaneous mu-coupled total dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    rvth_tot             ikj      dyn_em         1               Y               - "RVTH_TOT"           "instantaneous mu-coupled total dry/moist theta flux in y direction"   "Pa  K m s-1"
-state   real    wwth_tot             ikj      dyn_em         1               Z               - "WWTH_TOT"           "instantaneous mu-coupled total dry/moist theta flux in eta direction" "Pa K s-1"
+state   real    ftx_adv              ikj      dyn_em         1               X               - "FTX_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in x direction"   "Pa K m s-1"
+state   real    fty_adv              ikj      dyn_em         1               Y               - "FTY_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in y direction"   "Pa  K m s-1"
+state   real    ftz_adv              ikj      dyn_em         1               Z               - "FTZ_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in eta direction" "Pa K s-1"
 
-state   real    ruth_s               ikj      dyn_em         1               X               - "RUTH_S"             "instantaneous mu-coupled small step dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    rvth_s               ikj      dyn_em         1               Y               - "RVTH_S"             "instantaneous mu-coupled small step dry/moist theta flux in y direction"   "Pa  K m s-1"
-state   real    wwth_s               ikj      dyn_em         1               Z               - "WWTH_S"             "instantaneous mu-coupled small step dry/moist theta flux in eta direction" "Pa K s-1"
+state   real    ftx_small                ikj      dyn_em         1               X               - "FTX_Small"              "instantaneous mu-coupled small step dry/moist theta flux in x direction"   "Pa K m s-1"
+state   real    fty_small                ikj      dyn_em         1               Y               - "FTY_Small"              "instantaneous mu-coupled small step dry/moist theta flux in y direction"   "Pa  K m s-1"
+state   real    ftz_small                ikj      dyn_em         1               Z               - "FTZ_Small"              "instantaneous mu-coupled small step dry/moist theta flux in eta direction" "Pa K s-1"
 
-state   real    ruq_tot              ikj      dyn_em         1               X               - "RUQ_TOT"            "instantaneous mu-coupled total moisture flux in x direction"   "Pa m s-1"
-state   real    rvq_tot              ikj      dyn_em         1               Y               - "RVQ_TOT"            "instantaneous mu-coupled total moisture flux in y direction"   "Pa m s-1"
-state   real    wwq_tot              ikj      dyn_em         1               Z               - "WWQ_TOT"            "instantaneous mu-coupled total moisture flux in eta direction" "Pa s-1"
+state   real    fqx_adv              ikj      dyn_em         1               X               - "FQX_ADV"            "instantaneous mu-coupled advective moisture flux in x direction"   "Pa m s-1"
+state   real    fqy_adv              ikj      dyn_em         1               Y               - "FQY_ADV"            "instantaneous mu-coupled advective moisture flux in y direction"   "Pa m s-1"
+state   real    fqz_adv              ikj      dyn_em         1               Z               - "FQZ_ADV"            "instantaneous mu-coupled advective moisture flux in eta direction" "Pa s-1"
 
-state   real    ruu_tot              ikj      dyn_em         1               -               - "RUU_TOT"            "instantaneous mu-coupled total x-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvu_tot              ikj      dyn_em         1               XY              - "RVU_TOT"            "instantaneous mu-coupled total x-momentum flux in y direction"   "Pa m2 s-2"
-state   real    wwu_tot              ikj      dyn_em         1               XZ              - "WWU_TOT"            "instantaneous mu-coupled total x-momentum flux in eta direction" "Pa m s-2"
+state   real    fux_adv              ikj      dyn_em         1               -               - "FUX_ADV"            "instantaneous mu-coupled advective x-momentum flux in x direction"   "Pa m2 s-2"
+state   real    fuy_adv              ikj      dyn_em         1               XY              - "FUY_ADV"            "instantaneous mu-coupled advective x-momentum flux in y direction"   "Pa m2 s-2"
+state   real    fuz_adv              ikj      dyn_em         1               XZ              - "FUZ_ADV"            "instantaneous mu-coupled advective x-momentum flux in eta direction" "Pa m s-2"
 
-state   real    ruv_tot              ikj      dyn_em         1               XY              - "RUV_TOT"            "instantaneous mu-coupled total y-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvv_tot              ikj      dyn_em         1               -               - "RVV_TOT"            "instantaneous mu-coupled total y-momentum flux in y direction"   "Pa m2 s-2"
-state   real    wwv_tot              ikj      dyn_em         1               YZ              - "WWV_TOT"            "instantaneous mu-coupled total y-momentum flux in eta direction" "Pa m s-2"
+state   real    fvx_adv              ikj      dyn_em         1               XY              - "FVX_ADV"            "instantaneous mu-coupled advective y-momentum flux in x direction"   "Pa m2 s-2"
+state   real    fvy_adv              ikj      dyn_em         1               -               - "FVY_ADV"            "instantaneous mu-coupled advective y-momentum flux in y direction"   "Pa m2 s-2"
+state   real    fvz_adv              ikj      dyn_em         1               YZ              - "FVZ_ADV"            "instantaneous mu-coupled advective y-momentum flux in eta direction" "Pa m s-2"
 
-state   real    ruw_tot              ikj      dyn_em         1               XZ              - "RUW_TOT"            "instantaneous mu-coupled total z-momentum flux in x direction"   "Pa m2 s-2"
-state   real    rvw_tot              ikj      dyn_em         1               YZ              - "RVW_TOT"            "instantaneous mu-coupled total z-momentum flux in y direction"   "Pa m2 s-2"
-state   real    www_tot              ikj      dyn_em         1               -               - "WWW_TOT"            "instantaneous mu-coupled total z-momentum flux in eta direction" "Pa m s-2"
+state   real    fwx_adv              ikj      dyn_em         1               XZ              - "FWX_ADV"            "instantaneous mu-coupled advective z-momentum flux in x direction"   "Pa m2 s-2"
+state   real    fwy_adv              ikj      dyn_em         1               YZ              - "FWY_ADV"            "instantaneous mu-coupled advective z-momentum flux in y direction"   "Pa m2 s-2"
+state   real    fwz_adv              ikj      dyn_em         1               -               - "FWZ_ADV"            "instantaneous mu-coupled advective z-momentum flux in eta direction" "Pa m s-2"
 
 # corrections for transformation to Cartesian system
-state   real    corr_uth          ikj    dyn_em         1               Z               h{24} "CORR_UTH"           "time-averaged correction flux for theta advection in x direction"  "kg m-2 K s-1"
-state   real    corr_vth          ikj    dyn_em         1               Z               h{24} "CORR_VTH"           "time-averaged correction flux for theta advection in y direction"  "kg m-2 K s-1"
-state   real    corr_dthdt        ikj    dyn_em         1               Z               h{24} "CORR_DTHDT"         "time-averaged correction flux for theta tendency"  "kg m-2 K s-1"
+state   real    ftx_corr          ikj    dyn_em         1               Z               h{24} "FTX_CORR"           "time-averaged correction flux for theta advection in x direction"  "kg m-2 K s-1"
+state   real    fty_corr          ikj    dyn_em         1               Z               h{24} "FTY_CORR"           "time-averaged correction flux for theta advection in y direction"  "kg m-2 K s-1"
+state   real    corr_dtdt         ikj    dyn_em         1               Z               h{24} "corr_dtdt"          "time-averaged correction flux for theta tendency"  "kg m-2 K s-1"
 
-state   real    corr_uq           ikj    dyn_em         1               Z               h{24} "CORR_UQ"            "time-averaged correction flux for Q advection in x direction"  "kg m-2 s-1"
-state   real    corr_vq           ikj    dyn_em         1               Z               h{24} "CORR_VQ"            "time-averaged correction flux for Q advection in y direction"  "kg m-2 s-1"
+state   real    fqx_corr          ikj    dyn_em         1               Z               h{24} "FQX_CORR"           "time-averaged correction flux for Q advection in x direction"  "kg m-2 s-1"
+state   real    fqy_corr          ikj    dyn_em         1               Z               h{24} "FQY_CORR"           "time-averaged correction flux for Q advection in y direction"  "kg m-2 s-1"
 state   real    corr_dqdt         ikj    dyn_em         1               Z               h{24} "CORR_DQDT"          "time-averaged correction flux for Q tendency"  "kg m-2 s-1"
 
-state   real    corr_uu           ikj    dyn_em         1               XZ              h{24} "CORR_UU"            "time-averaged correction flux for u advection in x direction"  "kg m-1 s-2"
-state   real    corr_vu           ikj    dyn_em         1               XZ              h{24} "CORR_VU"            "time-averaged correction flux for u advection in y direction"  "kg m-1 s-2"
+state   real    fux_corr          ikj    dyn_em         1               XZ              h{24} "FUX_CORR"           "time-averaged correction flux for u advection in x direction"  "kg m-1 s-2"
+state   real    fuy_corr          ikj    dyn_em         1               XZ              h{24} "FUY_CORR"           "time-averaged correction flux for u advection in y direction"  "kg m-1 s-2"
 state   real    corr_dudt         ikj    dyn_em         1               XZ              h{24} "CORR_DUDT"          "time-averaged correction flux for u tendency"  "kg m-1 s-2"
 
-state   real    corr_uv           ikj    dyn_em         1               YZ              h{24} "CORR_UV"            "time-averaged correction flux for v advection in x direction"  "kg m-1 s-2"
-state   real    corr_vv           ikj    dyn_em         1               YZ              h{24} "CORR_VV"            "time-averaged correction flux for v advection in y direction"  "kg m-1 s-2"
+state   real    fvx_corr          ikj    dyn_em         1               YZ              h{24} "FVX_CORR"           "time-averaged correction flux for v advection in x direction"  "kg m-1 s-2"
+state   real    fvy_corr          ikj    dyn_em         1               YZ              h{24} "FVY_CORR"           "time-averaged correction flux for v advection in y direction"  "kg m-1 s-2"
 state   real    corr_dvdt         ikj    dyn_em         1               YZ              h{24} "CORR_DVDT"          "time-averaged correction flux for v tendency"  "kg m-1 s-2"
 
-state   real    corr_uw           ikj    dyn_em         1               -               h{24} "CORR_UW"            "time-averaged correction flux for w advection in x direction"  "kg m-1 s-2"
-state   real    corr_vw           ikj    dyn_em         1               -               h{24} "CORR_VW"            "time-averaged correction flux for w advection in y direction"  "kg m-1 s-2"
+state   real    fwx_corr          ikj    dyn_em         1               -               h{24} "FWX_CORR"           "time-averaged correction flux for w advection in x direction"  "kg m-1 s-2"
+state   real    fwy_corr          ikj    dyn_em         1               -               h{24} "FWY_CORR"           "time-averaged correction flux for w advection in y direction"  "kg m-1 s-2"
 state   real    corr_dwdt         ikj    dyn_em         1               -               h{24} "CORR_DWDT"          "time-averaged correction flux for w tendency"  "kg m-1 s-2"
 
 
 # mean SGS turbulent quantities
 
-state   real    sgs_UTH_mean      ikj     dyn_em         1               X              h{24} "SGS_UTH_MEAN"         "time-averaged SGS turb. dry/moist theta flux in x direction" "kg m-2 K s-1"
-state   real    sgs_VTH_mean      ikj     dyn_em         1               Y              h{24} "SGS_VTH_MEAN"         "time-averaged SGS turb. dry/moist theta flux in y direction" "kg m-2 K s-1"
-state   real    sgs_WTH_mean      ikj     dyn_em         1               Z              h{24} "SGS_WTH_MEAN"         "time-averaged SGS turb. dry/moist theta flux in z direction" "kg m-2 K s-1"
+state   real    ftx_sgs_mean       ikj     dyn_em         1               X              h{24} "FTX_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in x direction" "kg m-2 K s-1"
+state   real    fty_sgs_mean       ikj     dyn_em         1               Y              h{24} "FTY_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in y direction" "kg m-2 K s-1"
+state   real    ftz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FTZ_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in z direction" "kg m-2 K s-1"
 
-state   real    sgs_UQ_mean       ikj     dyn_em         1               X              h{24} "SGS_UQ_MEAN"          "time-averaged SGS turb. moisture flux in x direction" "kg m-2 s-1"
-state   real    sgs_VQ_mean       ikj     dyn_em         1               Y              h{24} "SGS_VQ_MEAN"          "time-averaged SGS turb. moisture flux in y direction" "kg m-2 s-1"
-state   real    sgs_WQ_mean       ikj     dyn_em         1               Z              h{24} "SGS_WQ_MEAN"          "time-averaged SGS turb. moisture flux in z direction" "kg m-2 s-1"
+state   real    fqx_sgs_mean       ikj     dyn_em         1               X              h{24} "FQX_SGS_MEAN"          "time-averaged SGS turb. moisture flux in x direction" "kg m-2 s-1"
+state   real    fqy_sgs_mean       ikj     dyn_em         1               Y              h{24} "FQY_SGS_MEAN"          "time-averaged SGS turb. moisture flux in y direction" "kg m-2 s-1"
+state   real    fqz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FQZ_SGS_MEAN"          "time-averaged SGS turb. moisture flux in z direction" "kg m-2 s-1"
 
-state   real    sgs_UU_mean       ikj     dyn_em         1               -              h{24} "SGS_UU_MEAN"          "time-averaged UU-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
-state   real    sgs_WU_mean       ikj     dyn_em         1               XZ             h{24} "SGS_WU_MEAN"          "time-averaged WU-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_UV_mean       ikj     dyn_em         1               XY             h{24} "SGS_UV_MEAN"          "time-averaged UV-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_VV_mean       ikj     dyn_em         1               -              h{24} "SGS_VV_MEAN"          "time-averaged VV-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
-state   real    sgs_WV_mean       ikj     dyn_em         1               YZ             h{24} "SGS_WV_MEAN"          "time-averaged WV-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_UW_mean       ikj     dyn_em         1               XZ             h{24} "SGS_UW_MEAN"          "time-averaged UW-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_VW_mean       ikj     dyn_em         1               YZ             h{24} "SGS_VW_MEAN"          "time-averaged VW-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_WW_mean       ikj     dyn_em         1               -              h{24} "SGS_WW_MEAN"          "time-averaged WW-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
+state   real    fux_sgs_mean       ikj     dyn_em         1               -              h{24} "FUX_SGS_MEAN"          "time-averaged UU-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
+state   real    fuz_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FUZ_SGS_MEAN"          "time-averaged WU-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
+state   real    fvx_sgs_mean       ikj     dyn_em         1               XY             h{24} "FVX_SGS_MEAN"          "time-averaged UV-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
+state   real    fvy_sgs_mean       ikj     dyn_em         1               -              h{24} "FVY_SGS_MEAN"          "time-averaged VV-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
+state   real    fvz_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FVZ_SGS_MEAN"          "time-averaged WV-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
+state   real    fwx_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FWX_SGS_MEAN"          "time-averaged UW-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
+state   real    fwy_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FWY_SGS_MEAN"          "time-averaged VW-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
+state   real    fwz_sgs_mean       ikj     dyn_em         1               -              h{24} "FWZ_SGS_MEAN"          "time-averaged WW-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
 
 # instantaneous SGS turbulent quantities
 
-state   real    sgs_UTH           ikj     dyn_em         1               X               - "sgs_UTH"            "SGS turb. dry/moist theta flux in x direction" "kg m-2 K s-1"
-state   real    sgs_VTH           ikj     dyn_em         1               Y               - "sgs_VTH"            "SGS turb. dry/moist theta flux in y direction" "kg m-2 K s-1"
-state   real    sgs_WTH           ikj     dyn_em         1               Z               - "sgs_WTH"            "SGS turb. dry/moist theta flux in z direction" "kg m-2 K s-1"
+state   real    ftx_sgs            ikj     dyn_em         1               X               - "FTX_SGS"             "SGS turb. dry/moist theta flux in x direction" "kg m-2 K s-1"
+state   real    fty_sgs            ikj     dyn_em         1               Y               - "FTY_SGS"             "SGS turb. dry/moist theta flux in y direction" "kg m-2 K s-1"
+state   real    ftz_sgs            ikj     dyn_em         1               Z               - "FTZ_SGS"             "SGS turb. dry/moist theta flux in z direction" "kg m-2 K s-1"
 
-state   real    sgs_UQ            ikj     dyn_em         1               X               - "sgs_UQ"             "SGS turb. moisture flux in x direction" "kg m-2 s-1"
-state   real    sgs_VQ            ikj     dyn_em         1               Y               - "sgs_VQ"             "SGS turb. moisture flux in y direction" "kg m-2 s-1"
-state   real    sgs_WQ            ikj     dyn_em         1               Z               - "sgs_WQ"             "SGS turb. moisture flux in z direction" "kg m-2 s-1"
+state   real    fqx_sgs            ikj     dyn_em         1               X               - "FQX_SGS"             "SGS turb. moisture flux in x direction" "kg m-2 s-1"
+state   real    fqy_sgs            ikj     dyn_em         1               Y               - "FQY_SGS"             "SGS turb. moisture flux in y direction" "kg m-2 s-1"
+state   real    fqz_sgs            ikj     dyn_em         1               Z               - "FQZ_SGS"             "SGS turb. moisture flux in z direction" "kg m-2 s-1"
 
-state   real    sgs_UU            ikj     dyn_em         1               -               - "sgs_UU"             "UU-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_WU            ikj     dyn_em         1               XZ              - "sgs_WU"             "WU-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_UV            ikj     dyn_em         1               XY              - "sgs_UV"             "UV-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_VV            ikj     dyn_em         1               -               - "sgs_VV"             "VV-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_WV            ikj     dyn_em         1               YZ              - "sgs_WV"             "WV-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_UW            ikj     dyn_em         1               XZ              - "sgs_UW"             "UW-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_VW            ikj     dyn_em         1               YZ              - "sgs_VW"             "VW-component of SGS Reynolds stress tensor" "kg m-1 s-2"
-state   real    sgs_WW            ikj     dyn_em         1               -               - "sgs_WW"             "WW-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
+state   real    fux_sgs            ikj     dyn_em         1               -               - "FUX_SGS"             "UU-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
+state   real    fuz_sgs            ikj     dyn_em         1               XZ              - "FUZ_SGS"             "WU-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
+state   real    fvx_sgs            ikj     dyn_em         1               XY              - "FVX_SGS"             "UV-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
+state   real    fvy_sgs            ikj     dyn_em         1               -               - "FVY_SGS"             "VV-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
+state   real    fvz_sgs            ikj     dyn_em         1               YZ              - "FVZ_SGS"             "WV-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
+state   real    fwx_sgs            ikj     dyn_em         1               XZ              - "FWX_SGS"             "UW-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
+state   real    fwy_sgs            ikj     dyn_em         1               YZ              - "FWY_SGS"             "VW-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
+state   real    fwz_sgs            ikj     dyn_em         1               -               - "FWZ_SGS"             "WW-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
 
 # tendencies from additional sources
 state   real    t_tend_radlw_mean    ikj     dyn_em          1               -               h{24} "T_TEND_RADLW_MEAN"      "time-averaged dry theta tendency from RAD scheme, longwave" "K s-1"
@@ -199,7 +200,7 @@ state   real    w_tend_cor_curv      ikj     dyn_em          1               Z  
 
 #namelist options
 
-rconfig  integer  output_th_fluxes         namelist,dynamics    1         0                    - "output_th_fluxes"  "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_t_fluxes          namelist,dynamics    1         0                    - "output_t_fluxes"   "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_q_fluxes          namelist,dynamics    1         0                    - "output_q_fluxes"   "Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_u_fluxes          namelist,dynamics    1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_v_fluxes          namelist,dynamics    1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
@@ -210,37 +211,37 @@ rconfig  logical  output_dry_theta_fluxes  namelist,dynamics    1         .true.
 #derived from namelist options
 rconfig  logical  output_avgfluxes     derived    1  .false. -    "output_avgfluxes"  "Output averaged fluxes and mean quantities"
 rconfig  logical  output_sgs_fluxes    derived    1  .false. -    "output_sgs_fluxes" "Output SGS turbulent fluxes from diffusion module and PBL scheme"
-rconfig  logical  output_res_fluxes    derived    1  .false. -    "output_res_fluxes" "Output total resolved fluxes from advection module"
-rconfig  logical  output_thsgs_fluxes  derived    1  .false.  -   "output_thsgs_fluxes" "Output SGS turbulent theta-fluxes from diffusion module and PBL scheme"
+rconfig  logical  output_res_fluxes    derived    1  .false. -    "output_res_fluxes" "Output resolved fluxes from advection module"
+rconfig  logical  output_tsgs_fluxes   derived    1  .false.  -   "output_tsgs_fluxes" "Output SGS turbulent theta-fluxes from diffusion module and PBL scheme"
 rconfig  logical  output_qsgs_fluxes   derived    1  .false.  -   "output_qsgs_fluxes" "Output SGS turbulent q-fluxes from diffusion module and PBL scheme"
 rconfig  logical  output_usgs_fluxes   derived    1  .false.  -   "output_usgs_fluxes" "Output SGS turbulent u-fluxes from diffusion module and PBL scheme"
 rconfig  logical  output_vsgs_fluxes   derived    1  .false.  -   "output_vsgs_fluxes" "Output SGS turbulent v-fluxes from diffusion module and PBL scheme"
 rconfig  logical  output_wsgs_fluxes   derived    1  .false.  -   "output_wsgs_fluxes" "Output SGS turbulent w-fluxes from diffusion module and PBL scheme"
 
-rconfig  logical  output_thres_fluxes  derived    1  .false.  -   "output_thres_fluxes" "Output total resolved theta-fluxes from advection module"
-rconfig  logical  output_qres_fluxes   derived    1  .false.  -   "output_qres_fluxes" "Output total resolved q-fluxes from advection module"
-rconfig  logical  output_ures_fluxes   derived    1  .false.  -   "output_ures_fluxes" "Output total resolved u-fluxes from advection module"
-rconfig  logical  output_vres_fluxes   derived    1  .false.  -   "output_vres_fluxes" "Output total resolved v-fluxes from advection module"
-rconfig  logical  output_wres_fluxes   derived    1  .false.  -   "output_wres_fluxes" "Output total resolved w-fluxes from advection module"
+rconfig  logical  output_tres_fluxes   derived    1  .false.  -   "output_tres_fluxes" "Output resolved theta-fluxes from advection module"
+rconfig  logical  output_qres_fluxes   derived    1  .false.  -   "output_qres_fluxes" "Output resolved q-fluxes from advection module"
+rconfig  logical  output_ures_fluxes   derived    1  .false.  -   "output_ures_fluxes" "Output resolved u-fluxes from advection module"
+rconfig  logical  output_vres_fluxes   derived    1  .false.  -   "output_vres_fluxes" "Output resolved v-fluxes from advection module"
+rconfig  logical  output_wres_fluxes   derived    1  .false.  -   "output_wres_fluxes" "Output resolved w-fluxes from advection module"
 
 #packages
 
-package  mean_th_1      output_th_fluxes==1       -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot,rvth_tot,wwth_tot,ruth_s,rvth_s,wwth_s,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean,corr_uth,corr_vth,corr_dthdt,sgs_uth,sgs_vth,sgs_wth,sgs_uth_mean,sgs_vth_mean,sgs_wth_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp
-package  mean_th_2      output_th_fluxes==2       -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot,rvth_tot,wwth_tot,ruth_s,rvth_s,wwth_s,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean,corr_uth,corr_vth,corr_dthdt
-package  mean_th_3      output_th_fluxes==3       -  state:rhod_mean,z_mean,sgs_uth,sgs_vth,sgs_wth,sgs_uth_mean,sgs_vth_mean,sgs_wth_mean
+package  mean_th_1      output_t_fluxes==1       -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp
+package  mean_th_2      output_t_fluxes==2       -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt
+package  mean_th_3      output_t_fluxes==3       -  state:rhod_mean,mut_mean,z_mean,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean
 
-package  mean_q_1       output_q_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot,rvq_tot,wwq_tot,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,corr_uq,corr_vq,corr_dqdt,sgs_uq,sgs_vq,sgs_wq,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean,q_tend_mp_mean
-package  mean_q_2       output_q_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot,rvq_tot,wwq_tot,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,corr_uq,corr_vq,corr_dqdt
-package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,z_mean,sgs_uq,sgs_vq,sgs_wq,sgs_uq_mean,sgs_vq_mean,sgs_wq_mean
+package  mean_q_1       output_q_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,q_tend_mp_mean
+package  mean_q_2       output_q_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt
+package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean
 
-package  mean_u_1       output_u_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,ux_mean,uy_mean,uz_mean,ruu_tot,rvu_tot,wwu_tot,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean,u_tend_pg,u_tend_pg_mean,u_tend_cor_curv,u_tend_cor_curv_mean
-package  mean_u_2       output_u_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,ux_mean,uy_mean,uz_mean,ruu_tot,rvu_tot,wwu_tot,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,corr_uu,corr_vu,corr_dudt
-package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,z_mean,sgs_uu,sgs_uv,sgs_wu,sgs_uu_mean,sgs_uv_mean,sgs_wu_mean
+package  mean_u_1       output_u_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean,u_tend_pg,u_tend_pg_mean,u_tend_cor_curv,u_tend_cor_curv_mean
+package  mean_u_2       output_u_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt
+package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean
 
-package  mean_v_1       output_v_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,vx_mean,vy_mean,vz_mean,ruv_tot,rvv_tot,wwv_tot,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean,v_tend_pg,v_tend_pg_mean,v_tend_cor_curv,v_tend_cor_curv_mean
-package  mean_v_2       output_v_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,vx_mean,vy_mean,vz_mean,ruv_tot,rvv_tot,wwv_tot,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,corr_uv,corr_vv,corr_dvdt
-package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,z_mean,sgs_uv,sgs_vv,sgs_wv,sgs_uv_mean,sgs_vv_mean,sgs_wv_mean
+package  mean_v_1       output_v_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,v_tend_pg,v_tend_pg_mean,v_tend_cor_curv,v_tend_cor_curv_mean
+package  mean_v_2       output_v_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt
+package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean
 
-package  mean_w_1       output_w_fluxes==1        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,wx_mean,wy_mean,wz_mean,ruw_tot,rvw_tot,www_tot,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean,w_tend_pg,w_tend_pg_mean,w_tend_cor_curv,w_tend_cor_curv_mean
-package  mean_w_2       output_w_fluxes==2        -  state:w_diag,rhod_mean,u_mean,v_mean,zwind_mean,wd_mean,om_mean,z_mean,wx_mean,wy_mean,wz_mean,ruw_tot,rvw_tot,www_tot,ruw_tot_mean,rvw_tot_mean,www_tot_mean,corr_uw,corr_vw,corr_dwdt
-package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,z_mean,sgs_uw,sgs_vw,sgs_ww,sgs_uw_mean,sgs_vw_mean,sgs_ww_mean
+package  mean_w_1       output_w_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,w_tend_pg,w_tend_pg_mean,w_tend_cor_curv,w_tend_cor_curv_mean
+package  mean_w_2       output_w_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt
+package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean

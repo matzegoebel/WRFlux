@@ -3049,8 +3049,8 @@
 
       !determine which flux variables to output
 
-      if ((model_config_rec%output_th_fluxes==1) .or. (model_config_rec%output_th_fluxes==2)) THEN
-         model_config_rec%output_thres_fluxes = .true.
+      if ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==2)) THEN
+         model_config_rec%output_tres_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
       endif
       if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==2)) THEN
@@ -3072,8 +3072,8 @@
 
 
 
-      if ((model_config_rec%output_th_fluxes==1) .or. (model_config_rec%output_th_fluxes==3)) THEN
-         model_config_rec%output_thsgs_fluxes = .true.
+      if ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==3)) THEN
+         model_config_rec%output_tsgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
       endif
       if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==3)) THEN
@@ -3100,7 +3100,7 @@
          model_config_rec%output_avgfluxes = .true.
       endif
 
-      if (model_config_rec%output_thres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
+      if (model_config_rec%output_tres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
        model_config_rec%output_dry_theta_fluxes) then
          DO i = 1, model_config_rec % max_dom
             if ((model_config_rec%scalar_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%scalar_adv_opt(i) == WENOPD_SCALAR) .or. &

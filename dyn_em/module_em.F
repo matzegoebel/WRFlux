@@ -544,7 +544,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_thres_fluxes) THEN
+      IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_tres_fluxes) THEN
         output_fluxes = .true.
       ELSE
         output_fluxes = .false.

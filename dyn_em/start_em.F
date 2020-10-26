@@ -1288,31 +1288,31 @@ endif
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
               &   config_flags,                                                                          &
-              &   grid%th_mean,grid%thx_mean,grid%thy_mean,grid%thz_mean,grid%thth_mean,                 &
-              &   grid%ruth_tot_mean,grid%rvth_tot_mean,grid%wwth_tot_mean,                              &
+              &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                 &
+              &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                              &
               &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
-              &   grid%ruq_tot_mean,grid%rvq_tot_mean,grid%wwq_tot_mean,                                 &
+              &   grid%fqx_adv_mean,grid%fqy_adv_mean,grid%fqz_adv_mean,                                 &
               &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
-              &   grid%ruu_tot_mean,grid%rvu_tot_mean,grid%wwu_tot_mean,                                 &
+              &   grid%fux_adv_mean,grid%fuy_adv_mean,grid%fuz_adv_mean,                                 &
               &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
-              &   grid%ruv_tot_mean,grid%rvv_tot_mean,grid%wwv_tot_mean,                                 &
-              &   grid%om_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,                                &
-              &   grid%wy_mean,grid%wz_mean,grid%ruw_tot_mean,grid%rvw_tot_mean,grid%www_tot_mean,       &
-              &   grid%corr_uth,grid%corr_vth,grid%corr_dthdt,                                           &
-              &   grid%corr_uq,grid%corr_vq,grid%corr_dqdt,                                              &
-              &   grid%corr_uu,grid%corr_vu,grid%corr_dudt,                                              &
-              &   grid%corr_uv,grid%corr_vv,grid%corr_dvdt,                                              &
-              &   grid%corr_uw,grid%corr_vw,grid%corr_dwdt,                                              &
-              &   grid%sgs_uth_mean,grid%sgs_vth_mean,grid%sgs_wth_mean,                                 &
-              &   grid%sgs_uq_mean,grid%sgs_vq_mean,grid%sgs_wq_mean,                                    &
-              &   grid%sgs_uu_mean,grid%sgs_wu_mean,                                                     &
-              &   grid%sgs_uv_mean,grid%sgs_vv_mean,grid%sgs_wv_mean,                                    &
-              &   grid%sgs_uw_mean,grid%sgs_vw_mean,grid%sgs_ww_mean,                                    &
+              &   grid%fvx_adv_mean,grid%fvy_adv_mean,grid%fvz_adv_mean,                                 &
+              &   grid%ww_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,                                &
+              &   grid%wy_mean,grid%wz_mean,grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,       &
+              &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                           &
+              &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                              &
+              &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                              &
+              &   grid%fvx_corr,grid%fvy_corr,grid%corr_dvdt,                                              &
+              &   grid%fwx_corr,grid%fwy_corr,grid%corr_dwdt,                                              &
+              &   grid%ftx_sgs_mean,grid%fty_sgs_mean,grid%ftz_sgs_mean,                                 &
+              &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                    &
+              &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                     &
+              &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                    &
+              &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                    &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
-              &   grid%rhod_mean,grid%z_mean                                                             )
+              &   grid%rhod_mean,grid%mut_mean,grid%z_mean                                               )
 
          call wrf_debug(200,'In start_em, after zero_avgflx call')
       ENDDO

@@ -18,26 +18,26 @@ CONTAINS
        & its, ite, jts, jte, kts, kte,           &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1, &
        & config_flags,                                                                           &
-       & th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean, &
-       & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,          &
-       & u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,                  &
-       & v_mean,vx_mean,vy_mean,vz_mean,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,                  &
-       & om_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,ruw_tot_mean,rvw_tot_mean,www_tot_mean,  &
-       & corr_uth,corr_vth,corr_dthdt,                                                           &
-       & corr_uq,corr_vq,corr_dqdt,                                                              &
-       & corr_uu,corr_vu,corr_dudt,                                                              &
-       & corr_uv,corr_vv,corr_dvdt,                                                              &
-       & corr_uw,corr_vw,corr_dwdt,                                                              &
-       & sgs_UTH_mean,sgs_VTH_mean,sgs_WTH_mean,                                                 &
-       & sgs_UQ_mean,sgs_VQ_mean,sgs_WQ_mean,                                                    &
-       & sgs_UU_mean,sgs_WU_mean,                                                                &
-       & sgs_UV_mean,sgs_VV_mean,sgs_WV_mean,                                                    &
-       & sgs_UW_mean,sgs_VW_mean,sgs_WW_mean,                                                    &
+       & t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
+       & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
+       & u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
+       & v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
+       & ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
+       & ftx_corr,fty_corr,corr_dtdt,                                                           &
+       & fqx_corr,fqy_corr,corr_dqdt,                                                              &
+       & fux_corr,fuy_corr,corr_dudt,                                                              &
+       & fvx_corr,fvy_corr,corr_dvdt,                                                              &
+       & fwx_corr,fwy_corr,corr_dwdt,                                                              &
+       & ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                 &
+       & fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                    &
+       & fux_sgs_mean,fuz_sgs_mean,                                                                &
+       & fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                    &
+       & fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                    &
        & t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
        & u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
        & v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
        & w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
-       & rhod_mean,z_mean                                                                        )
+       & rhod_mean,mut_mean,z_mean                                                               )
 
     IMPLICIT NONE
 
@@ -54,28 +54,28 @@ CONTAINS
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::              &
-       th_mean,thx_mean,thy_mean,thz_mean,thth_mean,ruth_tot_mean,rvth_tot_mean,wwth_tot_mean, &
-       q_mean,qx_mean,qy_mean,qz_mean,qq_mean,ruq_tot_mean,rvq_tot_mean,wwq_tot_mean,          &
-       u_mean,ux_mean,uy_mean,uz_mean,ruu_tot_mean,rvu_tot_mean,wwu_tot_mean,                  &
-       v_mean,vx_mean,vy_mean,vz_mean,ruv_tot_mean,rvv_tot_mean,wwv_tot_mean,                  &
-       om_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,ruw_tot_mean,rvw_tot_mean,www_tot_mean,  &
-       corr_uth,corr_vth,corr_dthdt,                                                           &
-       corr_uq,corr_vq,corr_dqdt,                                                              &
-       corr_uu,corr_vu,corr_dudt,                                                              &
-       corr_uv,corr_vv,corr_dvdt,                                                              &
-       corr_uw,corr_vw,corr_dwdt,                                                              &
-       sgs_UTH_mean,sgs_VTH_mean,sgs_WTH_mean,                                                 &
-       sgs_UQ_mean,sgs_VQ_mean,sgs_WQ_mean,                                                    &
-       sgs_UU_mean,sgs_WU_mean,                                                                &
-       sgs_UV_mean,sgs_VV_mean,sgs_WV_mean,                                                    &
-       sgs_UW_mean,sgs_VW_mean,sgs_WW_mean,                                                    &
+       t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
+       q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
+       u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
+       v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
+       ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
+       ftx_corr,fty_corr,corr_dtdt,                                                           &
+       fqx_corr,fqy_corr,corr_dqdt,                                                              &
+       fux_corr,fuy_corr,corr_dudt,                                                              &
+       fvx_corr,fvy_corr,corr_dvdt,                                                              &
+       fwx_corr,fwy_corr,corr_dwdt,                                                              &
+       ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                 &
+       fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                    &
+       fux_sgs_mean,fuz_sgs_mean,                                                                &
+       fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                    &
+       fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                    &
        t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
        u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
        v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
        w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
        rhod_mean,z_mean
 
-
+    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
 
     INTEGER :: i,j,k
 
@@ -110,28 +110,34 @@ CONTAINS
 
     if (present(z_mean) .and. config_flags%output_avgfluxes) then
       DO j=jts,jte
+      DO i=its,ite
+          mut_mean(i,j) = 0.
+      ENDDO
+      ENDDO
+
+      DO j=jts,jte
          DO k=kts,kte
             DO i=its,ite
-                if (config_flags%output_th_fluxes > 0) then
-                    if (config_flags%output_thres_fluxes) then
-                        th_mean(i,k,j) = 0.
-                        thx_mean(i,k,j) = 0.
-                        thy_mean(i,k,j) = 0.
-                        thz_mean(i,k,j) = 0.
-                        thth_mean(i,k,j) = 0.
-                        ruth_tot_mean(i,k,j) = 0.
-                        rvth_tot_mean(i,k,j) = 0.
-                        wwth_tot_mean(i,k,j) = 0.
-                        corr_uth(i,k,j) = 0.
-                        corr_vth(i,k,j) = 0.
-                        corr_dthdt(i,k,j) = 0.
+                if (config_flags%output_t_fluxes > 0) then
+                    if (config_flags%output_tres_fluxes) then
+                        t_mean(i,k,j) = 0.
+                        tx_mean(i,k,j) = 0.
+                        ty_mean(i,k,j) = 0.
+                        tz_mean(i,k,j) = 0.
+                        tt_mean(i,k,j) = 0.
+                        ftx_adv_mean(i,k,j) = 0.
+                        fty_adv_mean(i,k,j) = 0.
+                        ftz_adv_mean(i,k,j) = 0.
+                        ftx_corr(i,k,j) = 0.
+                        fty_corr(i,k,j) = 0.
+                        corr_dtdt(i,k,j) = 0.
                     endif
-                    if (config_flags%output_thsgs_fluxes) then
-                        sgs_UTH_mean(i,k,j) = 0.
-                        sgs_VTH_mean(i,k,j) = 0.
-                        sgs_WTH_mean(i,k,j) = 0.
+                    if (config_flags%output_tsgs_fluxes) then
+                        ftx_sgs_mean(i,k,j) = 0.
+                        fty_sgs_mean(i,k,j) = 0.
+                        ftz_sgs_mean(i,k,j) = 0.
                     endif
-                    if (config_flags%output_th_fluxes .eq. 1) then
+                    if (config_flags%output_t_fluxes .eq. 1) then
                         t_tend_radlw_mean(i,k,j) = 0.
                         t_tend_radsw_mean(i,k,j) = 0.
                         t_tend_mp_mean(i,k,j) = 0.
@@ -144,17 +150,17 @@ CONTAINS
                         qy_mean(i,k,j) = 0.
                         qz_mean(i,k,j) = 0.
                         qq_mean(i,k,j) = 0.
-                        ruq_tot_mean(i,k,j) = 0.
-                        rvq_tot_mean(i,k,j) = 0.
-                        wwq_tot_mean(i,k,j) = 0.
-                        corr_uq(i,k,j) = 0.
-                        corr_vq(i,k,j) = 0.
+                        fqx_adv_mean(i,k,j) = 0.
+                        fqy_adv_mean(i,k,j) = 0.
+                        fqz_adv_mean(i,k,j) = 0.
+                        fqx_corr(i,k,j) = 0.
+                        fqy_corr(i,k,j) = 0.
                         corr_dqdt(i,k,j) = 0.
                     endif
                     if (config_flags%output_qsgs_fluxes) then
-                        sgs_UQ_mean(i,k,j) = 0.
-                        sgs_VQ_mean(i,k,j) = 0.
-                        sgs_WQ_mean(i,k,j) = 0.
+                        fqx_sgs_mean(i,k,j) = 0.
+                        fqy_sgs_mean(i,k,j) = 0.
+                        fqz_sgs_mean(i,k,j) = 0.
                     endif
                     if (config_flags%output_q_fluxes .eq. 1) then
                         q_tend_mp_mean(i,k,j) = 0.
@@ -166,17 +172,17 @@ CONTAINS
                         ux_mean(i,k,j) = 0.
                         uy_mean(i,k,j) = 0.
                         uz_mean(i,k,j) = 0.
-                        ruu_tot_mean(i,k,j) = 0.
-                        rvu_tot_mean(i,k,j) = 0.
-                        wwu_tot_mean(i,k,j) = 0.
-                        corr_uu(i,k,j) = 0.
-                        corr_vu(i,k,j) = 0.
+                        fux_adv_mean(i,k,j) = 0.
+                        fuy_adv_mean(i,k,j) = 0.
+                        fuz_adv_mean(i,k,j) = 0.
+                        fux_corr(i,k,j) = 0.
+                        fuy_corr(i,k,j) = 0.
                         corr_dudt(i,k,j) = 0.
                     endif
                     if (config_flags%output_usgs_fluxes) then
-                        sgs_UU_mean(i,k,j) = 0.
-                        sgs_UV_mean(i,k,j) = 0.
-                        sgs_WU_mean(i,k,j) = 0.
+                        fux_sgs_mean(i,k,j) = 0.
+                        fvx_sgs_mean(i,k,j) = 0.
+                        fuz_sgs_mean(i,k,j) = 0.
                     endif
                     if (config_flags%output_u_fluxes .eq. 1) then
                         u_tend_pg_mean(i,k,j) = 0.
@@ -189,17 +195,17 @@ CONTAINS
                         vx_mean(i,k,j) = 0.
                         vy_mean(i,k,j) = 0.
                         vz_mean(i,k,j) = 0.
-                        ruv_tot_mean(i,k,j) = 0.
-                        rvv_tot_mean(i,k,j) = 0.
-                        wwv_tot_mean(i,k,j) = 0.
-                        corr_uv(i,k,j) = 0.
-                        corr_vv(i,k,j) = 0.
+                        fvx_adv_mean(i,k,j) = 0.
+                        fvy_adv_mean(i,k,j) = 0.
+                        fvz_adv_mean(i,k,j) = 0.
+                        fvx_corr(i,k,j) = 0.
+                        fvy_corr(i,k,j) = 0.
                         corr_dvdt(i,k,j) = 0.
                     endif
                     if (config_flags%output_vsgs_fluxes) then
-                        sgs_UV_mean(i,k,j) = 0.
-                        sgs_VV_mean(i,k,j) = 0.
-                        sgs_WV_mean(i,k,j) = 0.
+                        fvx_sgs_mean(i,k,j) = 0.
+                        fvy_sgs_mean(i,k,j) = 0.
+                        fvz_sgs_mean(i,k,j) = 0.
                     endif
                     if (config_flags%output_v_fluxes .eq. 1) then
                         v_tend_pg_mean(i,k,j) = 0.
@@ -208,23 +214,23 @@ CONTAINS
                 endif
                 if (config_flags%output_w_fluxes > 0) then
                     if (config_flags%output_wres_fluxes) then
-                        om_mean(i,k,j) = 0.
+                        ww_mean(i,k,j) = 0.
                         wd_mean(i,k,j) = 0.
                         zwind_mean(i,k,j) = 0.
                         wx_mean(i,k,j) = 0.
                         wy_mean(i,k,j) = 0.
                         wz_mean(i,k,j) = 0.
-                        ruw_tot_mean(i,k,j) = 0.
-                        rvw_tot_mean(i,k,j) = 0.
-                        www_tot_mean(i,k,j) = 0.
-                        corr_uw(i,k,j) = 0.
-                        corr_vw(i,k,j) = 0.
+                        fwx_adv_mean(i,k,j) = 0.
+                        fwy_adv_mean(i,k,j) = 0.
+                        fwz_adv_mean(i,k,j) = 0.
+                        fwx_corr(i,k,j) = 0.
+                        fwy_corr(i,k,j) = 0.
                         corr_dwdt(i,k,j) = 0.
                     endif
                     if (config_flags%output_wsgs_fluxes) then
-                        sgs_UW_mean(i,k,j) = 0.
-                        sgs_VW_mean(i,k,j) = 0.
-                        sgs_WW_mean(i,k,j) = 0.
+                        fwx_sgs_mean(i,k,j) = 0.
+                        fwy_sgs_mean(i,k,j) = 0.
+                        fwz_sgs_mean(i,k,j) = 0.
                     endif
                     if (config_flags%output_w_fluxes .eq. 1) then
                         w_tend_pg_mean(i,k,j) = 0.
@@ -251,30 +257,30 @@ CONTAINS
        & cfu1,cfd1,dfu1,efu1,dfd1,efd1,          &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1,   &
        & config_flags,                                                              &
-       & TH_MEAN,THX_MEAN,THY_MEAN,THZ_MEAN,THTH_MEAN,RUTH_TOT_MEAN,RVTH_TOT_MEAN,WWTH_TOT_MEAN, &
-       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,RUQ_TOT_MEAN,RVQ_TOT_MEAN,WWQ_TOT_MEAN,          &
-       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,RUU_TOT_MEAN,RVU_TOT_MEAN,WWU_TOT_MEAN,                  &
-       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,RUV_TOT_MEAN,RVV_TOT_MEAN,WWV_TOT_MEAN,                  &
-       & OM_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,RUW_TOT_MEAN,RVW_TOT_MEAN,WWW_TOT_MEAN,  &
-       & CORR_UTH_MEAN,CORR_VTH_MEAN,CORR_DTHDT_MEAN,                                            &
-       & CORR_UQ_MEAN,CORR_VQ_MEAN,CORR_DQDT_MEAN,                                               &
-       & CORR_UU_MEAN,CORR_VU_MEAN,CORR_DUDT_MEAN,                                               &
-       & CORR_UV_MEAN,CORR_VV_MEAN,CORR_DVDT_MEAN,                                               &
-       & CORR_UW_MEAN,CORR_VW_MEAN,CORR_DWDT_MEAN,                                               &
-       & SGS_UTH_MEAN,SGS_VTH_MEAN,SGS_WTH_MEAN,                                                 &
-       & SGS_UQ_MEAN,SGS_VQ_MEAN,SGS_WQ_MEAN,                                                    &
-       & SGS_UU_MEAN,SGS_WU_MEAN,                                                                &
-       & SGS_UV_MEAN,SGS_VV_MEAN,SGS_WV_MEAN,                                                    &
-       & SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
+       & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
+       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
+       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
+       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
+       & WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
+       & FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                            &
+       & FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                               &
+       & FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                               &
+       & FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                               &
+       & FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                               &
+       & FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
+       & FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                    &
+       & FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                                &
+       & FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                    &
+       & FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                    &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
-       & RHOD_MEAN,Z_MEAN,w_diag,                                                                &
-       & ruth_tot, rvth_tot, wwth_tot, ruth_s, rvth_s, wwth_s, ruq_tot, rvq_tot, wwq_tot,        &
-       & ruu_tot, rvu_tot, wwu_tot, ruv_tot, rvv_tot, wwv_tot, ruw_tot, rvw_tot, www_tot,        &
-       & SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ,                                      &
-       & SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW,                         &
+       & RHOD_MEAN,MUT_MEAN,Z_MEAN,w_diag,                                                       &
+       & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,        &
+       & fux_adv, fuy_adv, fuz_adv, fvx_adv, fvy_adv, fvz_adv, fwx_adv, fwy_adv, fwz_adv,        &
+       & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                      &
+       & fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs,                         &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                                      &
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
@@ -309,44 +315,47 @@ CONTAINS
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
-       TH_MEAN,THX_MEAN,THY_MEAN,THZ_MEAN,THTH_MEAN,RUTH_TOT_MEAN,RVTH_TOT_MEAN,WWTH_TOT_MEAN, &
-       Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,RUQ_TOT_MEAN,RVQ_TOT_MEAN,WWQ_TOT_MEAN,          &
-       U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,RUU_TOT_MEAN,RVU_TOT_MEAN,WWU_TOT_MEAN,                  &
-       V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,RUV_TOT_MEAN,RVV_TOT_MEAN,WWV_TOT_MEAN,                  &
-       OM_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,RUW_TOT_MEAN,RVW_TOT_MEAN,WWW_TOT_MEAN,  &
-       CORR_UTH_MEAN,CORR_VTH_MEAN,CORR_DTHDT_MEAN,                                                           &
-       CORR_UQ_MEAN,CORR_VQ_MEAN,CORR_DQDT_MEAN,                                                              &
-       CORR_UU_MEAN,CORR_VU_MEAN,CORR_DUDT_MEAN,                                                              &
-       CORR_UV_MEAN,CORR_VV_MEAN,CORR_DVDT_MEAN,                                                              &
-       CORR_UW_MEAN,CORR_VW_MEAN,CORR_DWDT_MEAN,                                                              &
-       SGS_UTH_MEAN,SGS_VTH_MEAN,SGS_WTH_MEAN,                                                 &
-       SGS_UQ_MEAN,SGS_VQ_MEAN,SGS_WQ_MEAN,                                                    &
-       SGS_UU_MEAN,SGS_WU_MEAN,                                                                &
-       SGS_UV_MEAN,SGS_VV_MEAN,SGS_WV_MEAN,                                                    &
-       SGS_UW_MEAN,SGS_VW_MEAN,SGS_WW_MEAN,                                                    &
+       T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
+       Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
+       U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
+       V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
+       WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
+       FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                                           &
+       FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                                              &
+       FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                              &
+       FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                              &
+       FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                              &
+       FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
+       FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                    &
+       FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                                &
+       FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                    &
+       FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                    &
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
        RHOD_MEAN,Z_MEAN
 
+    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: MUT_MEAN
+
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, V, W, ru, rv, ww,  &
          thm, Q, ph_1, ph_2, phb, zx, zy,  &
-         ruth_tot, rvth_tot, wwth_tot,     &
-         ruth_s, rvth_s, wwth_s,           &
-         ruq_tot, rvq_tot, wwq_tot,        &
-         ruu_tot, rvu_tot, wwu_tot,        &
-         ruv_tot, rvv_tot, wwv_tot,        &
-         ruw_tot, rvw_tot, www_tot,        &
+         ftx_adv, fty_adv, ftz_adv,     &
+         fqx_adv, fqy_adv, fqz_adv,        &
+         fux_adv, fuy_adv, fuz_adv,        &
+         fvx_adv, fvy_adv, fvz_adv,        &
+         fwx_adv, fwy_adv, fwz_adv,        &
          t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp, &
          u_tend_pg,u_tend_cor_curv,                         &
          v_tend_pg,v_tend_cor_curv,                         &
          w_tend_pg,w_tend_cor_curv,                         &
-         SGS_UTH, SGS_VTH, SGS_WTH, SGS_UQ, SGS_VQ, SGS_WQ, &
-         SGS_UU, SGS_WU, SGS_UV, SGS_VV, SGS_WV, SGS_UW, SGS_VW, SGS_WW
+         ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
+         fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
+
+    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_small, fty_small, ftz_small
 
     REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
     REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
@@ -358,17 +367,18 @@ CONTAINS
     REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    thd, dzdt, u8w, v8w, rho8w
 
     INTEGER :: i,j,k
-    REAL :: local_count, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                &
+    REAL :: local_count, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                      &
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
-            thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz, qfac,     &
+            mu_mean, mux_mean, muy_mean, muz_mean, muxy_mean, muxz_mean, muyz_mean,        &
+            thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             zx_s, zy_s, u_s, v_s, rho_s, dzdt_s, &
-            corr_uth, corr_vth, corr_dthdt, &
-            corr_uq, corr_vq, corr_dqdt,    &
-            corr_uu, corr_vu, corr_dudt, &
-            corr_uv, corr_vv, corr_dvdt, &
-            corr_uw, corr_vw, corr_dwdt, &
-            muz, mu, dphidn
+            ftx_corr, fty_corr, corr_dtdt, &
+            fqx_corr, fqy_corr, corr_dqdt, &
+            fux_corr, fuy_corr, corr_dudt, &
+            fvx_corr, fvy_corr, corr_dvdt, &
+            fwx_corr, fwy_corr, corr_dwdt, &
+            mu, dphidn
 
     local_count = real(avgflx_count)
 
@@ -380,9 +390,9 @@ CONTAINS
       !calculate dry density
       mu = c1h(k)*mut(i,j)+c2h(k)
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
-      rho_d(i,k,j) = mu/(-dphidn)
+      rho_d(i,k,j) = mu/(-dphidn) !TODOm: use grid%rho?
       RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/(local_count+1.)
-      IF (config_flags%output_thres_fluxes) THEN
+      IF (config_flags%output_tres_fluxes) THEN
           IF ( config_flags%use_theta_m .EQ. 1 ) THEN
             thd(i,k,j) = (thm(i,k,j) + t0)/(1 + rvovrd*Q(i,k,j)) - t0
             IF ( config_flags%output_dry_theta_fluxes) THEN
@@ -398,12 +408,19 @@ CONTAINS
     ENDDO
     ENDDO
     ENDDO
+
+    DO j=jts-1,jte
+    DO i=its-1  ,ite
+        MUT_MEAN(i,j) = (local_count*MUT_MEAN(i,j) + mut(i,j))/(local_count+1.)
+    ENDDO
+    ENDDO
+
     k = kde
     DO j=jts-1,jte
     DO i=its-1,ite
       rho_d(i,k,j) = rho_d(i,k-1,j)
       RHOD_MEAN(i,k,j) = RHOD_MEAN(i,k-1,j)
-      IF (config_flags%output_thres_fluxes) THEN
+      IF (config_flags%output_tres_fluxes) THEN
         thd(i,k,j) = thd(i,k-1,j)
         th(i,k,j) = th(i,k-1,j)
       ENDIF
@@ -429,16 +446,59 @@ CONTAINS
         ENDDO
     ENDIF
 
-   !TODO only go until kte-1?
+   !TODOm only go until kte-1?
     DO j=jts,jte
       DO k=kts,kte
         DO i=its,ite
 
           Z_MEAN(i,k,j) = (local_count*Z_MEAN(i,k,j)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
+          rho_mean   = 1.
+          rhox_mean  = 1.
+          rhoy_mean  = 1.
+          rhoxy_mean = 1.
+          rhoz_mean  = 1.
+          rhoxz_mean = 1.
+          rhoyz_mean = 1.
+          mu_mean   = 1.
+          mux_mean  = 1.
+          muy_mean  = 1.
+          muz_mean  = 1.
+          muxy_mean = 1.
+          muxz_mean = 1.
+          muyz_mean = 1.
+          IF (last_timestep) THEN
+              IF (config_flags%hesselberg_avg) THEN
+                  !normalize means by density
+                  rho_mean = RHOD_MEAN(i,k,j)
+                  rhox_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
+                  rhoy_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
+                  rhoxy_mean = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
 
+                  call stagger_z(rhoz_mean, RHOD_MEAN(i,:,j), &
+                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                               k, kms, kme, kde                   )
+                  call stagger_z(rhoxz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i-1,:,j)), &
+                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                               k, kms, kme, kde                   )
+                  call stagger_z(rhoyz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
+                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                               k, kms, kme, kde                   )
+              ENDIF
+              muz_mean = c1f(k)*MUT_MEAN(i,j) + c2f(k)
+              muxz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2f(k)
+              muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
+              IF (k .lt. kde) THEN
+                  !k=kde only relevant for vertically staggered variables
+                  mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
+                  mux_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2h(k)
+                  muy_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2h(k)
+                  muxy_mean = c1h(k)*0.25*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j) + MUT_MEAN(i,j-1) + MUT_MEAN(i-1,j-1)) + c2h(k)
+              ENDIF
+          ENDIF
           IF (config_flags%output_res_fluxes) THEN
             !stagger density
             if (config_flags%hesselberg_avg) then
+              rhom = rho_d(i,k,j)
               rhox = 0.5*(rho_d(i,k,j)+rho_d(i-1,k,j))
               rhoy = 0.5*(rho_d(i,k,j)+rho_d(i,k,j-1))
               rhoxy = 0.25*(rho_d(i,k,j)+rho_d(i,k,j-1)+rho_d(i-1,k,j)+rho_d(i-1,k,j-1))
@@ -460,9 +520,9 @@ CONTAINS
 
 
             !determine staggered variables from total fluxes
-            IF (config_flags%output_thres_fluxes) THEN
+            IF (config_flags%output_tres_fluxes) THEN
                 call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
-                                               ruth_tot, rvth_tot, wwth_tot,&
+                                               ftx_adv, fty_adv, ftz_adv,&
                                                ru(i,k,j), rv(i,k,j), ww(i,k,j), th, &
                                                cf1, cf2, cf3, cfn, cfn1, .false.,   &
                                                i, j, k,                             &
@@ -479,7 +539,7 @@ CONTAINS
             !staggered q, different vertical velocity needed
             IF (config_flags%output_qres_fluxes) THEN
                 call get_staggered_from_fluxes(qx, qy, qz,                 &
-                                               ruq_tot, rvq_tot, wwq_tot,  &
+                                               fqx_adv, fqy_adv, fqz_adv,  &
                                                ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
                                                 cf1, cf2, cf3, cfn, cfn1, .false.,       &
                                                i, j, k,                                  &
@@ -497,7 +557,7 @@ CONTAINS
                 rv_d = 0.5*(rv(i-1,k,j)+rv(i,k,j))
                 ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
                 call get_staggered_from_fluxes(ux, uy, uz,                 &
-                                               ruu_tot, rvu_tot, wwu_tot,  &
+                                               fux_adv, fuy_adv, fuz_adv,  &
                                                ru_d, rv_d, ww_d, U,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
                                                i, j, k,                           &
@@ -514,7 +574,7 @@ CONTAINS
                 rv_d = 0.5*(rv(i,k,j+1)+rv(i,k,j))
                 ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
                 call get_staggered_from_fluxes(vx, vy, vz,                 &
-                                               ruv_tot, rvv_tot, wwv_tot,  &
+                                               fvx_adv, fvy_adv, fvz_adv,  &
                                                ru_d, rv_d, ww_d, V,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
                                                i, j, k,                           &
@@ -542,7 +602,7 @@ CONTAINS
                     ENDIF
 
                     call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                                   ruw_tot, rvw_tot, www_tot,  &
+                                                   fwx_adv, fwy_adv, fwz_adv,  &
                                                    ru_d, rv_d, ww_d, W,        &
                                                    cf1, cf2, cf3, cfn, cfn1, .true.,  &
                                                    i, j, k,                           &
@@ -567,16 +627,15 @@ CONTAINS
             rho_s = rho8w(i,k,j)
 
             w_diag(i,k,j) = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
-            muz = c1f(k)*mut(i,j)+c2f(k)
 
-            IF (config_flags%output_thres_fluxes) THEN
-                corr_uth = rho_s*zx_s*u_s*thetaz
-                corr_vth = rho_s*zy_s*v_s*thetaz
-                corr_dthdt = rho_s*dzdt_s*thetaz
+            IF (config_flags%output_tres_fluxes) THEN
+                ftx_corr = rho_s*zx_s*u_s*thetaz
+                fty_corr = rho_s*zy_s*v_s*thetaz
+                corr_dtdt = rho_s*dzdt_s*thetaz
             ENDIF
             IF (config_flags%output_qres_fluxes) THEN
-                corr_uq = rho_s*zx_s*u_s*qz
-                corr_vq = rho_s*zy_s*v_s*qz
+                fqx_corr = rho_s*zx_s*u_s*qz
+                fqy_corr = rho_s*zy_s*v_s*qz
                 corr_dqdt = rho_s*dzdt_s*qz
             ENDIF
             IF (config_flags%output_ures_fluxes) THEN
@@ -587,8 +646,8 @@ CONTAINS
                 dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i-1,k,j))
                 rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
 
-                corr_uu = rho_s*zx_s*u_s*uz
-                corr_vu = rho_s*zy_s*v_s*uz
+                fux_corr = rho_s*zx_s*u_s*uz
+                fuy_corr = rho_s*zy_s*v_s*uz
                 corr_dudt = rho_s*dzdt_s*uz
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
@@ -599,8 +658,8 @@ CONTAINS
                 dzdt_s = 0.5*(dzdt(i,k,j-1) + dzdt(i,k,j-1))
                 rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
 
-                corr_uv = rho_s*zx_s*u_s*vz
-                corr_vv = rho_s*zy_s*v_s*vz
+                fvx_corr = rho_s*zx_s*u_s*vz
+                fvy_corr = rho_s*zy_s*v_s*vz
                 corr_dvdt = rho_s*dzdt_s*vz
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
@@ -613,113 +672,119 @@ CONTAINS
                     dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i,k+1,j))
                     rho_s = rho_d(i,k,j)
 
-                    corr_uw = rho_s*zx_s*u_s*wz
-                    corr_vw = rho_s*zy_s*v_s*wz
+                    fwx_corr = rho_s*zx_s*u_s*wz
+                    fwy_corr = rho_s*zy_s*v_s*wz
                     corr_dwdt = rho_s*dzdt_s*wz
                 ELSE
-                    corr_uw = 0
-                    corr_vw = 0
+                    fwx_corr = 0
+                    fwy_corr = 0
                     corr_dwdt = 0
                 ENDIF
             ENDIF
 
-            if (last_timestep .and. config_flags%hesselberg_avg) then
-              !normalize means by density
-              rho_mean = RHOD_MEAN(i,k,j)
-              rhox_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
-              rhoy_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
-              rhoxy_mean = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
-
-              call stagger_z(rhoz_mean, RHOD_MEAN(i,:,j), &
-                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
-                             i, j, k, kms, kme, kde                   )
-              call stagger_z(rhoxz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i-1,:,j)), &
-                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
-                             i, j, k, kms, kme, kde                   )
-              call stagger_z(rhoyz_mean, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
-                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
-                             i, j, k, kms, kme, kde                   )
-
-            ELSE
-              rho_mean  = 1
-              rhox_mean = 1
-              rhoy_mean = 1
-              rhoxy_mean = 1
-              rhoz_mean = 1
-              rhoxz_mean = 1
-              rhoyz_mean = 1
-            ENDIF
 
             !mean variables
 
             U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
             V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
             ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
-            OM_MEAN(i,k,j) = (local_count*OM_MEAN(i,k,j) + ww(i,k,j)/muz*rhoz )/(local_count+1.)/rhoz_mean
+            WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j))/(local_count+1.)
             WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
 
-            IF (config_flags%output_thres_fluxes) THEN
-                TH_MEAN(i,k,j) = (local_count*TH_MEAN(i,k,j) + thd(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean
-                THX_MEAN(i,k,j) = (local_count*THX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
-                THY_MEAN(i,k,j) = (local_count*THY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
-                THZ_MEAN(i,k,j) = (local_count*THZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
-                THTH_MEAN(i,k,j) = (local_count*THTH_MEAN(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
-                RUTH_TOT_MEAN(i,k,j)  = (local_count*RUTH_TOT_MEAN(i,k,j) + ruth_tot(i,k,j) + ruth_s(i,k,j) )/(local_count+1.)
-                RVTH_TOT_MEAN(i,k,j)  = (local_count*RVTH_TOT_MEAN(i,k,j) + rvth_tot(i,k,j) + rvth_s(i,k,j) )/(local_count+1.)
-                WWTH_TOT_MEAN(i,k,j)  = (local_count*WWTH_TOT_MEAN(i,k,j) + wwth_tot(i,k,j) + wwth_s(i,k,j) )/(local_count+1.)
-                CORR_UTH_MEAN(i,k,j)  = (local_count*CORR_UTH_MEAN(i,k,j) + corr_uth )/(local_count+1.)
-                CORR_VTH_MEAN(i,k,j)  = (local_count*CORR_VTH_MEAN(i,k,j) + corr_vth )/(local_count+1.)
-                CORR_DTHDT_MEAN(i,k,j)  = (local_count*CORR_DTHDT_MEAN(i,k,j) + corr_dthdt )/(local_count+1.)
+            IF (config_flags%output_tres_fluxes) THEN
+                T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + thd(i,k,j)*rhom )/(local_count+1.)/rho_mean
+                TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
+                TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
+                TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
+                TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
+                IF (( config_flags%use_theta_m .EQ. 1 ) .and. ( config_flags%output_dry_theta_fluxes)) THEN
+                    ftx_small(i,k,j) = ftx_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i-1,k,j)))
+                    fty_small(i,k,j) = fty_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i,k,j-1)))
+                    call stagger_z(q_stag, Q(i,:,j), cf1, cf2, cf3, cfn, cfn1, fnm, fnp, k, kms, kme, kde   )
+                    ftz_small(i,k,j) = ftz_small(i,k,j)/(1 + rvovrd*q_stag)
+                ENDIF
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)/mux_mean
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)/muy_mean
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)
+                !TODOm: should corrections also be divided by density?
+                FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + ftx_corr )/(local_count+1.)
+                FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + fty_corr )/(local_count+1.)
+                CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + corr_dtdt )/(local_count+1.)
+                IF (last_timestep) THEN
+                  !add corrections to vertical flux
+                  FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j)/(-g) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
+                                         CORR_DTDT_MEAN(i,k,j) )/rhoz_mean
+                ENDIF
             ENDIF
             IF (config_flags%output_qres_fluxes) THEN
-                Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+                Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean
                 QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/(local_count+1.)/rhoy_mean
                 QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/(local_count+1.)/rhoz_mean
                 QQ_MEAN(i,k,j) = (local_count*QQ_MEAN(i,k,j) + Q(i,k,j)*2 )/(local_count+1.)
-                RUQ_TOT_MEAN(i,k,j)  = (local_count*RUQ_TOT_MEAN(i,k,j) + ruq_tot(i,k,j) )/(local_count+1.)
-                RVQ_TOT_MEAN(i,k,j)  = (local_count*RVQ_TOT_MEAN(i,k,j) + rvq_tot(i,k,j) )/(local_count+1.)
-                WWQ_TOT_MEAN(i,k,j)  = (local_count*WWQ_TOT_MEAN(i,k,j) + wwq_tot(i,k,j) )/(local_count+1.)
-                CORR_UQ_MEAN(i,k,j)  = (local_count*CORR_UQ_MEAN(i,k,j) + corr_uq )/(local_count+1.)
-                CORR_VQ_MEAN(i,k,j)  = (local_count*CORR_VQ_MEAN(i,k,j) + corr_vq )/(local_count+1.)
+                FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/(local_count+1.)/mux_mean
+                FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/(local_count+1.)/muy_mean
+                FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + fqz_adv(i,k,j) )/(local_count+1.)
+                FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + fqx_corr )/(local_count+1.)
+                FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + fqy_corr )/(local_count+1.)
                 CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + corr_dqdt )/(local_count+1.)
+                IF (last_timestep) THEN
+                  !add corrections to vertical flux
+                  FQZ_ADV_MEAN(i,k,j) = (FQZ_ADV_MEAN(i,k,j)/(-g) + FQX_CORR_MEAN(i,k,j) + FQY_CORR_MEAN(i,k,j) + &
+                                         CORR_DQDT_MEAN(i,k,j) )/rhoz_mean
+                ENDIF
             ENDIF
 
             IF (config_flags%output_ures_fluxes) THEN
-                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
                 UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
                 UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
-                RUU_TOT_MEAN(i,k,j)  = (local_count*RUU_TOT_MEAN(i,k,j) + ruu_tot(i,k,j) )/(local_count+1.)
-                RVU_TOT_MEAN(i,k,j)  = (local_count*RVU_TOT_MEAN(i,k,j) + rvu_tot(i,k,j) )/(local_count+1.)
-                WWU_TOT_MEAN(i,k,j)  = (local_count*WWU_TOT_MEAN(i,k,j) + wwu_tot(i,k,j) )/(local_count+1.)
-                CORR_UU_MEAN(i,k,j)  = (local_count*CORR_UU_MEAN(i,k,j) + corr_uu )/(local_count+1.)
-                CORR_VU_MEAN(i,k,j)  = (local_count*CORR_VU_MEAN(i,k,j) + corr_vu )/(local_count+1.)
+                FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)/mu_mean
+                FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)/muxy_mean
+                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + fuz_adv(i,k,j) )/(local_count+1.)
+                FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + fux_corr )/(local_count+1.)
+                FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + fuy_corr )/(local_count+1.)
                 CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + corr_dudt )/(local_count+1.)
+                IF (last_timestep) THEN
+                  !add corrections to vertical flux
+                  FUZ_ADV_MEAN(i,k,j) = (FUZ_ADV_MEAN(i,k,j)/(-g) + FUX_CORR_MEAN(i,k,j) + FUY_CORR_MEAN(i,k,j) + &
+                                         CORR_DUDT_MEAN(i,k,j) )/rhoxz_mean
+                ENDIF
             ENDIF
             IF (config_flags%output_vres_fluxes) THEN
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
-                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rho_d(i,k,j) )/(local_count+1.)/rho_mean
+                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/(local_count+1.)/rho_mean
                 VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
-                RUV_TOT_MEAN(i,k,j)  = (local_count*RUV_TOT_MEAN(i,k,j) + ruv_tot(i,k,j) )/(local_count+1.)
-                RVV_TOT_MEAN(i,k,j)  = (local_count*RVV_TOT_MEAN(i,k,j) + rvv_tot(i,k,j) )/(local_count+1.)
-                WWV_TOT_MEAN(i,k,j)  = (local_count*WWV_TOT_MEAN(i,k,j) + wwv_tot(i,k,j) )/(local_count+1.)
-                CORR_UV_MEAN(i,k,j)  = (local_count*CORR_UV_MEAN(i,k,j) + corr_uv )/(local_count+1.)
-                CORR_VV_MEAN(i,k,j)  = (local_count*CORR_VV_MEAN(i,k,j) + corr_vv )/(local_count+1.)
+                FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)/muxy_mean
+                FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)/mu_mean
+                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + fvz_adv(i,k,j) )/(local_count+1.)
+                FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + fvx_corr )/(local_count+1.)
+                FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + fvy_corr )/(local_count+1.)
                 CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + corr_dvdt )/(local_count+1.)
+                IF (last_timestep) THEN
+                  !add corrections to vertical flux
+                  FVZ_ADV_MEAN(i,k,j) = (FVZ_ADV_MEAN(i,k,j)/(-g) + FVX_CORR_MEAN(i,k,j) + FVY_CORR_MEAN(i,k,j) + &
+                                         CORR_DVDT_MEAN(i,k,j) )/rhoyz_mean
+                ENDIF
             ENDIF
             IF (config_flags%output_wres_fluxes) THEN
                 WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
                 WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
-                WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rho_d(i,k,j) )/(local_count+1.)/rho_mean
-                RUW_TOT_MEAN(i,k,j)  = (local_count*RUW_TOT_MEAN(i,k,j) + ruw_tot(i,k,j) )/(local_count+1.)
-                RVW_TOT_MEAN(i,k,j)  = (local_count*RVW_TOT_MEAN(i,k,j) + rvw_tot(i,k,j) )/(local_count+1.)
-                WWW_TOT_MEAN(i,k,j)  = (local_count*WWW_TOT_MEAN(i,k,j) + www_tot(i,k,j) )/(local_count+1.)
-                CORR_UW_MEAN(i,k,j)  = (local_count*CORR_UW_MEAN(i,k,j) + corr_uw )/(local_count+1.)
-                CORR_VW_MEAN(i,k,j)  = (local_count*CORR_VW_MEAN(i,k,j) + corr_vw )/(local_count+1.)
+                WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
+                FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)/muxz_mean
+                FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)/muyz_mean
+                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + fwz_adv(i,k,j) )/(local_count+1.)
+                FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + fwx_corr )/(local_count+1.)
+                FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + fwy_corr )/(local_count+1.)
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + corr_dwdt )/(local_count+1.)
+                IF (last_timestep) THEN
+                  !add corrections to vertical flux
+                  FWZ_ADV_MEAN(i,k,j) = (FWZ_ADV_MEAN(i,k,j)/(-g) + FWX_CORR_MEAN(i,k,j) + FWY_CORR_MEAN(i,k,j) + &
+                                         CORR_DWDT_MEAN(i,k,j) )/rho_mean
+                ENDIF
             ENDIF
           ENDIF
-            IF (config_flags%output_th_fluxes .eq. 1) THEN
+            IF (config_flags%output_t_fluxes .eq. 1) THEN
                 T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/(local_count+1.)
                 T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/(local_count+1.)
                 T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/(local_count+1.)
@@ -742,31 +807,31 @@ CONTAINS
             ENDIF
 
           IF (config_flags%output_sgs_fluxes) THEN
-            IF (config_flags%output_thsgs_fluxes) THEN
-                sgs_UTH_mean(i,k,j) = (local_count*sgs_UTH_mean(i,k,j) + sgs_UTH(i,k,j) ) / (local_count+1.)
-                sgs_VTH_mean(i,k,j) = (local_count*sgs_VTH_mean(i,k,j) + sgs_VTH(i,k,j) ) / (local_count+1.)
-                sgs_WTH_mean(i,k,j) = (local_count*sgs_WTH_mean(i,k,j) + sgs_WTH(i,k,j) ) / (local_count+1.)
+            IF (config_flags%output_tsgs_fluxes) THEN
+                FTX_SGS_MEAN(i,k,j) = (local_count*FTX_SGS_MEAN(i,k,j) + ftx_sgs(i,k,j) ) / (local_count+1.)
+                FTY_SGS_MEAN(i,k,j) = (local_count*FTY_SGS_MEAN(i,k,j) + fty_sgs(i,k,j) ) / (local_count+1.)
+                FTZ_SGS_MEAN(i,k,j) = (local_count*FTZ_SGS_MEAN(i,k,j) + ftz_sgs(i,k,j) ) / (local_count+1.)
             ENDIF
             IF (config_flags%output_qsgs_fluxes) THEN
-                sgs_UQ_mean(i,k,j) = (local_count*sgs_UQ_mean(i,k,j) + sgs_UQ(i,k,j) ) / (local_count+1.)
-                sgs_VQ_mean(i,k,j) = (local_count*sgs_VQ_mean(i,k,j) + sgs_VQ(i,k,j) ) / (local_count+1.)
-                sgs_WQ_mean(i,k,j) = (local_count*sgs_WQ_mean(i,k,j) + sgs_WQ(i,k,j) ) / (local_count+1.)
+                FQX_SGS_MEAN(i,k,j) = (local_count*FQX_SGS_MEAN(i,k,j) + fqx_sgs(i,k,j) ) / (local_count+1.)
+                FQY_SGS_MEAN(i,k,j) = (local_count*FQY_SGS_MEAN(i,k,j) + fqy_sgs(i,k,j) ) / (local_count+1.)
+                FQZ_SGS_MEAN(i,k,j) = (local_count*FQZ_SGS_MEAN(i,k,j) + fqz_sgs(i,k,j) ) / (local_count+1.)
             ENDIF
             IF (config_flags%output_usgs_fluxes) THEN
-                sgs_UU_mean(i,k,j)  = (local_count*sgs_UU_mean(i,k,j)  + sgs_UU(i,k,j) )  / (local_count+1.)
-                sgs_WU_mean(i,k,j)  = (local_count*sgs_WU_mean(i,k,j)  + sgs_WU(i,k,j) )  / (local_count+1.)
+                FUX_SGS_MEAN(i,k,j)  = (local_count*FUX_SGS_MEAN(i,k,j)  + fux_sgs(i,k,j) )  / (local_count+1.)
+                FUZ_SGS_MEAN(i,k,j)  = (local_count*FUZ_SGS_MEAN(i,k,j)  + fuz_sgs(i,k,j) )  / (local_count+1.)
             ENDIF
             IF (config_flags%output_vsgs_fluxes) THEN
-                sgs_VV_mean(i,k,j)  = (local_count*sgs_VV_mean(i,k,j)  + sgs_VV(i,k,j)  )  / (local_count+1.)
-                sgs_WV_mean(i,k,j)  = (local_count*sgs_WV_mean(i,k,j)  + sgs_WV(i,k,j) )  / (local_count+1.)
+                FVY_SGS_MEAN(i,k,j)  = (local_count*FVY_SGS_MEAN(i,k,j)  + fvy_sgs(i,k,j) )  / (local_count+1.)
+                FVZ_SGS_MEAN(i,k,j)  = (local_count*FVZ_SGS_MEAN(i,k,j)  + fvz_sgs(i,k,j) )  / (local_count+1.)
             ENDIF
             IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
-                sgs_UV_mean(i,k,j)  = (local_count*sgs_UV_mean(i,k,j)  + sgs_UV(i,k,j) )  / (local_count+1.)
+                FVX_SGS_MEAN(i,k,j)  = (local_count*FVX_SGS_MEAN(i,k,j)  + fvx_sgs(i,k,j) )  / (local_count+1.)
             ENDIF
             IF (config_flags%output_wsgs_fluxes) THEN
-                sgs_UW_mean(i,k,j)  = (local_count*sgs_UW_mean(i,k,j)  + sgs_UW(i,k,j) )  / (local_count+1.)
-                sgs_VW_mean(i,k,j)  = (local_count*sgs_VW_mean(i,k,j)  + sgs_VW(i,k,j) )  / (local_count+1.)
-                sgs_WW_mean(i,k,j)  = (local_count*sgs_WW_mean(i,k,j)  + sgs_WW(i,k,j)  )  / (local_count+1.)
+                FWX_SGS_MEAN(i,k,j)  = (local_count*FWX_SGS_MEAN(i,k,j)  + fwx_sgs(i,k,j) )  / (local_count+1.)
+                FWY_SGS_MEAN(i,k,j)  = (local_count*FWY_SGS_MEAN(i,k,j)  + fwy_sgs(i,k,j) )  / (local_count+1.)
+                FWZ_SGS_MEAN(i,k,j)  = (local_count*FWZ_SGS_MEAN(i,k,j)  + fwz_sgs(i,k,j) )  / (local_count+1.)
             ENDIF
           ENDIF
 

@@ -2618,7 +2618,7 @@ CONTAINS
             DO k=kde,kds,-1
               DO i=i_start,i_end
                 IF (k==kde) THEN
-                   IF (config_flags%output_thsgs_fluxes) THEN
+                   IF (config_flags%output_tsgs_fluxes) THEN
                      sgs_wth(i,k,j) = 0
                    ENDIF
                    IF (config_flags%output_qsgs_fluxes) THEN
@@ -2632,7 +2632,7 @@ CONTAINS
                    ENDIF
                 ELSE
                    fac = -dnw(k)/g
-                   IF   (config_flags%output_thsgs_fluxes) THEN
+                   IF   (config_flags%output_tsgs_fluxes) THEN
                       IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
                          !convert tendency from dry to moist theta
                          rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)

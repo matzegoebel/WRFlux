@@ -30,7 +30,7 @@
  auxhist24_interval_s                = 0,
  frames_per_auxhist24                = 1000,
  io_form_auxhist24                   = 2
-
+ iofields_filename                   = "NONE_SPECIFIED"
 
  /
 
@@ -109,7 +109,7 @@
  m_opt                                = 1
  hesselberg_avg                       = .true.
  output_dry_theta_fluxes              = .true.
- output_th_fluxes                     = 1
+ output_t_fluxes                      = 1
  output_q_fluxes                      = 1
  output_u_fluxes                      = 1
  output_v_fluxes                      = 1

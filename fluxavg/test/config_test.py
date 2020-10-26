@@ -96,7 +96,7 @@ params["v_mom_adv_order"] = 3
 # 0 is the standard output stream
 params["output_streams"] = {24: ["meanout", 10.], 0: ["instout", 10.] }
 
-params["output_th_fluxes"] = 1
+params["output_t_fluxes"] = 1
 params["output_q_fluxes"] = 1
 params["output_u_fluxes"] = 1
 params["output_v_fluxes"] = 1

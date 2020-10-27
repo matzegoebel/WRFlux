@@ -225,6 +225,13 @@ SUBROUTINE advect_u   ( u, u_old, tendency,            &
    horz_order = config_flags%h_mom_adv_order
    vert_order = config_flags%v_mom_adv_order
 
+   IF (output_fluxes) THEN
+   ! initialize output fluxes with 0
+     fqx(:,:) = 0.
+     fqy(:,:,:) = 0.
+     vflux(:,:) = 0.
+   ENDIF
+
    ktf=MIN(kte,kde-1)
 
 !  begin with horizontal flux divergence
@@ -1764,6 +1771,12 @@ SUBROUTINE advect_v   ( v, v_old, tendency,            &
    horz_order = config_flags%h_mom_adv_order
    vert_order = config_flags%v_mom_adv_order
 
+   IF (output_fluxes) THEN
+   ! initialize output fluxes with 0
+     fqx(:,:) = 0.
+     fqy(:,:,:) = 0.
+     vflux(:,:) = 0.
+   ENDIF
 
 !  here is the choice of flux operators
 
@@ -3394,6 +3407,13 @@ SUBROUTINE advect_scalar   ( field, field_old, tendency,    &
   horz_order = config_flags%h_sca_adv_order
   vert_order = config_flags%v_sca_adv_order
 
+  IF (output_fluxes) THEN
+  ! initialize output fluxes with 0
+    fqx(:,:) = 0.
+    fqy(:,:,:) = 0.
+    vflux(:,:) = 0.
+  ENDIF
+
 !  begin with horizontal flux divergence
 !  here is the choice of flux operators
 
@@ -4853,6 +4873,13 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
   horz_order = config_flags%h_sca_adv_order
   vert_order = config_flags%v_sca_adv_order
 
+  IF (output_fluxes) THEN
+  ! initialize output fluxes with 0
+    fqx(:,:) = 0.
+    fqy(:,:,:) = 0.
+    vflux(:,:) = 0.
+  ENDIF
+
 !  here is the choice of flux operators
 
 !  begin with horizontal flux divergence
@@ -5004,7 +5031,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
      ENDIF
 
     IF (output_fluxes) THEN
-      DO k=kts+1,ktf
+      DO k=kts+1,kde
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5169,7 +5196,7 @@ SUBROUTINE advect_w    ( w, w_old, tendency,            &
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts+1,ktf
+        DO k = kts+1,kde
         DO i=its+1,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5334,7 +5361,7 @@ ELSE IF (horz_order == 5 ) THEN
      ENDIF
 
     IF (output_fluxes) THEN
-      DO k=kts+1,ktf
+      DO k=kts+1,kde
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5499,7 +5526,7 @@ ELSE IF (horz_order == 5 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts+1,ktf
+        DO k = kts+1,kde
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5612,7 +5639,7 @@ ELSE IF ( horz_order == 4 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts+1,ktf
+        DO k = kts+1,kde
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5717,7 +5744,7 @@ ELSE IF ( horz_order == 4 ) THEN
        END IF
 
     IF (output_fluxes) THEN
-      DO k=kts+1,ktf
+      DO k=kts+1,kde
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -5860,7 +5887,7 @@ ELSE IF ( horz_order == 3 ) THEN
         ENDIF
 
       IF (output_fluxes) THEN
-        DO k = kts+1,ktf
+        DO k = kts+1,kde
         DO i=its,ite
           fqx_out(i,k,j) = fqx(i,k)
         ENDDO
@@ -5965,7 +5992,7 @@ ELSE IF ( horz_order == 3 ) THEN
        END IF
 
     IF (output_fluxes) THEN
-      DO k=kts+1,ktf
+      DO k=kts+1,kde
       DO i=i_start,i_end
         fqy_out(i,k,j) = fqy(i,k,jp1)
       ENDDO
@@ -6133,7 +6160,6 @@ ELSE IF (horz_order == 2 ) THEN
         DO j=jts,jte
         DO k = kts+1,ktf
         DO i=its,ite
-         !TODOm: what about kte?
           fqx_out(i,k,j) = (fzm(k)*ru(i,k,j)+fzp(k)*ru(i,k-1,j))      &
                                *(w(i,k,j)+w(i-1,k,j))*0.5
         ENDDO
@@ -6162,16 +6188,6 @@ ELSE IF (horz_order == 2 ) THEN
 
    ENDIF horizontal_order_test
 
-
-   !set sfc values to 0
-   IF (output_fluxes) THEN
-     DO j=jts,jte
-     DO i=its,ite
-       fqx_out(i,kts,j) = 0.
-       fqy_out(i,kts,j) = 0.
-     ENDDO
-     ENDDO
-   ENDIF
 
 !  pick up the the horizontal radiation boundary conditions.
 !  (these are the computations that don't require 'cb'.
@@ -6394,14 +6410,10 @@ ELSE IF (horz_order == 2 ) THEN
          ENDDO
 
         IF (output_fluxes) THEN
-          DO k = kts,kte
+          DO k = kts,ktf
           DO i=i_start,i_end
             !shift z-flux to be on mass points
-            IF (k .eq. kte) THEN
-               fqz_out(i,k,j) = 0
-            ELSE
-               fqz_out(i,k,j) = vflux(i,k+1)
-            ENDIF
+            fqz_out(i,k,j) = vflux(i,k+1)
           ENDDO
           ENDDO
         ENDIF
@@ -6455,14 +6467,10 @@ ELSE IF (horz_order == 2 ) THEN
          ENDDO
 
         IF (output_fluxes) THEN
-          DO k = kts,kte
+          DO k = kts,ktf
           DO i=i_start,i_end
             !shift z-flux to be on mass points
-            IF (k .eq. kte) THEN
-               fqz_out(i,k,j) = 0
-            ELSE
-               fqz_out(i,k,j) = vflux(i,k+1)
-            ENDIF
+            fqz_out(i,k,j) = vflux(i,k+1)
           ENDDO
           ENDDO
         ENDIF
@@ -6504,14 +6512,10 @@ ELSE IF (horz_order == 2 ) THEN
          ENDDO
 
         IF (output_fluxes) THEN
-          DO k = kts,kte
+          DO k = kts,ktf
           DO i=i_start,i_end
             !shift z-flux to be on mass points
-            IF (k .eq. kte) THEN
-               fqz_out(i,k,j) = 0
-            ELSE
-               fqz_out(i,k,j) = vflux(i,k+1)
-            ENDIF
+            fqz_out(i,k,j) = vflux(i,k+1)
           ENDDO
           ENDDO
         ENDIF
@@ -6554,14 +6558,10 @@ ELSE IF (horz_order == 2 ) THEN
          ENDDO
 
         IF (output_fluxes) THEN
-          DO k = kts,kte
+          DO k = kts,ktf
           DO i=i_start,i_end
             !shift z-flux to be on mass points
-            IF (k .eq. kte) THEN
-               fqz_out(i,k,j) = 0
-            ELSE
-               fqz_out(i,k,j) = vflux(i,k+1)
-            ENDIF
+            fqz_out(i,k,j) = vflux(i,k+1)
           ENDDO
           ENDDO
         ENDIF
@@ -6591,14 +6591,10 @@ ELSE IF (horz_order == 2 ) THEN
      ENDDO
 
      IF (output_fluxes) THEN
-       DO k = kts,kte
+       DO k = kts,ktf
        DO i=i_start,i_end
          !shift z-flux to be on mass points
-         IF (k .eq. kte) THEN
-            fqz_out(i,k,j) = 0
-         ELSE
-            fqz_out(i,k,j) = vflux(i,k+1)
-         ENDIF
+         fqz_out(i,k,j) = vflux(i,k+1)
        ENDDO
        ENDDO
      ENDIF
@@ -6752,7 +6748,7 @@ SUBROUTINE advect_scalar_pd   ( field, field_old, tendency,    &
 !  write(6,*) ' in pd advection routine '
 
     ! Empty arrays just in case:
-    IF (config_flags%polar) THEN
+    IF ((config_flags%polar) .or. (output_fluxes)) THEN
        fqx(:,:,:)  = 0.
        fqy(:,:,:)  = 0.
        fqz(:,:,:)  = 0.
@@ -8576,6 +8572,13 @@ SUBROUTINE advect_scalar_weno ( field, field_old, tendency,     &
   horz_order = 5 ! config_flags%h_sca_adv_order
   vert_order = 5 ! config_flags%v_sca_adv_order
 
+  IF (output_fluxes) THEN
+  ! initialize output fluxes with 0
+    fqx(:,:) = 0.
+    fqy(:,:,:) = 0.
+    vflux(:,:) = 0.
+  ENDIF
+
 !  begin with horizontal flux divergence
 !  here is the choice of flux operators
 
@@ -9303,7 +9306,7 @@ SUBROUTINE advect_scalar_wenopd ( field, field_old, tendency,    &
 !  write(6,*) ' in pd advection routine '
 
     ! Empty arrays just in case:
-    IF (config_flags%polar) THEN
+    IF ((config_flags%polar) .or. (output_fluxes)) THEN
        fqx(:,:,:)  = 0.
        fqy(:,:,:)  = 0.
        fqz(:,:,:)  = 0.
@@ -11630,6 +11633,13 @@ SUBROUTINE advect_weno_u ( u, u_old, tendency,            &
    horz_order = config_flags%h_mom_adv_order
    vert_order = config_flags%v_mom_adv_order
 
+   IF (output_fluxes) THEN
+   ! initialize output fluxes with 0
+     fqx(:,:) = 0.
+     fqy(:,:,:) = 0.
+     vflux(:,:) = 0.
+   ENDIF
+
    ktf=MIN(kte,kde-1)
 
 !  begin with horizontal flux divergence
@@ -12312,6 +12322,12 @@ SUBROUTINE advect_weno_v   ( v, v_old, tendency,            &
    horz_order = config_flags%h_mom_adv_order
    vert_order = config_flags%v_mom_adv_order
 
+   IF (output_fluxes) THEN
+   ! initialize output fluxes with 0
+     fqx(:,:) = 0.
+     fqy(:,:,:) = 0.
+     vflux(:,:) = 0.
+   ENDIF
 
 !  here is the choice of flux operators
 
@@ -13040,6 +13056,13 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
   horz_order = config_flags%h_sca_adv_order
   vert_order = config_flags%v_sca_adv_order
 
+  IF (output_fluxes) THEN
+  ! initialize output fluxes with 0
+    fqx(:,:) = 0.
+    fqy(:,:,:) = 0.
+    vflux(:,:) = 0.
+  ENDIF
+
 !  here is the choice of flux operators
 
 !  begin with horizontal flux divergence
@@ -13254,7 +13277,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
      ENDIF
 
       IF (output_fluxes) THEN
-        DO k=kts,ktf
+        DO k=kts,kte
         DO i=i_start,i_end
           fqy_out(i,k,j) = fqy(i,k,jp1)
         ENDDO
@@ -13481,7 +13504,7 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
         ENDIF
 
         IF (output_fluxes) THEN
-          DO k=kts,ktf
+          DO k=kts,kte
           DO i=its,ite
             fqx_out(i,k,j) = fqx(i,k)
           ENDDO
@@ -13658,15 +13681,6 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
 
    ENDIF
 
-   !set sfc values to 0
-   IF (output_fluxes) THEN
-     DO j=jts,jte
-     DO i=its,ite
-       fqx_out(i,kts,j) = 0.
-       fqy_out(i,kts,j) = 0.
-     ENDDO
-     ENDDO
-   ENDIF
 
 !-------------------- vertical advection
 !     ADT eqn 46 has 3rd term on RHS (dividing through by my) = - partial d/dz (w rho w /my)
@@ -13763,14 +13777,10 @@ SUBROUTINE advect_weno_w    ( w, w_old, tendency,            &
          ENDDO
 
          IF (output_fluxes) THEN
-          DO k=kts,kte
+          DO k=kts,ktf
           DO i=i_start,i_end
             !shift z-flux to be on mass points
-            IF (k .eq. kte) THEN
-               fqz_out(i,k,j) = 0
-            ELSE
-               fqz_out(i,k,j) = vflux(i,k+1)
-            ENDIF
+            fqz_out(i,k,j) = vflux(i,k+1)
           ENDDO
           ENDDO
          ENDIF

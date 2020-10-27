@@ -3058,7 +3058,11 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
         ENDIF
     ENDIF
 
-
+    IF ((config_flags%output_tsgs_fluxes) .or. (config_flags%output_qsgs_fluxes)) THEN
+        !Initialize fluxes
+        H1(:,:,:) = 0
+        H2(:,:,:) = 0
+    ENDIF
     CALL horizontal_diffusion_s  ( rt_tendf, H1, H2, config_flags,         &
                                    thp,                                    &
                                    msftx, msfty, msfux, msfuy,             &
@@ -4436,6 +4440,10 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
 
    END IF
 
+   IF ((config_flags%output_tsgs_fluxes) .or. (config_flags%output_qsgs_fluxes)) THEN
+       !Initialize flux
+       H3(:,:,:) = 0
+   ENDIF
    CALL vertical_diffusion_s( rt_tendf, H3, config_flags, var_mix, xkhv, &
                               dn, dnw, rdz, rdzw, fnm, fnp, rho,     &
                               .false.,                               &

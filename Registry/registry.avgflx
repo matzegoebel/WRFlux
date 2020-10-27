@@ -37,7 +37,7 @@ state   real    u_mean             ikj    dyn_em            1               X   
 state   real    v_mean             ikj    dyn_em            1               Y               h{24} "V_MEAN"              "time-averaged y-wind component"  "m s-1"
 state   real    ww_mean            ikj    dyn_em            1               Z               h{24} "WW_MEAN"             "time-averaged mu-coupled eta-dot"  "Pa s-1"
 state   real    wd_mean            ikj    dyn_em            1               Z               h{24} "WD_MEAN"             "time-averaged diagnosed z-wind component"   "m s-1"
-state   real    zwind_mean         ikj    dyn_em            1               Z               h{24} "W_MEAN"              "time-averaged prognosed z-wind component"   "m s-1"
+state   real    zwind_mean         ikj    dyn_em            1               Z               h{24} "ZWIND_MEAN"          "time-averaged prognosed z-wind component"   "m s-1"
 
 state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry potential temperature" "K"
 state   real    tx_mean            ikj    dyn_em            1               X               h{24} "TX_MEAN"             "time-averaged dry/moist potential temperature staggered in x-direction depending on advection order" "K"

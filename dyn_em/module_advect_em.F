@@ -6169,10 +6169,19 @@ ELSE IF (horz_order == 2 ) THEN
         DO j=jts,jte
         DO k = kts+1,ktf
         DO i=its,ite
-          !TODOm: what about kte?
           fqy_out(i,k,j) = (fzm(k)*rv(i,k,j)+fzp(k)*rv(i,k-1,j))      &
                                  *(w(i,k,j)+w(i,k,j-1))*0.5
         ENDDO
+        ENDDO
+        ENDDO
+
+        k = kde
+        DO j=jts,jte
+        DO i=its,ite
+            fqx_out(i,k,j) = ((2.-fzm(k-1))*ru(i,k-1,j)-fzp(k-1)*ru(i,k-2,j))       &
+                                 *(w(i,k,j)+w(i-1,k,j))*0.5
+            fqy_out(i,k,j) = ((2.-fzm(k-1))*rv(i,k-1,j)-fzp(k-1)*rv(i,k-2,j))      &
+                                 *(w(i,k,j)+w(i,k,j-1))*0.5
         ENDDO
         ENDDO
       ENDIF

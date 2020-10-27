@@ -34,7 +34,8 @@ o = np.arange(2,7)
 param_names = {"thm" : ["thd", "thm", "thdm"],
                "h_adv_order" : [2, 3],
                "v_adv_order" : [2, 3],
-               "adv_order" : o}
+               "adv_order" : o,
+               "bc" : ["open"]}
 
 #Set additional namelist parameters (only active if they are not present in param_grid)
 #any namelist parameters and some additional ones can be used

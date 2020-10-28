@@ -525,6 +525,15 @@ CONTAINS
               rhoyz = 1
             endif
 
+            !destagger to masspoints
+            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
+            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
+            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
+            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
+            dzdt_s = dzdt(i,k,j)
+            rho_s = rho8w(i,k,j)
+
+            w_diag(i,k,j) = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
 
             !determine staggered variables from total fluxes
             IF (config_flags%output_tres_fluxes) THEN
@@ -542,163 +551,12 @@ CONTAINS
                     CALL wrf_debug ( 0 , wrf_err_message )
                 endif
 
-            ENDIF
-            IF (config_flags%output_qres_fluxes) THEN
-                !staggered q, different ru,rv,ww needed
-                call get_staggered_from_fluxes(qx, qy, qz,                 &
-                                               fqx_adv, fqy_adv, fqz_adv,  &
-                                               ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
-                                                cf1, cf2, cf3, cfn, cfn1, .false.,       &
-                                               i, j, k,                                  &
-                                               ids, ide, jds, jde, kds, kde,             &
-                                               ims, ime, jms, jme, kms, kme              )
-                if ((abs(qx) .gt. 0.05) .or. (abs(qy) .gt. 0.05) .or. (abs(qz) .gt. 0.05)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large qx/y/z:", qx, qy, qz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
-
-            ENDIF
-            IF (config_flags%output_ures_fluxes) THEN
-                !(de)stagger in x direction
-                ru_d = 0.5*(ru(i,k,j)+ru(i+1,k,j))
-                rv_d = 0.5*(rv(i-1,k,j)+rv(i,k,j))
-                ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
-                call get_staggered_from_fluxes(ux, uy, uz,                 &
-                                               fux_adv, fuy_adv, fuz_adv,  &
-                                               ru_d, rv_d, ww_d, U,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .false., &
-                                               i, j, k,                           &
-                                               ids, ide, jds, jde, kds, kde,      &
-                                               ims, ime, jms, jme, kms, kme       )
-                if ((abs(ux) .gt. 20) .or. (abs(uy) .gt. 20) .or. (abs(uz) .gt. 20)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large ux/y/z:", ux, uy, uz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
-            ENDIF
-            IF (config_flags%output_vres_fluxes) THEN
-                !(de)stagger in y direction
-                ru_d = 0.5*(ru(i,k,j-1)+ru(i,k,j))
-                rv_d = 0.5*(rv(i,k,j+1)+rv(i,k,j))
-                ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
-                call get_staggered_from_fluxes(vx, vy, vz,                 &
-                                               fvx_adv, fvy_adv, fvz_adv,  &
-                                               ru_d, rv_d, ww_d, V,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .false., &
-                                               i, j, k,                           &
-                                               ids, ide, jds, jde, kds, kde,      &
-                                               ims, ime, jms, jme, kms, kme       )
-                if ((abs(vx) .gt. 20) .or. (abs(vy) .gt. 20) .or. (abs(vz) .gt. 20)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large vx/y/z:", vx, vy, vz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
-            ENDIF
-            IF (config_flags%output_wres_fluxes) THEN
-                IF (k .eq. kts) THEN
-                    wx = 0
-                    wy = 0
-                    wz = 0
-                ELSE
-                    IF (k .eq. kte) THEN
-                        ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
-                        rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
-                        ww_d = ww(i,k-1,j)
-                    ELSE
-                        ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
-                        rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
-                        ww_d = 0.5*(ww(i,k,j)+ww(i,k+1,j))
-                    ENDIF
-
-                    call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                                   fwx_adv, fwy_adv, fwz_adv,  &
-                                                   ru_d, rv_d, ww_d, W,        &
-                                                   cf1, cf2, cf3, cfn, cfn1, .true.,  &
-                                                   i, j, k,                           &
-                                                   ids, ide, jds, jde, kds, kde,      &
-                                                   ims, ime, jms, jme, kms, kme       )
-                if ((abs(wx) .gt. 20) .or. (abs(wy) .gt. 20) .or. (abs(wz) .gt. 20)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large wx/y/z:", wx, wy, wz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
-
-                ENDIF
-            ENDIF
-
-            !compute cartesian corrections
-
-            !destagger to masspoints
-            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
-            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
-            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
-            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-            dzdt_s = dzdt(i,k,j)
-            rho_s = rho8w(i,k,j)
-
-            w_diag(i,k,j) = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
-
-            IF (config_flags%output_tres_fluxes) THEN
+                !compute cartesian corrections
                 ftx_corr = rho_s*zx_s*u_s*thetaz
                 fty_corr = rho_s*zy_s*v_s*thetaz
                 corr_dtdt = rho_s*dzdt_s*thetaz
-            ENDIF
-            IF (config_flags%output_qres_fluxes) THEN
-                fqx_corr = rho_s*zx_s*u_s*qz
-                fqy_corr = rho_s*zy_s*v_s*qz
-                corr_dqdt = rho_s*dzdt_s*qz
-            ENDIF
-            IF (config_flags%output_ures_fluxes) THEN
-                zx_s = zx(i,k,j)
-                zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i-1,k,j) + zy(i-1,k,j+1))
-                u_s = u8w(i,k,j)
-                v_s = 0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
-                dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i-1,k,j))
-                rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
 
-                fux_corr = rho_s*zx_s*u_s*uz
-                fuy_corr = rho_s*zy_s*v_s*uz
-                corr_dudt = rho_s*dzdt_s*uz
-            ENDIF
-            IF (config_flags%output_vres_fluxes) THEN
-                zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k,j-1) + zx(i+1,k,j-1))
-                zy_s = zy(i,k,j)
-                u_s = 0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
-                v_s = v8w(i,k,j)
-                dzdt_s = 0.5*(dzdt(i,k,j-1) + dzdt(i,k,j-1))
-                rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
-
-                fvx_corr = rho_s*zx_s*u_s*vz
-                fvy_corr = rho_s*zy_s*v_s*vz
-                corr_dvdt = rho_s*dzdt_s*vz
-            ENDIF
-            IF (config_flags%output_wres_fluxes) THEN
-                IF (k .lt. kte) THEN
-                    !destagger in z and x/y direction
-                    zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k+1,j) + zx(i+1,k+1,j))
-                    zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i,k+1,j) + zy(i,k+1,j+1))
-                    u_s = 0.5*(U(i,k,j) + U(i+1,k,j))
-                    v_s = 0.5*(V(i,k,j) + V(i,k,j+1))
-                    dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i,k+1,j))
-                    rho_s = rho_d(i,k,j)
-
-                    fwx_corr = rho_s*zx_s*u_s*wz
-                    fwy_corr = rho_s*zy_s*v_s*wz
-                    corr_dwdt = rho_s*dzdt_s*wz
-                ELSE
-                    fwx_corr = 0
-                    fwy_corr = 0
-                    corr_dwdt = 0
-                ENDIF
-            ENDIF
-
-
-            !mean variables
-
-            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
-            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
-            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
-            WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j))/(local_count+1.)
-            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
-
-            IF (config_flags%output_tres_fluxes) THEN
+                !build averages
                 T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + thd(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
@@ -722,7 +580,27 @@ CONTAINS
                                          CORR_DTDT_MEAN(i,k,j) )/rhoz_mean_flx
                 ENDIF
             ENDIF
+
             IF (config_flags%output_qres_fluxes) THEN
+                !staggered q, different ru,rv,ww needed
+                call get_staggered_from_fluxes(qx, qy, qz,                 &
+                                               fqx_adv, fqy_adv, fqz_adv,  &
+                                               ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
+                                                cf1, cf2, cf3, cfn, cfn1, .false.,       &
+                                               i, j, k,                                  &
+                                               ids, ide, jds, jde, kds, kde,             &
+                                               ims, ime, jms, jme, kms, kme              )
+                if ((abs(qx) .gt. 0.05) .or. (abs(qy) .gt. 0.05) .or. (abs(qz) .gt. 0.05)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large qx/y/z:", qx, qy, qz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
+
+                !compute cartesian corrections
+                fqx_corr = rho_s*zx_s*u_s*qz
+                fqy_corr = rho_s*zy_s*v_s*qz
+                corr_dqdt = rho_s*dzdt_s*qz
+
+                !build averages
                 Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean
                 QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/(local_count+1.)/rhoy_mean
@@ -742,6 +620,35 @@ CONTAINS
             ENDIF
 
             IF (config_flags%output_ures_fluxes) THEN
+                !(de)stagger in x direction
+                ru_d = 0.5*(ru(i,k,j)+ru(i+1,k,j))
+                rv_d = 0.5*(rv(i-1,k,j)+rv(i,k,j))
+                ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
+                call get_staggered_from_fluxes(ux, uy, uz,                 &
+                                               fux_adv, fuy_adv, fuz_adv,  &
+                                               ru_d, rv_d, ww_d, U,        &
+                                               cf1, cf2, cf3, cfn, cfn1, .false., &
+                                               i, j, k,                           &
+                                               ids, ide, jds, jde, kds, kde,      &
+                                               ims, ime, jms, jme, kms, kme       )
+                if ((abs(ux) .gt. 20) .or. (abs(uy) .gt. 20) .or. (abs(uz) .gt. 20)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large ux/y/z:", ux, uy, uz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
+
+                !compute cartesian corrections
+                zx_s = zx(i,k,j)
+                zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i-1,k,j) + zy(i-1,k,j+1))
+                u_s = u8w(i,k,j)
+                v_s = 0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
+                dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i-1,k,j))
+                rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
+
+                fux_corr = rho_s*zx_s*u_s*uz
+                fuy_corr = rho_s*zy_s*v_s*uz
+                corr_dudt = rho_s*dzdt_s*uz
+
+                !build averages
                 UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
                 UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
                 UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
@@ -757,7 +664,37 @@ CONTAINS
                                          CORR_DUDT_MEAN(i,k,j) )/rhoxz_mean_flx
                 ENDIF
             ENDIF
+
             IF (config_flags%output_vres_fluxes) THEN
+                !(de)stagger in y direction
+                ru_d = 0.5*(ru(i,k,j-1)+ru(i,k,j))
+                rv_d = 0.5*(rv(i,k,j+1)+rv(i,k,j))
+                ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
+                call get_staggered_from_fluxes(vx, vy, vz,                 &
+                                               fvx_adv, fvy_adv, fvz_adv,  &
+                                               ru_d, rv_d, ww_d, V,        &
+                                               cf1, cf2, cf3, cfn, cfn1, .false., &
+                                               i, j, k,                           &
+                                               ids, ide, jds, jde, kds, kde,      &
+                                               ims, ime, jms, jme, kms, kme       )
+                if ((abs(vx) .gt. 20) .or. (abs(vy) .gt. 20) .or. (abs(vz) .gt. 20)) then
+                    WRITE ( wrf_err_message , FMT=* ) "Found large vx/y/z:", vx, vy, vz, "at i,j,k:",i,",",j,",",k
+                    CALL wrf_debug ( 0 , wrf_err_message )
+                endif
+
+                !compute cartesian corrections
+                zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k,j-1) + zx(i+1,k,j-1))
+                zy_s = zy(i,k,j)
+                u_s = 0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
+                v_s = v8w(i,k,j)
+                dzdt_s = 0.5*(dzdt(i,k,j-1) + dzdt(i,k,j-1))
+                rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
+
+                fvx_corr = rho_s*zx_s*u_s*vz
+                fvy_corr = rho_s*zy_s*v_s*vz
+                corr_dvdt = rho_s*dzdt_s*vz
+
+                !build averages
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
                 VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/(local_count+1.)/rho_mean
                 VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
@@ -773,7 +710,56 @@ CONTAINS
                                          CORR_DVDT_MEAN(i,k,j) )/rhoyz_mean_flx
                 ENDIF
             ENDIF
+
             IF (config_flags%output_wres_fluxes) THEN
+                IF (k .eq. kts) THEN
+                    wx = 0
+                    wy = 0
+                    wz = 0
+                ELSE
+                    IF (k .eq. kte) THEN
+                        ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
+                        rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
+                        ww_d = ww(i,k-1,j)
+                    ELSE
+                        ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
+                        rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
+                        ww_d = 0.5*(ww(i,k,j)+ww(i,k+1,j))
+                    ENDIF
+
+                    call get_staggered_from_fluxes(wx, wy, wz,                 &
+                                                   fwx_adv, fwy_adv, fwz_adv,  &
+                                                   ru_d, rv_d, ww_d, W,        &
+                                                   cf1, cf2, cf3, cfn, cfn1, .true.,  &
+                                                   i, j, k,                           &
+                                                   ids, ide, jds, jde, kds, kde,      &
+                                                   ims, ime, jms, jme, kms, kme       )
+                    if ((abs(wx) .gt. 20) .or. (abs(wy) .gt. 20) .or. (abs(wz) .gt. 20)) then
+                        WRITE ( wrf_err_message , FMT=* ) "Found large wx/y/z:", wx, wy, wz, "at i,j,k:",i,",",j,",",k
+                        CALL wrf_debug ( 0 , wrf_err_message )
+                    endif
+                ENDIF
+
+                !compute cartesian corrections
+                IF (k .lt. kte) THEN
+                    !destagger in z and x/y direction
+                    zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k+1,j) + zx(i+1,k+1,j))
+                    zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i,k+1,j) + zy(i,k+1,j+1))
+                    u_s = 0.5*(U(i,k,j) + U(i+1,k,j))
+                    v_s = 0.5*(V(i,k,j) + V(i,k,j+1))
+                    dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i,k+1,j))
+                    rho_s = rho_d(i,k,j)
+
+                    fwx_corr = rho_s*zx_s*u_s*wz
+                    fwy_corr = rho_s*zy_s*v_s*wz
+                    corr_dwdt = rho_s*dzdt_s*wz
+                ELSE
+                    fwx_corr = 0
+                    fwy_corr = 0
+                    corr_dwdt = 0
+                ENDIF
+
+                !build averages
                 WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
                 WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
                 WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
@@ -789,28 +775,36 @@ CONTAINS
                                          CORR_DWDT_MEAN(i,k,j) )/rho_mean_flx
                 ENDIF
             ENDIF
-          ENDIF
-            IF (config_flags%output_t_fluxes .eq. 1) THEN
-                T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/(local_count+1.)
-                T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/(local_count+1.)
-                T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/(local_count+1.)
-            ENDIF
-            IF (config_flags%output_q_fluxes .eq. 1) THEN
-                Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
-            ENDIF
 
-            IF (config_flags%output_u_fluxes .eq. 1) THEN
-                U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/(local_count+1.)
-                U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/(local_count+1.)
-            ENDIF
-            IF (config_flags%output_v_fluxes .eq. 1) THEN
-                V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/(local_count+1.)
-                V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/(local_count+1.)
-            ENDIF
-            IF (config_flags%output_w_fluxes .eq. 1) THEN
-                W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/(local_count+1.)
-                W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/(local_count+1.)
-            ENDIF
+            !average wind speed
+            !TODOm: use mu for hesselberg averaging?
+            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
+            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
+            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
+            WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j))/(local_count+1.)
+            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
+          ENDIF
+
+          IF (config_flags%output_t_fluxes .eq. 1) THEN
+              T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/(local_count+1.)
+              T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/(local_count+1.)
+              T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/(local_count+1.)
+          ENDIF
+          IF (config_flags%output_q_fluxes .eq. 1) THEN
+              Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
+          ENDIF
+          IF (config_flags%output_u_fluxes .eq. 1) THEN
+              U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/(local_count+1.)
+              U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/(local_count+1.)
+          ENDIF
+          IF (config_flags%output_v_fluxes .eq. 1) THEN
+              V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/(local_count+1.)
+              V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/(local_count+1.)
+          ENDIF
+          IF (config_flags%output_w_fluxes .eq. 1) THEN
+              W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/(local_count+1.)
+              W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/(local_count+1.)
+          ENDIF
 
           IF (config_flags%output_sgs_fluxes) THEN
             IF (config_flags%output_tsgs_fluxes) THEN
@@ -954,8 +948,10 @@ CONTAINS
       varz = wwvar_tot(i,k,j)/ww
     else
       varz = var(i,k,j)
-      CALL wrf_debug ( 0 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
-      CALL wrf_debug ( 0 , wrf_err_message )
+      IF ((i .lt. ide) .and. (j .lt. jde)) THEN
+        CALL wrf_debug ( 0 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
+        CALL wrf_debug ( 0 , wrf_err_message )
+      ENDIF
     endif
   end subroutine get_staggered_from_fluxes
 

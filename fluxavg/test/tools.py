@@ -493,7 +493,7 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             else:
                 dmf = "X"
             adv_i[du] = -diff(mu*flux[du]/mapfac["F" + du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
-        fz = rhod8z*flux["Z"]/mapfac["FZ"] #TODO: mapfac maybe not needed?
+        fz = rhod8z*flux["Z"]
         if VAR == "W":
             adv_i["Z"] = -diff(fz, "bottom_top", grid["ZNW"])/grid["DN"]
             #set sfc and top point correctly
@@ -502,7 +502,6 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
 
         else:
             adv_i["Z"] = -diff(fz, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-        adv_i["Z"] = adv_i["Z"]*mf["Y"]
         adv_i["Z"] = adv_i["Z"]*(-g)
         adv_i = adv_i/grid["MU_STAG"]
         adv[comp] = adv_i
@@ -547,15 +546,14 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
     #resolved turbulent part
     corr.loc["res"] = corr.loc["tot"] - corr.loc["mean"]
 
-    corr_m = corr/mapfac["FZ"]
     #correction flux to tendency
     if VAR == "W":
-        dcorr_dz = diff(corr_m, "bottom_top", grid["ZNW"])/grid["DN"]
+        dcorr_dz = diff(corr, "bottom_top", grid["ZNW"])/grid["DN"]
         dcorr_dz[{"bottom_top_stag" : 0}] = 0.
-        dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr_m.isel(bottom_top=-1)/grid["DN"][-2]).values
+        dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr.isel(bottom_top=-1)/grid["DN"][-2]).values
     else:
-        dcorr_dz = diff(corr_m, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-    dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)*mapfac["Y"]
+        dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
+    dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)
     #apply corrections
     for i, d in enumerate(["X", "Y"]):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
@@ -646,7 +644,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     mapfac = mapfac.rename(dict(zip(mapfac_vnames,["X","Y"])))
 
     #map-scale factors for fluxes
-    for d, m in zip(["X","Y","Z"], ["UY", "VX", "MY"]):
+    for d, m in zip(["X","Y"], ["UY", "VX"]):
         mf = dat_inst["MAPFAC_" + m].isel(Time=0, drop=True)
         flx = dat_mean["F{}{}_ADV_MEAN".format(var[0].upper(), d)]
         mapfac["F" + d] = stagger_like(mf, flx, cyclic=cyclic)

@@ -288,8 +288,8 @@ CONTAINS
        & U, V, W, ru, rv, ww, thm, Q,                                                            &
        & ph_1, ph_2, phb, zx, zy,                                                                &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
+       & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
-    
 
     IMPLICIT NONE
 
@@ -501,8 +501,8 @@ CONTAINS
               fwy_dfac  = msfvx(i,j)/muyz_mean
               fwz_dfac  = msfty(i,j)/(-g)
               fqz_dfac  = fwz_dfac
-              fuz_dfac  = 0.5*(msfty(i,j) + msfty(i-1,j))/(-g)
-              fvz_dfac  = 0.5*(msfty(i,j) + msfty(i,j-1))/(-g)
+              fuz_dfac  = msfuy(i,j)/(-g)
+              fvz_dfac  = msfvy(i,j)/(-g)
               IF (k .lt. kde) THEN
                   !k=kde only relevant for vertically staggered variables
                   mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
@@ -738,7 +738,6 @@ CONTAINS
             ENDIF
 
             IF (config_flags%output_wres_fluxes) THEN
-                !TODOm: for kte: vel = (2.-fzm(k-1))*ru(i,k-1,j)-fzp(k-1)*ru(i,k-2,j)
                 IF (k .eq. kts) THEN
                     wx = 0
                     wy = 0

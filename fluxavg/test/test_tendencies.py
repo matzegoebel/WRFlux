@@ -94,13 +94,22 @@ def test_budget():
             if "wrf: SUCCESS COMPLETE WRF" not in log:
                 print("Error in running simulations!")
                 continue
+
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
                 # check_bounds(dat_mean, attrs, var) #TODO: fix for open
                 forcing, total_tend, adv, sgs, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
                         grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True)
-                if cut_boundaries:
+
+                cut_boundaries_c = cut_boundaries
+                if not attrs["PERIODIC_X"]:
+                    bounds["x"] = slice(b,-b)
+                    cut_boundaries_c = True
+                if not attrs["PERIODIC_Y"]:
+                    bounds["y"] = slice(b,-b)
+                    cut_boundaries_c = True
+                if cut_boundaries_c:
                     bounds_v = create_bounds(forcing)
                     forcing = forcing[bounds_v]
                     total_tend = total_tend[bounds_v]
@@ -112,7 +121,7 @@ def test_budget():
                         print("WARNING: diagnostic and prognostic w are poorly correlated!")
                 #check for nans
                 if nan_check:
-                    check_nans(total_tend, adv, sgs, sources, fluxes, var)
+                    check_nans(total_tend, adv, sgs, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
 
 
     print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error))
@@ -126,7 +135,7 @@ def test_budget():
             print(message)
     #setup_test_init_module(restore=True)
 
-                #TODO: more tests: mean_flux: mean~ tot, test hesselberg, test other BC
+                #TODO: more tests: mean_flux: mean~ tot, test hesselberg, symmetric bc
     return error, failed
 #%% postprocess data
 def load_data(IDi):
@@ -183,7 +192,7 @@ def check_error(total_tend, forcing, attrs, var, cname, error, failed):
         else:
             failed[cname] = [var]
 
-def check_nans(total_tend, adv, sgs, sources, fluxes, var):
+def check_nans(total_tend, adv, sgs, sources, fluxes, var, cut_boundaries=False):
     for n, dat in zip(["total tendency", "advection", "SGS diffusion", "sources", "X flux", "Y flux", "Z flux"], [total_tend, adv, sgs, sources, fluxes["X"], fluxes["X"], fluxes["Z"]]):
         if (n != "total tendency") and cut_boundaries:
             bounds_v = create_bounds(dat)

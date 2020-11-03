@@ -571,12 +571,6 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,        &
                                                ims, ime, jms, jme, kms, kme         )
 
-                !TODOm: remove these warnings!
-                if ((abs(thetax) .gt. 50) .or. (abs(thetay) .gt. 50) .or. (abs(thetaz) .gt. 50)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large thetax/y/z:", thetax, thetay, thetaz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
-
                 !compute cartesian corrections
                 ftx_corr = rho_s*zx_s*u_s*thetaz
                 fty_corr = rho_s*zy_s*v_s*thetaz
@@ -616,10 +610,6 @@ CONTAINS
                                                i, j, k,                                  &
                                                ids, ide, jds, jde, kds, kde,             &
                                                ims, ime, jms, jme, kms, kme              )
-                if ((abs(qx) .gt. 0.05) .or. (abs(qy) .gt. 0.05) .or. (abs(qz) .gt. 0.05)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large qx/y/z:", qx, qy, qz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
 
                 !compute cartesian corrections
                 fqx_corr = rho_s*zx_s*u_s*qz
@@ -657,10 +647,6 @@ CONTAINS
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
-                if ((abs(ux) .gt. 20) .or. (abs(uy) .gt. 20) .or. (abs(uz) .gt. 20)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large ux/y/z:", ux, uy, uz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
 
                 !compute cartesian corrections
                 zx_s = zx(i,k,j)
@@ -703,10 +689,6 @@ CONTAINS
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
-                if ((abs(vx) .gt. 20) .or. (abs(vy) .gt. 20) .or. (abs(vz) .gt. 20)) then
-                    WRITE ( wrf_err_message , FMT=* ) "Found large vx/y/z:", vx, vy, vz, "at i,j,k:",i,",",j,",",k
-                    CALL wrf_debug ( 0 , wrf_err_message )
-                endif
 
                 !compute cartesian corrections
                 zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k,j-1) + zx(i+1,k,j-1))
@@ -760,10 +742,6 @@ CONTAINS
                                                    i, j, k,                           &
                                                    ids, ide, jds, jde, kds, kde,      &
                                                    ims, ime, jms, jme, kms, kme       )
-                    if ((abs(wx) .gt. 20) .or. (abs(wy) .gt. 20) .or. (abs(wz) .gt. 20)) then
-                        WRITE ( wrf_err_message , FMT=* ) "Found large wx/y/z:", wx, wy, wz, "at i,j,k:",i,",",j,",",k
-                        CALL wrf_debug ( 0 , wrf_err_message )
-                    endif
                 ENDIF
 
                 !compute cartesian corrections
@@ -950,8 +928,8 @@ CONTAINS
     else
         varx = var(i,k,j)
         if (k .lt. kde) then
-            CALL wrf_debug ( 0 , ' Found zero ru when getting staggered variable from flux! Using var(i,k,j)...' )
-            CALL wrf_debug ( 0 , wrf_err_message )
+            CALL wrf_debug ( 100 , ' Found zero ru when getting staggered variable from flux! Using var(i,k,j)...' )
+            CALL wrf_debug ( 100 , wrf_err_message )
         endif
     endif
     if (rv .ne. 0) then
@@ -959,8 +937,8 @@ CONTAINS
     else
         vary = var(i,k,j)
         if (k .lt. kde) then
-            CALL wrf_debug ( 0 , ' Found zero rv when getting staggered variable from flux! Using var(i,k,j)...' )
-            CALL wrf_debug ( 0 , wrf_err_message )
+            CALL wrf_debug ( 100 , ' Found zero rv when getting staggered variable from flux! Using var(i,k,j)...' )
+            CALL wrf_debug ( 100 , wrf_err_message )
         endif
     endif
 
@@ -975,8 +953,8 @@ CONTAINS
     else
       varz = var(i,k,j)
       IF ((i .lt. ide) .and. (j .lt. jde)) THEN
-        CALL wrf_debug ( 0 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
-        CALL wrf_debug ( 0 , wrf_err_message )
+        CALL wrf_debug ( 100 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
+        CALL wrf_debug ( 100 , wrf_err_message )
       ENDIF
     endif
   end subroutine get_staggered_from_fluxes

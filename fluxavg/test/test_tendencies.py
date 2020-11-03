@@ -157,7 +157,7 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, 
     if correct and cartesian:
         corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
         adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
-                                                      dzdd, grid, adv, total_tend, cyclic, stagger_const)
+                                                      dzdd, grid, mapfac, adv, total_tend, cyclic, stagger_const)
 
     #add all forcings
     forcing = adv.sel(comp="tot", drop=True).sum("dir") + sources

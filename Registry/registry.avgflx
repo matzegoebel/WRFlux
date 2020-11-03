@@ -96,9 +96,9 @@ state   real    ftx_adv              ikj      dyn_em         1               X  
 state   real    fty_adv              ikj      dyn_em         1               Y               - "FTY_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in y direction"   "Pa  K m s-1"
 state   real    ftz_adv              ikj      dyn_em         1               Z               - "FTZ_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in eta direction" "Pa K s-1"
 
-state   real    ftx_small                ikj      dyn_em         1               X               - "FTX_Small"              "instantaneous mu-coupled small step dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    fty_small                ikj      dyn_em         1               Y               - "FTY_Small"              "instantaneous mu-coupled small step dry/moist theta flux in y direction"   "Pa  K m s-1"
-state   real    ftz_small                ikj      dyn_em         1               Z               - "FTZ_Small"              "instantaneous mu-coupled small step dry/moist theta flux in eta direction" "Pa K s-1"
+state   real    ftx_small            ikj      dyn_em         1               X               - "FTX_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in x direction"   "Pa K m s-1"
+state   real    fty_small            ikj      dyn_em         1               Y               - "FTY_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in y direction"   "Pa  K m s-1"
+state   real    ftz_small            ikj      dyn_em         1               Z               - "FTZ_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in eta direction" "Pa K s-1"
 
 state   real    fqx_adv              ikj      dyn_em         1               X               - "FQX_ADV"            "instantaneous mu-coupled advective moisture flux in x direction"   "Pa m s-1"
 state   real    fqy_adv              ikj      dyn_em         1               Y               - "FQY_ADV"            "instantaneous mu-coupled advective moisture flux in y direction"   "Pa m s-1"

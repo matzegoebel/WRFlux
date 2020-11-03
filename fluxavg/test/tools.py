@@ -451,10 +451,10 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             vmean[k] = avg_xy(vmean[k], avg_dims)
     tot_flux = data[fluxnames]
     tot_flux = tot_flux.rename(dict(zip(fluxnames, ["X", "Y", "Z"])))
-    tot_flux["Z"] = tot_flux["Z"]*stagger_like(data["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
+    rhod8z = stagger_like(data["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
     if not cartesian:
-          tot_flux["Z"] = tot_flux["Z"] - data["F{}X_CORR".format(VAR)] - \
-              data["F{}Y_CORR".format(VAR)] - data["CORR_D{}DT".format(VAR)]
+          tot_flux["Z"] = tot_flux["Z"] - (data["F{}X_CORR".format(VAR)] + \
+              data["F{}Y_CORR".format(VAR)] + data["CORR_D{}DT".format(VAR)])/rhod8z
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
@@ -486,17 +486,20 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
                 ds = d + "_stag"
             dx = grid["D" + du]
             mu = build_mu(data["MUT_MEAN"], flux[du], grid, cyclic=cyclic)
-            adv_i[du] = -diff(mu*flux[du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
+            if d == "x":
+                dmf = "Y"
+            else:
+                dmf = "X"
+            adv_i[du] = -diff(mu*flux[du]/mapfac["F" + du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
         if VAR == "W":
-            adv_i["Z"] = -diff(flux["Z"], "bottom_top", grid["ZNW"])/grid["DN"]
+            adv_i["Z"] = -diff(rhod8z*flux["Z"]/mapfac["FZ"], "bottom_top", grid["ZNW"])/grid["DN"]
             #set sfc and top point correctly
             adv_i["Z"][{"bottom_top_stag" : 0}] = 0.
             adv_i["Z"][{"bottom_top_stag" : -1}] = (2*flux["Z"].isel(bottom_top=-1)/grid["DN"][-2]).values
 
         else:
-            adv_i["Z"] = -diff(flux["Z"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-        if not cartesian:#TODO still correct?
-            adv_i["Z"] = adv_i["Z"]*mf["Y"]
+            adv_i["Z"] = -diff(rhod8z*flux["Z"]/mapfac["FZ"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
+        adv_i["Z"] = adv_i["Z"]*mf["Y"]
         adv_i["Z"] = adv_i["Z"]*(-g)
         adv_i = adv_i/grid["MU_STAG"]
         adv[comp] = adv_i
@@ -524,7 +527,7 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
 
     return flux, adv, vmean
 
-def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, adv, tend, cyclic, stagger_const):
+def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, mapfac, adv, tend, cyclic, stagger_const):
     #decompose cartesian corrections
     #total
     corr = corr.expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
@@ -541,15 +544,15 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
     #resolved turbulent part
     corr.loc["res"] = corr.loc["tot"] - corr.loc["mean"]
 
+    corr_m = corr/mapfac["FZ"]
     #correction flux to tendency
     if VAR == "W":
-        dcorr_dz = diff(corr, "bottom_top", grid["ZNW"])/grid["DN"]
+        dcorr_dz = diff(corr_m, "bottom_top", grid["ZNW"])/grid["DN"]
         dcorr_dz[{"bottom_top_stag" : 0}] = 0.
-        dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr.isel(bottom_top=-1)/grid["DN"][-2]).values
+        dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr_m.isel(bottom_top=-1)/grid["DN"][-2]).values
     else:
-        dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-    dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)
-
+        dcorr_dz = diff(corr_m, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
+    dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)*mapfac["Y"]
     #apply corrections
     for i, d in enumerate(["X", "Y"]):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
@@ -639,11 +642,12 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     mapfac = dat_inst[mapfac_vnames].isel(Time=0, drop=True)
     mapfac = mapfac.rename(dict(zip(mapfac_vnames,["X","Y"])))
 
-    #adjust fluxes
-    # for f in ["RU", "RV", "WW"]:
-        #divide total fluxes by gravity
-   # f = "WW" + VAR + "_ADV_MEAN"
-   # dat_mean[f] = dat_mean[f]/(-9.81)
+    #map-scale factors for fluxes
+    for d, m in zip(["X","Y","Z"], ["UY", "VX", "MY"]):
+        mf = dat_inst["MAPFAC_" + m].isel(Time=0, drop=True)
+        flx = dat_mean["F{}{}_ADV_MEAN".format(var[0].upper(), d)]
+        mapfac["F" + d] = stagger_like(mf, flx, cyclic=cyclic)
+
     dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
     #resolved vertical flux with diagnosed vertical velocity
 

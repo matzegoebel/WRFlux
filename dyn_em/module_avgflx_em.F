@@ -360,6 +360,12 @@ CONTAINS
     REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
     REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
     REAL, OPTIONAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
+    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) :: msfuy,  &
+                                                                       msfvx,  &
+                                                                       msfvy,  &
+                                                                       msftx,  &
+                                                                       msfty
+
     LOGICAL, OPTIONAL, INTENT(IN) :: last_timestep
 
 
@@ -371,6 +377,10 @@ CONTAINS
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             rho_mean_flx, rhoz_mean_flx, rhoxz_mean_flx, rhoyz_mean_flx, &
             mu_mean, mux_mean, muy_mean, muz_mean, muxy_mean, muxz_mean, muyz_mean,        &
+            fqx_dfac, fqy_dfac, fqz_dfac, &
+            fux_dfac, fuy_dfac, fuz_dfac, &
+            fvx_dfac, fvy_dfac, fvz_dfac, &
+            fwx_dfac, fwy_dfac, fwz_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             zx_s, zy_s, u_s, v_s, rho_s, dzdt_s, &
@@ -451,7 +461,6 @@ CONTAINS
     DO j=jts,jte
       DO k=kts,kte
         DO i=its,ite
-
           Z_MEAN(i,k,j) = (local_count*Z_MEAN(i,k,j)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
           rho_mean   = 1.
           rhox_mean  = 1.
@@ -460,13 +469,19 @@ CONTAINS
           rhoz_mean  = 1.
           rhoxz_mean = 1.
           rhoyz_mean = 1.
-          mu_mean   = 1.
-          mux_mean  = 1.
-          muy_mean  = 1.
-          muz_mean  = 1.
-          muxy_mean = 1.
-          muxz_mean = 1.
-          muyz_mean = 1.
+
+          fqx_dfac = 1.
+          fqy_dfac = 1.
+          fqz_dfac = 1.
+          fux_dfac = 1.
+          fuy_dfac = 1.
+          fuz_dfac = 1.
+          fvx_dfac = 1.
+          fvy_dfac = 1.
+          fvz_dfac = 1.
+          fwx_dfac = 1.
+          fwy_dfac = 1.
+          fwz_dfac = 1.
           IF (last_timestep) THEN
               !mean staggered densities to normalize vertical fluxes
               rho_mean_flx = RHOD_MEAN(i,k,j)
@@ -479,16 +494,27 @@ CONTAINS
               call stagger_z(rhoyz_mean_flx, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
                            k, kms, kme, kde                   )
-              !mean staggered mu to normalize horizontal fluxes
-              muz_mean = c1f(k)*MUT_MEAN(i,j) + c2f(k)
+              !factors to decouple horizontal fluxes from mu and map-scale factors
               muxz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2f(k)
               muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
+              fwx_dfac  = msfuy(i,j)/muxz_mean
+              fwy_dfac  = msfvx(i,j)/muyz_mean
+              fwz_dfac  = msfty(i,j)/(-g)
+              fqz_dfac  = fwz_dfac
+              fuz_dfac  = 0.5*(msfty(i,j) + msfty(i-1,j))/(-g)
+              fvz_dfac  = 0.5*(msfty(i,j) + msfty(i,j-1))/(-g)
               IF (k .lt. kde) THEN
                   !k=kde only relevant for vertically staggered variables
                   mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
                   mux_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2h(k)
                   muy_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2h(k)
                   muxy_mean = c1h(k)*0.25*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j) + MUT_MEAN(i,j-1) + MUT_MEAN(i-1,j-1)) + c2h(k)
+                  fqx_dfac  = msfuy(i,j)/mux_mean
+                  fqy_dfac  = msfvx(i,j)/muy_mean
+                  fux_dfac  = 0.5*(msfuy(i,j) + msfuy(i+1,j))/mu_mean
+                  fuy_dfac  = 0.5*(msfvx(i,j) + msfvx(i-1,j))/muxy_mean
+                  fvx_dfac  = 0.5*(msfuy(i,j) + msfuy(i,j-1))/muxy_mean
+                  fvy_dfac  = 0.5*(msfvx(i,j) + msfvx(i,j+1))/mu_mean
               ENDIF
               IF (config_flags%hesselberg_avg) THEN
                 !mean staggered densities to normalize means by density
@@ -568,15 +594,15 @@ CONTAINS
                     call stagger_z(q_stag, Q(i,:,j), cf1, cf2, cf3, cfn, cfn1, fnm, fnp, k, kms, kme, kde   )
                     ftz_small(i,k,j) = ftz_small(i,k,j)/(1 + rvovrd*q_stag)
                 ENDIF
-                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)/mux_mean
-                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)/muy_mean
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)*fqx_dfac
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)*fqy_dfac
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac
                 FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + ftx_corr )/(local_count+1.)
                 FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + fty_corr )/(local_count+1.)
                 CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + corr_dtdt )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
-                  FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j)/(-g) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
+                  FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
                                          CORR_DTDT_MEAN(i,k,j) )/rhoz_mean_flx
                 ENDIF
             ENDIF
@@ -606,15 +632,15 @@ CONTAINS
                 QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/(local_count+1.)/rhoy_mean
                 QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/(local_count+1.)/rhoz_mean
                 QQ_MEAN(i,k,j) = (local_count*QQ_MEAN(i,k,j) + Q(i,k,j)*2 )/(local_count+1.)
-                FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/(local_count+1.)/mux_mean
-                FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/(local_count+1.)/muy_mean
-                FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + fqz_adv(i,k,j) )/(local_count+1.)
+                FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/(local_count+1.)*fqx_dfac
+                FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/(local_count+1.)*fqy_dfac
+                FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + fqz_adv(i,k,j) )/(local_count+1.)*fqz_dfac
                 FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + fqx_corr )/(local_count+1.)
                 FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + fqy_corr )/(local_count+1.)
                 CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + corr_dqdt )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
-                  FQZ_ADV_MEAN(i,k,j) = (FQZ_ADV_MEAN(i,k,j)/(-g) + FQX_CORR_MEAN(i,k,j) + FQY_CORR_MEAN(i,k,j) + &
+                  FQZ_ADV_MEAN(i,k,j) = (FQZ_ADV_MEAN(i,k,j) + FQX_CORR_MEAN(i,k,j) + FQY_CORR_MEAN(i,k,j) + &
                                          CORR_DQDT_MEAN(i,k,j) )/rhoz_mean_flx
                 ENDIF
             ENDIF
@@ -652,15 +678,15 @@ CONTAINS
                 UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
                 UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
                 UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
-                FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)/mu_mean
-                FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)/muxy_mean
-                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + fuz_adv(i,k,j) )/(local_count+1.)
+                FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)*fux_dfac
+                FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)*fuy_dfac
+                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + fuz_adv(i,k,j) )/(local_count+1.)*fuz_dfac
                 FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + fux_corr )/(local_count+1.)
                 FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + fuy_corr )/(local_count+1.)
                 CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + corr_dudt )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
-                  FUZ_ADV_MEAN(i,k,j) = (FUZ_ADV_MEAN(i,k,j)/(-g) + FUX_CORR_MEAN(i,k,j) + FUY_CORR_MEAN(i,k,j) + &
+                  FUZ_ADV_MEAN(i,k,j) = (FUZ_ADV_MEAN(i,k,j) + FUX_CORR_MEAN(i,k,j) + FUY_CORR_MEAN(i,k,j) + &
                                          CORR_DUDT_MEAN(i,k,j) )/rhoxz_mean_flx
                 ENDIF
             ENDIF
@@ -698,20 +724,21 @@ CONTAINS
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
                 VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/(local_count+1.)/rho_mean
                 VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
-                FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)/muxy_mean
-                FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)/mu_mean
-                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + fvz_adv(i,k,j) )/(local_count+1.)
+                FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)*fvx_dfac
+                FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)*fvy_dfac
+                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + fvz_adv(i,k,j) )/(local_count+1.)*fvz_dfac
                 FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + fvx_corr )/(local_count+1.)
                 FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + fvy_corr )/(local_count+1.)
                 CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + corr_dvdt )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
-                  FVZ_ADV_MEAN(i,k,j) = (FVZ_ADV_MEAN(i,k,j)/(-g) + FVX_CORR_MEAN(i,k,j) + FVY_CORR_MEAN(i,k,j) + &
+                  FVZ_ADV_MEAN(i,k,j) = (FVZ_ADV_MEAN(i,k,j) + FVX_CORR_MEAN(i,k,j) + FVY_CORR_MEAN(i,k,j) + &
                                          CORR_DVDT_MEAN(i,k,j) )/rhoyz_mean_flx
                 ENDIF
             ENDIF
 
             IF (config_flags%output_wres_fluxes) THEN
+                !TODOm: for kte: vel = (2.-fzm(k-1))*ru(i,k-1,j)-fzp(k-1)*ru(i,k-2,j)
                 IF (k .eq. kts) THEN
                     wx = 0
                     wy = 0
@@ -763,15 +790,15 @@ CONTAINS
                 WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
                 WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
                 WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
-                FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)/muxz_mean
-                FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)/muyz_mean
-                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + fwz_adv(i,k,j) )/(local_count+1.)
+                FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)*fwx_dfac
+                FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)*fwy_dfac
+                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + fwz_adv(i,k,j) )/(local_count+1.)*fwz_dfac
                 FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + fwx_corr )/(local_count+1.)
                 FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + fwy_corr )/(local_count+1.)
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + corr_dwdt )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
-                  FWZ_ADV_MEAN(i,k,j) = (FWZ_ADV_MEAN(i,k,j)/(-g) + FWX_CORR_MEAN(i,k,j) + FWY_CORR_MEAN(i,k,j) + &
+                  FWZ_ADV_MEAN(i,k,j) = (FWZ_ADV_MEAN(i,k,j) + FWX_CORR_MEAN(i,k,j) + FWY_CORR_MEAN(i,k,j) + &
                                          CORR_DWDT_MEAN(i,k,j) )/rho_mean_flx
                 ENDIF
             ENDIF

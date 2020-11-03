@@ -4692,6 +4692,7 @@ BENCH_END(bc_2d_tim)
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy,                                 &
               &   grid%dnw, grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                       &
               &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,            &
+              &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                       &
               &   last_timestep, grid%dt                                                            )
 
          CALL wrf_debug(200,'In solve_em, after upd_avgflx call')

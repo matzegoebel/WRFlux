@@ -29,9 +29,11 @@ outdir = "test/" + runID #subdirectory for WRF output if not set in command line
 run_path = os.environ["wrf_runs"] + "/" + runID #path where run directories of simulations will be created
 build_path = os.environ["wrf_builds"] #path where different versions of the compiled WRF model code reside
 
+# runID += "_new"
 o = np.arange(2,7)
 # names of parameter values for output filenames; either dictionaries or lists (not for composite parameters)
-param_names = {"thm" : ["thd", "thm", "thdm"],
+param_names = {"th" : ["thd", "thm", "thdm"],
+               "th2" : ["thd", "thm"],
                "h_adv_order" : [2, 3],
                "v_adv_order" : [2, 3],
                "adv_order" : o,
@@ -42,14 +44,14 @@ param_names = {"thm" : ["thd", "thm", "thdm"],
 
 
 params["start_time"] = "2018-06-20_12:00:00" #format %Y-%m-%d_%H:%M:%S
-params["end_time"] = "2018-06-20_14:00:00" #format %Y-%m-%d_%H:%M:%S
+params["end_time"] = "2018-06-20_13:00:00" #format %Y-%m-%d_%H:%M:%S
 
 params["n_rep"] = 1 #number of repetitions for each configuration
 
 #horizontal grid
 params["dx"] = 500 #horizontal grid spacing (m)
-params["lx"] = 4000 #minimum horizontal extent in east west (m)
-params["ly"] = 4000 #minimum horizontal extent in north south (m)
+params["lx"] = 5000 #minimum horizontal extent in east west (m)
+params["ly"] = 5000 #minimum horizontal extent in north south (m)
 #use minimum number of grid points set below:
 use_min_gridpoints = False #"x", "y", True (for both) or False
 params["min_gridpoints_x"] = 2 #minimum number of grid points in x direction (including boundary)
@@ -58,12 +60,12 @@ params["min_gridpoints_y"] = 2 #minimum number of grid points in y direction (in
 force_domain_multiple = False #"x", "y", True (for both) or False
 
 #control vertical grid creation (see vertical_grid.py for details on the different methods)
-params["ztop"] = 2000 #top of domain (m)
+params["ztop"] = 3000 #top of domain (m)
 params["zdamp"] = int(params["ztop"]/5) #depth of damping layer (m)
-params["damp_opt"] = 0 #depth of damping layer (m)
+params["damp_opt"] = 0
 params["nz"] = None #number of vertical levels
-params["dz0"] = 40 #height of first model level (m)
-params["dzmax"] = 200 #if nz is None and for dz_method=0 only: specify maximum vertical grid spacing instead of nz; either float or "dx" to make it equal to dx
+params["dz0"] = 60 #height of first model level (m)
+params["dzmax"] = 300 #if nz is None and for dz_method=0 only: specify maximum vertical grid spacing instead of nz; either float or "dx" to make it equal to dx
 params["dz_method"] = 3 #method for creating vertical grid as defined in vertical_grid.py
 
 params["dt_f"] = 2  #time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
@@ -93,6 +95,7 @@ params["v_sca_adv_order"] = 3
 params["h_mom_adv_order"] = 5
 params["v_mom_adv_order"] = 3
 
+
 #indices for output streams and their respective name and output interval (minutes, floats allowed)
 # 0 is the standard output stream
 params["output_streams"] = {24: ["meanout", 10.], 0: ["instout", 10.] }
@@ -116,7 +119,7 @@ del_args =   ["output_streams", "start_time", "end_time", "dz0", "dz_method", "m
 #%%
 
 nslots_dict = {} #set number of slots for each dx
-min_n_per_proc = 16 #25, minimum number of grid points per processor
+min_n_per_proc = 30 #25, minimum number of grid points per processor
 even_split = False #force equal split between processors
 module_load = ""
 #%%

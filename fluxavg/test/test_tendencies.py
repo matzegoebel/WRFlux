@@ -31,45 +31,53 @@ os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
 outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "s"
+exist = "o"
 
 thresh_thdry = 0.02
-thresh = 0.003
+thresh = 0.005
 
 variables = ["q", "t", "u", "v", "w"]
-# variables = ["q"]
+# variables = ["w"]
 cut_boundaries = False
-bounds = {"x" : slice(1,-1), "y" : slice(1,-1), "bottom_top" : slice(1,-1)}
-bounds = {"bottom_top" : slice(None,-1)}
+b = 1
+bounds = {"x" : slice(b,-b), "y" : slice(b,-b), "bottom_top" : slice(b,-b)}
+# bounds = {"x" : slice(b,-b)}
+# bounds = {"bottom_top" : slice(None,-b)}
 cartesian = True
-plot = False
+plot = True
 plot_diff = False
-raise_error = False
+raise_error = True
 nan_check = True
-#TODO: automatically cut_bounds if bc are not symmetric/periodic
-#TODO: why so bad correlation for openbc
 #TODO: sgs boundary values for open bc should be zero!
+#TODO: hor avg needs boundary points?
+#TODO: more tests: mean_flux: mean~ tot, test hesselberg, symmetric bc
+
 #%%settings
 
-def test_budget():
-#%%
-
+def test_budget_all():
     setup_test_init_module()
 
     #Define parameter grid for simulations
     param_grids = {}
-    thm={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
-    # param_grids["km_opt"] = odict(km_opt=[2], spec_hfx=[0.2])
-    # param_grids["open BC"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False], km_opt=[2], use_theta_m=[0])
-    param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], thm=thm)
-    param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], thm=thm)
-    # param_grids["PBL schemes"] = odict(bl_pbl_physics=[*np.arange(1,13), 99])
+    th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
+    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False]}
+    param_grids["open BC"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False])
+    param_grids["symmetric BC"] = odict(symmetric_xs=[True],symmetric_xe=[True],periodic_x=[False])
+    param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
+    param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     o = np.arange(2,7)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
-    param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], thm=thm)
-    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], thm=thm)
-    param_grids["MP rad"] = odict(mp_physics=[2])
+    param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th2=th2)
+    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
+    param_grids["MP rad"] = odict(mp_physics=[2], th=th)
 
+    error, failed = run_and_check_budget(param_grids)
+    setup_test_init_module(restore=True)
+
+    return error, failed
+
+def run_and_check_budget(param_grids):
+#%%
     failed = {}
     error = pd.DataFrame(columns=variables)
     for label, param_grid in param_grids.items():
@@ -94,7 +102,6 @@ def test_budget():
             if "wrf: SUCCESS COMPLETE WRF" not in log:
                 print("Error in running simulations!")
                 continue
-
             dat_mean, dat_inst = load_data(IDi)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
@@ -125,7 +132,7 @@ def test_budget():
 
 
     print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error))
-#%%
+ #%%
     if failed != {}:
         message = "Reconstructed forcing deviates strongly from actual tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()]))
@@ -133,9 +140,6 @@ def test_budget():
             raise RuntimeError(message)
         else:
             print(message)
-    #setup_test_init_module(restore=True)
-
-                #TODO: more tests: mean_flux: mean~ tot, test hesselberg, symmetric bc
     return error, failed
 #%% postprocess data
 def load_data(IDi):
@@ -273,4 +277,4 @@ def create_bounds(data):
     return bounds_v
 #%%
 if __name__ == "__main__":
-    error, failed = test_budget()
+    error, failed = test_budget_all()

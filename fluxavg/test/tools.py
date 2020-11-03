@@ -391,8 +391,9 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         d3s = "bottom_top_stag"
         vcoord = grid["ZNU"]
         dn = grid["DNW"]
-
-    sgs["Z"] = -diff(dat["F{}Z_SGS_MEAN".format(VAR)], d3s, new_coord=vcoord)
+    fz = dat["F{}Z_SGS_MEAN".format(VAR)]
+    rhoz = stagger_like(dat["RHOD_MEAN"], fz, cyclic=cyclic, **stagger_const)
+    sgs["Z"] = -diff(fz*rhoz, d3s, new_coord=vcoord)
     sgs["Z"] = sgs["Z"]/dn/grid["MU_STAG"]*(-g)
     for d, v in zip(["x", "y"], ["U", "V"]):
         #compute corrections
@@ -402,6 +403,7 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         else:
             m = mapfac[du]
         sgsflux = dat["F{}{}_SGS_MEAN".format(VAR, du)]
+        sgsflux = sgsflux*stagger_like(dat["RHOD_MEAN"], sgsflux, cyclic=cyclic, **stagger_const)
         cyc = cyclic[d]
         if d in sgsflux.dims:
             #for momentum variances
@@ -491,14 +493,15 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             else:
                 dmf = "X"
             adv_i[du] = -diff(mu*flux[du]/mapfac["F" + du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
+        fz = rhod8z*flux["Z"]/mapfac["FZ"] #TODO: mapfac maybe not needed?
         if VAR == "W":
-            adv_i["Z"] = -diff(rhod8z*flux["Z"]/mapfac["FZ"], "bottom_top", grid["ZNW"])/grid["DN"]
+            adv_i["Z"] = -diff(fz, "bottom_top", grid["ZNW"])/grid["DN"]
             #set sfc and top point correctly
             adv_i["Z"][{"bottom_top_stag" : 0}] = 0.
-            adv_i["Z"][{"bottom_top_stag" : -1}] = (2*flux["Z"].isel(bottom_top=-1)/grid["DN"][-2]).values
+            adv_i["Z"][{"bottom_top_stag" : -1}] = (2*fz.isel(bottom_top=-1)/grid["DN"][-2]).values
 
         else:
-            adv_i["Z"] = -diff(rhod8z*flux["Z"]/mapfac["FZ"], "bottom_top_stag", grid["ZNU"])/grid["DNW"]
+            adv_i["Z"] = -diff(fz, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
         adv_i["Z"] = adv_i["Z"]*mf["Y"]
         adv_i["Z"] = adv_i["Z"]*(-g)
         adv_i = adv_i/grid["MU_STAG"]

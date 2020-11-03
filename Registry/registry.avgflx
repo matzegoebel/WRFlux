@@ -140,22 +140,22 @@ state   real    corr_dwdt         ikj    dyn_em         1               -       
 
 # mean SGS turbulent quantities
 
-state   real    ftx_sgs_mean       ikj     dyn_em         1               X              h{24} "FTX_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in x direction" "kg m-2 K s-1"
-state   real    fty_sgs_mean       ikj     dyn_em         1               Y              h{24} "FTY_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in y direction" "kg m-2 K s-1"
-state   real    ftz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FTZ_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in z direction" "kg m-2 K s-1"
+state   real    ftx_sgs_mean       ikj     dyn_em         1               X              h{24} "FTX_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in x direction" "K m s-1"
+state   real    fty_sgs_mean       ikj     dyn_em         1               Y              h{24} "FTY_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in y direction" "K m s-1"
+state   real    ftz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FTZ_SGS_MEAN"          "time-averaged SGS turb. dry/moist theta flux in z direction" "K m s-1"
 
-state   real    fqx_sgs_mean       ikj     dyn_em         1               X              h{24} "FQX_SGS_MEAN"          "time-averaged SGS turb. moisture flux in x direction" "kg m-2 s-1"
-state   real    fqy_sgs_mean       ikj     dyn_em         1               Y              h{24} "FQY_SGS_MEAN"          "time-averaged SGS turb. moisture flux in y direction" "kg m-2 s-1"
-state   real    fqz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FQZ_SGS_MEAN"          "time-averaged SGS turb. moisture flux in z direction" "kg m-2 s-1"
+state   real    fqx_sgs_mean       ikj     dyn_em         1               X              h{24} "FQX_SGS_MEAN"          "time-averaged SGS turb. moisture flux in x direction" "m s-1"
+state   real    fqy_sgs_mean       ikj     dyn_em         1               Y              h{24} "FQY_SGS_MEAN"          "time-averaged SGS turb. moisture flux in y direction" "m s-1"
+state   real    fqz_sgs_mean       ikj     dyn_em         1               Z              h{24} "FQZ_SGS_MEAN"          "time-averaged SGS turb. moisture flux in z direction" "m s-1"
 
-state   real    fux_sgs_mean       ikj     dyn_em         1               -              h{24} "FUX_SGS_MEAN"          "time-averaged UU-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
-state   real    fuz_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FUZ_SGS_MEAN"          "time-averaged WU-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
-state   real    fvx_sgs_mean       ikj     dyn_em         1               XY             h{24} "FVX_SGS_MEAN"          "time-averaged UV-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
-state   real    fvy_sgs_mean       ikj     dyn_em         1               -              h{24} "FVY_SGS_MEAN"          "time-averaged VV-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
-state   real    fvz_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FVZ_SGS_MEAN"          "time-averaged WV-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
-state   real    fwx_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FWX_SGS_MEAN"          "time-averaged UW-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
-state   real    fwy_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FWY_SGS_MEAN"          "time-averaged VW-component of SGS Reynolds stress tensor"              "kg m-1 s-2"
-state   real    fwz_sgs_mean       ikj     dyn_em         1               -              h{24} "FWZ_SGS_MEAN"          "time-averaged WW-component of SGS deviatoric Reynolds stress tensor"   "kg m-1 s-2"
+state   real    fux_sgs_mean       ikj     dyn_em         1               -              h{24} "FUX_SGS_MEAN"          "time-averaged UU-component of SGS deviatoric Reynolds stress tensor"   "m2 s-2"
+state   real    fuz_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FUZ_SGS_MEAN"          "time-averaged WU-component of SGS Reynolds stress tensor"              "m2 s-2"
+state   real    fvx_sgs_mean       ikj     dyn_em         1               XY             h{24} "FVX_SGS_MEAN"          "time-averaged UV-component of SGS Reynolds stress tensor"              "m2 s-2"
+state   real    fvy_sgs_mean       ikj     dyn_em         1               -              h{24} "FVY_SGS_MEAN"          "time-averaged VV-component of SGS deviatoric Reynolds stress tensor"   "m2 s-2"
+state   real    fvz_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FVZ_SGS_MEAN"          "time-averaged WV-component of SGS Reynolds stress tensor"              "m2 s-2"
+state   real    fwx_sgs_mean       ikj     dyn_em         1               XZ             h{24} "FWX_SGS_MEAN"          "time-averaged UW-component of SGS Reynolds stress tensor"              "m2 s-2"
+state   real    fwy_sgs_mean       ikj     dyn_em         1               YZ             h{24} "FWY_SGS_MEAN"          "time-averaged VW-component of SGS Reynolds stress tensor"              "m2 s-2"
+state   real    fwz_sgs_mean       ikj     dyn_em         1               -              h{24} "FWZ_SGS_MEAN"          "time-averaged WW-component of SGS deviatoric Reynolds stress tensor"   "m2 s-2"
 
 # instantaneous SGS turbulent quantities
 

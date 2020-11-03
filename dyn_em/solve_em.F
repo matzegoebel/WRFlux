@@ -1443,6 +1443,7 @@ BENCH_START(advance_w_tim)
                            grid%rdn, grid%cf1, grid%cf2, grid%cf3,     &
                            grid%msftx, grid%msfty,                     &
                            config_flags,  config_flags%top_lid,        &
+                           rk_step, grid%w_tend_pg,                    &
                            ids,ide, jds,jde, kds,kde,                  &
                            ims,ime, jms,jme, kms,kme,                  &
                            grid%i_start(ij), grid%i_end(ij),           &

@@ -61,8 +61,6 @@ def test_budget_all():
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False]}
-    param_grids["open BC"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False])
-    param_grids["symmetric BC"] = odict(symmetric_xs=[True],symmetric_xe=[True],periodic_x=[False])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     o = np.arange(2,7)
@@ -73,6 +71,18 @@ def test_budget_all():
 
     error, failed = run_and_check_budget(param_grids)
     setup_test_init_module(restore=True)
+
+    return error, failed
+
+def test_budget_bc():
+
+    #Define parameter grid for simulations
+    param_grids = {}
+    param_grids["open BC x"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False], spec_hfx=[0.2])
+    param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], spec_hfx=[0.2])
+    param_grids["symmetric BC"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
+
+    error, failed = run_and_check_budget(param_grids)
 
     return error, failed
 
@@ -123,7 +133,7 @@ def run_and_check_budget(param_grids):
 
                 check_error(total_tend, forcing, attrs, var, cname, error, failed)
                 if var in ["t", "q"]:
-                    r = np.corrcoef(dat_mean["WD_MEAN"].values.flatten(), dat_mean["W_MEAN"].values.flatten())[0,1]
+                    r = np.corrcoef(dat_mean["WD_MEAN"].values.flatten(), dat_mean["ZWIND_MEAN"].values.flatten())[0,1]
                     if r < 0.9:
                         print("WARNING: diagnostic and prognostic w are poorly correlated!")
                 #check for nans
@@ -259,10 +269,13 @@ def setup_test_init_module(restore=False):
         test_file = f.read()
     if (test_file != org_file) or restore:
         if restore:
+            m = "Restore"
             shutil.copy(fpath + ".org", fpath)
         else:
+            m = "Copy"
             shutil.copy(fpath, fpath + ".org")
             shutil.copy(test_path + "TEST_" + fname, fpath)
+        print(m +  " module_initialize_ideal.F and recompile")
         os.chdir(wrf_path)
         os.system("./compile em_les > log 2> err")
 
@@ -278,3 +291,4 @@ def create_bounds(data):
 #%%
 if __name__ == "__main__":
     error, failed = test_budget_all()
+    error_bc, failed_bc = test_budget_bc()

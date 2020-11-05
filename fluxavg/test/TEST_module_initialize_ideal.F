@@ -587,9 +587,9 @@ CONTAINS
          if ((j < jde) .and. (i < ide)) then
             !assign random numbers for testing purposes
             call RANDOM_NUMBER(rnd)
-            grid%msftx(i,j)    = 0.2*rnd + 0.5
+            grid%msftx(i,j)    = 1 - 0.1*rnd
             call RANDOM_NUMBER(rnd)
-            grid%msfty(i,j)    = 0.2*rnd + 0.5
+            grid%msfty(i,j)    = 1 - 0.1*rnd
          !periodic boundary values
          elseif (j == jde) then
             grid%msftx(i,j)    = grid%msftx(i,jds)
@@ -626,8 +626,8 @@ CONTAINS
 !~          grid%msfux(i,j)    = 1.
 !~          grid%msfuy(i,j)    = 1.
 !~          grid%msfvx(i,j)    = 1.
-!~          grid%msfvy(i,j)    = 1.
 !~          grid%msfvx_inv(i,j)= 1.
+!~          grid%msfvy(i,j)    = 1.
 
          grid%sina(i,j)     = 0.
          grid%cosa(i,j)     = 1.

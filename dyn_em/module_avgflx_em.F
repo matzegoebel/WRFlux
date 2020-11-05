@@ -375,7 +375,8 @@ CONTAINS
     INTEGER :: i,j,k
     REAL :: local_count, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                      &
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
-            rho_mean_flx, rhoz_mean_flx, rhoxz_mean_flx, rhoyz_mean_flx, &
+            rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
+            rhoxz_mean_flx, rhoyz_mean_flx, &
             mu_mean, mux_mean, muy_mean, muz_mean, muxy_mean, muxz_mean, muyz_mean,        &
             fqx_dfac, fqy_dfac, fqz_dfac, &
             fux_dfac, fuy_dfac, fuz_dfac, &
@@ -469,6 +470,13 @@ CONTAINS
           rhoz_mean  = 1.
           rhoxz_mean = 1.
           rhoyz_mean = 1.
+          rho_mean_flx = 1.
+          rhox_mean_flx  = 1.
+          rhoy_mean_flx  = 1.
+          rhoxy_mean_flx = 1.
+          rhoz_mean_flx  = 1.
+          rhoxz_mean_flx = 1.
+          rhoyz_mean_flx = 1.
 
           fqx_dfac = 1.
           fqy_dfac = 1.
@@ -483,7 +491,7 @@ CONTAINS
           fwy_dfac = 1.
           fwz_dfac = 1.
           IF (last_timestep) THEN
-              !mean staggered densities to normalize vertical fluxes
+              !mean staggered densities to normalize fluxes
               rho_mean_flx = RHOD_MEAN(i,k,j)
               call stagger_z(rhoz_mean_flx, RHOD_MEAN(i,:,j), &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
@@ -494,6 +502,10 @@ CONTAINS
               call stagger_z(rhoyz_mean_flx, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
                            k, kms, kme, kde                   )
+              rhox_mean_flx = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
+              rhoy_mean_flx = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
+              rhoxy_mean_flx = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
+
               !factors to decouple horizontal fluxes from mu and map-scale factors
               muxz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2f(k)
               muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
@@ -522,9 +534,9 @@ CONTAINS
                 rhoz_mean = rhoz_mean_flx
                 rhoxz_mean = rhoxz_mean_flx
                 rhoyz_mean = rhoyz_mean_flx
-                rhox_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
-                rhoy_mean = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
-                rhoxy_mean = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
+                rhox_mean = rhox_mean_flx
+                rhoy_mean = rhoy_mean_flx
+                rhoxy_mean = rhoxy_mean_flx
               ENDIF
 
           ENDIF
@@ -812,30 +824,30 @@ CONTAINS
 
           IF (config_flags%output_sgs_fluxes) THEN
             IF (config_flags%output_tsgs_fluxes) THEN
-                FTX_SGS_MEAN(i,k,j) = (local_count*FTX_SGS_MEAN(i,k,j) + ftx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean
-                FTY_SGS_MEAN(i,k,j) = (local_count*FTY_SGS_MEAN(i,k,j) + fty_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean
-                FTZ_SGS_MEAN(i,k,j) = (local_count*FTZ_SGS_MEAN(i,k,j) + ftz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean
+                FTX_SGS_MEAN(i,k,j) = (local_count*FTX_SGS_MEAN(i,k,j) + ftx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean_flx
+                FTY_SGS_MEAN(i,k,j) = (local_count*FTY_SGS_MEAN(i,k,j) + fty_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean_flx
+                FTZ_SGS_MEAN(i,k,j) = (local_count*FTZ_SGS_MEAN(i,k,j) + ftz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean_flx
             ENDIF
             IF (config_flags%output_qsgs_fluxes) THEN
-                FQX_SGS_MEAN(i,k,j) = (local_count*FQX_SGS_MEAN(i,k,j) + fqx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean
-                FQY_SGS_MEAN(i,k,j) = (local_count*FQY_SGS_MEAN(i,k,j) + fqy_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean
-                FQZ_SGS_MEAN(i,k,j) = (local_count*FQZ_SGS_MEAN(i,k,j) + fqz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean
+                FQX_SGS_MEAN(i,k,j) = (local_count*FQX_SGS_MEAN(i,k,j) + fqx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean_flx
+                FQY_SGS_MEAN(i,k,j) = (local_count*FQY_SGS_MEAN(i,k,j) + fqy_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean_flx
+                FQZ_SGS_MEAN(i,k,j) = (local_count*FQZ_SGS_MEAN(i,k,j) + fqz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean_flx
             ENDIF
             IF (config_flags%output_usgs_fluxes) THEN
-                FUX_SGS_MEAN(i,k,j)  = (local_count*FUX_SGS_MEAN(i,k,j)  + fux_sgs(i,k,j) )  / (local_count+1.) / rho_mean
-                FUZ_SGS_MEAN(i,k,j)  = (local_count*FUZ_SGS_MEAN(i,k,j)  + fuz_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean
+                FUX_SGS_MEAN(i,k,j)  = (local_count*FUX_SGS_MEAN(i,k,j)  + fux_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
+                FUZ_SGS_MEAN(i,k,j)  = (local_count*FUZ_SGS_MEAN(i,k,j)  + fuz_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean_flx
             ENDIF
             IF (config_flags%output_vsgs_fluxes) THEN
-                FVY_SGS_MEAN(i,k,j)  = (local_count*FVY_SGS_MEAN(i,k,j)  + fvy_sgs(i,k,j) )  / (local_count+1.) / rho_mean
-                FVZ_SGS_MEAN(i,k,j)  = (local_count*FVZ_SGS_MEAN(i,k,j)  + fvz_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean
+                FVY_SGS_MEAN(i,k,j)  = (local_count*FVY_SGS_MEAN(i,k,j)  + fvy_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
+                FVZ_SGS_MEAN(i,k,j)  = (local_count*FVZ_SGS_MEAN(i,k,j)  + fvz_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean_flx
             ENDIF
             IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
-                FVX_SGS_MEAN(i,k,j)  = (local_count*FVX_SGS_MEAN(i,k,j)  + fvx_sgs(i,k,j) )  / (local_count+1.) / rhoxy_mean
+                FVX_SGS_MEAN(i,k,j)  = (local_count*FVX_SGS_MEAN(i,k,j)  + fvx_sgs(i,k,j) )  / (local_count+1.) / rhoxy_mean_flx
             ENDIF
             IF (config_flags%output_wsgs_fluxes) THEN
-                FWX_SGS_MEAN(i,k,j)  = (local_count*FWX_SGS_MEAN(i,k,j)  + fwx_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean
-                FWY_SGS_MEAN(i,k,j)  = (local_count*FWY_SGS_MEAN(i,k,j)  + fwy_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean
-                FWZ_SGS_MEAN(i,k,j)  = (local_count*FWZ_SGS_MEAN(i,k,j)  + fwz_sgs(i,k,j) )  / (local_count+1.) / rho_mean
+                FWX_SGS_MEAN(i,k,j)  = (local_count*FWX_SGS_MEAN(i,k,j)  + fwx_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean_flx
+                FWY_SGS_MEAN(i,k,j)  = (local_count*FWY_SGS_MEAN(i,k,j)  + fwy_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean_flx
+                FWZ_SGS_MEAN(i,k,j)  = (local_count*FWZ_SGS_MEAN(i,k,j)  + fwz_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
             ENDIF
           ENDIF
 

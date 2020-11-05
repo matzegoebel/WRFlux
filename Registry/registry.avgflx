@@ -119,7 +119,7 @@ state   real    fwz_adv              ikj      dyn_em         1               -  
 # corrections for transformation to Cartesian system
 state   real    ftx_corr          ikj    dyn_em         1               Z               h{24} "FTX_CORR"           "time-averaged correction flux for theta advection in x direction"  "kg m-2 K s-1"
 state   real    fty_corr          ikj    dyn_em         1               Z               h{24} "FTY_CORR"           "time-averaged correction flux for theta advection in y direction"  "kg m-2 K s-1"
-state   real    corr_dtdt         ikj    dyn_em         1               Z               h{24} "corr_dtdt"          "time-averaged correction flux for theta tendency"  "kg m-2 K s-1"
+state   real    corr_dtdt         ikj    dyn_em         1               Z               h{24} "CORR_DTDT"          "time-averaged correction flux for theta tendency"  "kg m-2 K s-1"
 
 state   real    fqx_corr          ikj    dyn_em         1               Z               h{24} "FQX_CORR"           "time-averaged correction flux for Q advection in x direction"  "kg m-2 s-1"
 state   real    fqy_corr          ikj    dyn_em         1               Z               h{24} "FQY_CORR"           "time-averaged correction flux for Q advection in y direction"  "kg m-2 s-1"

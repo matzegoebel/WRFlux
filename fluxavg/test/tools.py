@@ -379,7 +379,7 @@ def diff(data, dim, new_coord, rename=True, cyclic=False):
 
 #%% WRF tendencies
 
-def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **stagger_const):
+def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **stagger_const):
     sgs = xr.Dataset()
     if VAR == "W":
         d3s = "bottom_top"
@@ -391,8 +391,8 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         d3s = "bottom_top_stag"
         vcoord = grid["ZNU"]
         dn = grid["DNW"]
-    fz = dat["F{}Z_SGS_MEAN".format(VAR)]
-    rhoz = stagger_like(dat["RHOD_MEAN"], fz, cyclic=cyclic, **stagger_const)
+    fz = dat_mean["F{}Z_SGS_MEAN".format(VAR)]
+    rhoz = stagger_like(dat_mean["RHOD_MEAN"], fz, cyclic=cyclic, **stagger_const)
     sgs["Z"] = -diff(fz*rhoz, d3s, new_coord=vcoord)
     sgs["Z"] = sgs["Z"]/dn/grid["MU_STAG"]*(-g)
     for d, v in zip(["x", "y"], ["U", "V"]):
@@ -402,8 +402,8 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
             m = 1
         else:
             m = mapfac[du]
-        sgsflux = dat["F{}{}_SGS_MEAN".format(VAR, du)]
-        sgsflux = sgsflux*stagger_like(dat["RHOD_MEAN"], sgsflux, cyclic=cyclic, **stagger_const)
+        sgsflux = dat_mean["F{}{}_SGS_MEAN".format(VAR, du)]
+        sgsflux = sgsflux*stagger_like(dat_mean["RHOD_MEAN"], sgsflux, cyclic=cyclic, **stagger_const)
         cyc = cyclic[d]
         if d in sgsflux.dims:
             #for momentum variances
@@ -426,7 +426,7 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
         sgs[du] = -diff(sgsflux, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
         if VAR == "W":
             m = mapfac["Y"]
-        sgs[du] = sgs[du]/dat["RHOD_MEAN_STAG"] + corr_sgs*m/grid["MU_STAG"]*(-g)
+        sgs[du] = sgs[du]/dat_mean["RHOD_MEAN_STAG"] + corr_sgs*m/grid["MU_STAG"]*(-g)
     sgs = sgs.to_array("dir")
     if VAR == "W":
         sgs[:,:,[0,-1]] = 0
@@ -434,7 +434,7 @@ def sgs_tendency(dat, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **sta
     return sgs
 
 
-def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=False,
+def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=False,
              recalc_w=True, hor_avg=False, avg_dims=None, fluxnames=None, w=None):
 
 
@@ -444,28 +444,29 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
     #get vertical velocity
     if w is None:
         if cartesian:
-            w = data["WD_MEAN"]
+            w = dat_mean["WD_MEAN"]
         else:
-            w = data["WW_MEAN"]/(-g)
-    vmean = {"X" : data["U_MEAN"], "Y" : data["V_MEAN"], "Z" : w}
+            w = dat_mean["WW_MEAN"]/(-g)
+    vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
     if hor_avg:
         for k in vmean.keys():
             vmean[k] = avg_xy(vmean[k], avg_dims)
-    tot_flux = data[fluxnames]
+    tot_flux = dat_mean[fluxnames]
     tot_flux = tot_flux.rename(dict(zip(fluxnames, ["X", "Y", "Z"])))
-    rhod8z = stagger_like(data["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
+    rhod8z = stagger_like(dat_mean["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
     if not cartesian:
-          tot_flux["Z"] = tot_flux["Z"] - (data["F{}X_CORR".format(VAR)] + \
-              data["F{}Y_CORR".format(VAR)] + data["CORR_D{}DT".format(VAR)])/rhod8z
+          tot_flux["Z"] = tot_flux["Z"] - (dat_mean["F{}X_CORR".format(VAR)] + \
+              dat_mean["F{}Y_CORR".format(VAR)] + dat_mean["CORR_D{}DT".format(VAR)])/rhod8z
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in ["X", "Y", "Z"]:
         if hor_avg and (d.lower() in avg_dims):
-            continue
-        vel_stag = stagger_like(vmean[d], ref=var_stag[d], cyclic=cyclic, **stagger_const)
-        var_stag_d = var_stag[d]
-        mean_flux[d] = var_stag_d*vel_stag
+            mean_flux[d] = 0.
+        else:
+            vel_stag = stagger_like(vmean[d], ref=var_stag[d], cyclic=cyclic, **stagger_const)
+            var_stag_d = var_stag[d]
+            mean_flux[d] = var_stag_d*vel_stag
 
     #advective tendency from fluxes
     adv = {}
@@ -473,13 +474,15 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
     for comp, flux in fluxes.items():
         adv_i = xr.Dataset()
         mf = mapfac
+        rhod8z_m = rhod8z
         if (comp == "mean") and hor_avg:
             mf = avg_xy(mapfac, avg_dims)
-
+            rhod8z_m = avg_xy(rhod8z, avg_dims)
         for d in ["x", "y"]:
             du = d.upper()
             cyc = cyclic[d]
-            if du not in flux.data_vars:
+            if hor_avg and (d in avg_dims) and (comp == "mean"):
+                adv_i[du] = 0.
                 continue
             if d in flux[du].dims:
                 ds = d
@@ -487,13 +490,15 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
             else:
                 ds = d + "_stag"
             dx = grid["D" + du]
-            mu = build_mu(data["MUT_MEAN"], flux[du], grid, cyclic=cyclic)
-            if d == "x":
-                dmf = "Y"
-            else:
-                dmf = "X"
-            adv_i[du] = -diff(mu*flux[du]/mapfac["F" + du], ds, data[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
-        fz = rhod8z*flux["Z"]
+
+            mf_flx = mapfac["F" + du]
+            mu = dat_mean["MUT_MEAN"]
+            if (comp == "mean") and hor_avg:
+                mf_flx = avg_xy(mf_flx, avg_dims)
+                mu = avg_xy(mu, avg_dims)
+            mu = build_mu(mu, flux[du], grid, cyclic=cyclic)
+            adv_i[du] = -diff(mu*flux[du]/mf_flx, ds, dat_mean[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
+        fz = rhod8z_m*flux["Z"]
         if VAR == "W":
             adv_i["Z"] = -diff(fz, "bottom_top", grid["ZNW"])/grid["DN"]
             #set sfc and top point correctly
@@ -509,10 +514,7 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
     if hor_avg:
         adv["tot"] = avg_xy(adv["tot"], avg_dims)
         fluxes["tot"] = avg_xy(fluxes["tot"], avg_dims)
-        for d in avg_dims:
-            #put total advective component of averaged dimension in mean flux (not yet set)
-            adv["mean"][d.upper()] = adv["tot"][d.upper()]
-            fluxes["mean"][d.upper()] = fluxes["tot"][d.upper()]
+
     keys = adv.keys()
     adv = xr.concat(adv.values(), "comp")
     adv = adv.to_array("dir")
@@ -529,13 +531,23 @@ def adv_tend(data, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian
 
     return flux, adv, vmean
 
-def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, mapfac, adv, tend, cyclic, stagger_const):
+def cartesian_corrections(VAR, dim_stag, dat_mean, var_stag, vmean, dzdd, grid, mapfac, adv, tend,
+                          cyclic, stagger_const, hor_avg=False, avg_dims=None):
     #decompose cartesian corrections
     #total
+    corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
     corr = corr.expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
+    rhodm = dat_mean["RHOD_MEAN"]
+    if hor_avg:
+        corr = avg_xy(corr, avg_dims)
+        rhodm = avg_xy(rhodm, avg_dims)
+        dzdd = avg_xy(dzdd, avg_dims)
     #mean part
     for i, (d, v) in enumerate(zip(["x", "y"], ["U", "V"])):
         #staggering
+        if hor_avg and (d in avg_dims):
+            corr.loc["mean"][i] = 0
+            continue
         du = d.upper()
         kw = dict(ref=var_stag["Z"], cyclic=cyclic, **stagger_const)
         vmean_stag =  stagger_like(vmean[d.upper()], **kw)
@@ -658,15 +670,16 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     dat_inst["MU_STAG"] = grid["C2H"]+ grid["C1H"]*(dat_inst["MU"]+ dat_inst["MUB"])
     grid["MU_STAG"] = grid["C2H"]+ grid["C1H"]*dat_mean["MUT_MEAN"]
     if var in uvw:
-        dat_mean["RHOD_MEAN_STAG"] = stagger(rhodm, dim_stag, dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag], **stagger_const)
+        rhodm = stagger(rhodm, dim_stag, dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag], **stagger_const)
         if var == "w":
             dat_inst["MU_STAG"] = grid["C2F"] + grid["C1F"]*(dat_inst["MU"]+ dat_inst["MUB"])
             grid["MU_STAG"] = grid["C2F"] + grid["C1F"]*dat_mean["MUT_MEAN"]
         else:
             dat_inst["MU_STAG"] = stagger(dat_inst["MU_STAG"], dim_stag, dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
             grid["MU_STAG"] = stagger(grid["MU_STAG"], dim_stag, dat_mean[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
-    else:
-        dat_mean["RHOD_MEAN_STAG"] = rhodm
+    if hor_avg:
+        rhodm = avg_xy(rhodm, avg_dims)
+    dat_mean["RHOD_MEAN_STAG"] = rhodm
 
     #calculate total tendency
     total_tend = total_tendency(dat_inst, var, **attrs)/grid["MU_STAG"]
@@ -710,14 +723,18 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
     sources = sources + sgs.sum("dir", skipna=False)
 
+    var_stag = xr.Dataset()
+    #get variable staggered in flux direction
+    for d in [*XY, "Z"]:
+        var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
+
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
-        dat_mean["RHOD_MEAN"] = avg_xy(dat_mean["RHOD_MEAN"], avg_dims)
-        dat_mean["RHOD_MEAN_STAG"] = avg_xy(dat_mean["RHOD_MEAN_STAG"], avg_dims)
-        grid = avg_xy(grid, avg_dims)
+        var_stag = avg_xy(var_stag, avg_dims)
+        grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)
 
-    return dat_mean, dat_inst, total_tend, sgs, sources, grid, dim_stag, mapfac, dzdd, dzdd_s
+    return dat_mean, dat_inst, total_tend, sgs, sources, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
 
 
 def build_mu(mut, ref, grid, cyclic=None):

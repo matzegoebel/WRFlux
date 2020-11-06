@@ -49,7 +49,8 @@ params["end_time"] = "2018-06-20_13:00:00" #format %Y-%m-%d_%H:%M:%S
 params["n_rep"] = 1 #number of repetitions for each configuration
 
 #horizontal grid
-params["dx"] = 500 #horizontal grid spacing (m)
+params["dx"] = 500 #horizontal grid spacing x-direction(m)
+params["dy"] = None #horizontal grid spacing y-direction (m), if None: dy = dx
 params["lx"] = 5000 #minimum horizontal extent in east west (m)
 params["ly"] = 5000 #minimum horizontal extent in north south (m)
 #use minimum number of grid points set below:

@@ -18,7 +18,6 @@ import matplotlib.pyplot as plt
 import os
 import tools
 import xarray as xr
-import config_test as conf
 import pandas as pd
 import numpy as np
 import pytest
@@ -30,8 +29,7 @@ os.environ["MKL_NUM_THREADS"]="1"
 os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
-outpath = os.path.join(conf.outpath, conf.outdir)
-exist = "o"
+exist = "s"
 
 thresh_thdry = 0.02
 thresh = 0.005
@@ -43,19 +41,44 @@ b = 1
 bounds = {"x" : slice(b,-b), "y" : slice(b,-b), "bottom_top" : slice(b,-b)}
 # bounds = {"x" : slice(b,-b)}
 # bounds = {"bottom_top" : slice(None,-b)}
-cartesian = True
+cartesian = False
 plot = True
 plot_diff = False
-raise_error = True
+raise_error = False
 nan_check = True
 #TODO: sgs boundary values for open bc should be zero!
 #TODO: hor avg needs boundary points?
-#TODO: more tests: mean_flux: mean~ tot, test hesselberg, symmetric bc
+#TODO: more tests: mean_flux: mean~ tot, test hesselberg
+#TODO: go through with debugger to find hidden errors and add comments
+#%%test functions
 
-#%%settings
+def test_decomp():
+    import config_test_decomp as conf
+    config_file="config_test_decomp"
+     #Define parameter grid for simulations
+    param_grids = {}
+    th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
+    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False]}
+    param_grids["km_opt"] = odict(hesselberg_avg=[True])
+    # param_grids["km_opt"] = odict(spec_hfx=[0.2])
+    # param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
+    # param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
+    # o = np.arange(2,7)
+    # param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
+    # param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th2=th2)
+    # param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
+    hor_avg = True
+    avg_dims = ["x"]
+
+    error, failed = run_and_check_budget(param_grids, conf, config_file=config_file,
+                                         hor_avg=hor_avg, avg_dims=avg_dims)
+
+    return error, failed
 
 def test_budget_all():
-    setup_test_init_module()
+    import config_test as conf
+
+    setup_test_init_module(conf)
 
     #Define parameter grid for simulations
     param_grids = {}
@@ -69,12 +92,13 @@ def test_budget_all():
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
 
-    error, failed = run_and_check_budget(param_grids)
-    setup_test_init_module(restore=True)
+    error, failed = run_and_check_budget(param_grids, conf)
+    setup_test_init_module(conf, restore=True)
 
     return error, failed
 
 def test_budget_bc():
+    import config_test as conf
 
     #Define parameter grid for simulations
     param_grids = {}
@@ -82,21 +106,21 @@ def test_budget_bc():
     param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], spec_hfx=[0.2])
     param_grids["symmetric BC"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
 
-    error, failed = run_and_check_budget(param_grids)
+    error, failed = run_and_check_budget(param_grids, conf)
 
     return error, failed
 
-def run_and_check_budget(param_grids):
-#%%
+def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=False, avg_dims=None):
+    #%%run_and_check_budget
     failed = {}
     error = pd.DataFrame(columns=variables)
     for label, param_grid in param_grids.items():
         print("\n\n\nTest " + label)
         param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        combs, output = capture_submit(init=True, exist=exist, config_file="config_test", param_combs=param_combs)
+        combs, output = capture_submit(init=True, exist=exist, config_file=config_file, param_combs=param_combs)
         combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
-                                       config_file="config_test", param_combs=param_combs)
+                                       config_file=config_file, param_combs=param_combs)
         print("\n\n")
         #% postprocessing
         for cname, comb in combs.iterrows():
@@ -112,12 +136,13 @@ def run_and_check_budget(param_grids):
             if "wrf: SUCCESS COMPLETE WRF" not in log:
                 print("Error in running simulations!")
                 continue
-            dat_mean, dat_inst = load_data(IDi)
+            dat_mean, dat_inst = load_data(IDi, conf.outpath, conf.outdir)
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
                 # check_bounds(dat_mean, attrs, var) #TODO: fix for open
                 forcing, total_tend, adv, sgs, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
-                        grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True)
+                        grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True,
+                        hor_avg=hor_avg, avg_dims=avg_dims)
 
                 cut_boundaries_c = cut_boundaries
                 if not attrs["PERIODIC_X"]:
@@ -141,8 +166,7 @@ def run_and_check_budget(param_grids):
                     check_nans(total_tend, adv, sgs, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
 
 
-    print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error))
- #%%
+    print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error.to_string()))
     if failed != {}:
         message = "Reconstructed forcing deviates strongly from actual tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()]))
@@ -150,11 +174,12 @@ def run_and_check_budget(param_grids):
             raise RuntimeError(message)
         else:
             print(message)
+#%%
     return error, failed
 #%% postprocess data
-def load_data(IDi):
-    dat_inst = tools.open_dataset(outpath + "/instout_{}_0".format(IDi), del_attrs=False)
-    dat_mean = tools.open_dataset(outpath + "/meanout_{}_0".format(IDi))
+def load_data(IDi, outpath, outdir):
+    dat_inst = tools.open_dataset(os.path.join(outpath, outdir) + "/instout_{}_0".format(IDi), del_attrs=False)
+    dat_mean = tools.open_dataset(os.path.join(outpath, outdir) + "/meanout_{}_0".format(IDi))
 
     const_vars = ["ZNW", "ZNU", "DN", "DNW", "FNM", "FNP", "CFN1", "CFN", "CF1", "CF2", "CF3", "C1H", "C2H", "C1F", "C2F"]
     for v in dat_inst.data_vars:
@@ -163,24 +188,20 @@ def load_data(IDi):
 
     return dat_mean, dat_inst
 
-def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False, correct=True, recalc_w=True):
+def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False,
+                   correct=True, recalc_w=True, hor_avg=False, avg_dims=None):
     VAR = var.upper()
 
-    dat_mean, dat_inst, total_tend, sgs, sources, grid, dim_stag, mapfac, dzdd, dzdd_s \
-     = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs)
-
-    var_stag = xr.Dataset()
-    #get staggered variables
-    for d in [*XY, "Z"]:
-        var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
+    dat_mean, dat_inst, total_tend, sgs, sources, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s \
+     = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
     flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=cartesian,
-                                          recalc_w=recalc_w)
+                                          recalc_w=recalc_w, hor_avg=hor_avg, avg_dims=avg_dims)
     corr = None
     if correct and cartesian:
-        corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
-        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
-                                                      dzdd, grid, mapfac, adv, total_tend, cyclic, stagger_const)
+        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, dat_mean, var_stag, vmean,
+                                                      dzdd, grid, mapfac, adv, total_tend, cyclic, stagger_const,
+                                                      hor_avg=hor_avg, avg_dims=avg_dims)
 
     #add all forcings
     forcing = adv.sel(comp="tot", drop=True).sum("dir") + sources
@@ -257,7 +278,7 @@ def capture_submit(*args, **kwargs):
 
     return combs, output
 
-def setup_test_init_module(restore=False):
+def setup_test_init_module(conf, restore=False):
     fpath = os.path.realpath(__file__)
     test_path = fpath[:fpath.index("test_tendencies.py")]
     fname = "module_initialize_ideal.F"
@@ -288,7 +309,8 @@ def create_bounds(data):
             bounds_v[d + "_stag"] = bounds_v[d]
             del bounds_v[d]
     return bounds_v
-#%%
+#%%main
 if __name__ == "__main__":
     error, failed = test_budget_all()
     error_bc, failed_bc = test_budget_bc()
+    error_d, failed_d = test_decomp()

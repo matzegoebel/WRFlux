@@ -199,7 +199,8 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, 
                                           recalc_w=recalc_w, hor_avg=hor_avg, avg_dims=avg_dims)
     corr = None
     if correct and cartesian:
-        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, dat_mean, var_stag, vmean,
+        corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]]
+        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm,
                                                       dzdd, grid, mapfac, adv, total_tend, cyclic, stagger_const,
                                                       hor_avg=hor_avg, avg_dims=avg_dims)
 

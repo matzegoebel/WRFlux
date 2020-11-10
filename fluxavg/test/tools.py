@@ -44,7 +44,7 @@ def fix_coords(data, dx, dy):
     """Assign time and space coordinates"""
 
     #assign time coordinate
-    if "XTIME" in data:
+    if ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
         data = data.assign_coords(Time=data.XTIME)
     else:
         time = data.Times.astype(str).values
@@ -75,8 +75,13 @@ def fix_coords(data, dx, dy):
     return data
 
 def open_dataset(file, var=None, chunks=None, del_attrs=True,fix_c=True,ht=None, **kwargs):
-
-    ds = xr.open_dataset(file, **kwargs)
+    try:
+        ds = xr.open_dataset(file, **kwargs)
+    except ValueError as e:
+        if "unable to decode time" in e.args[0]:
+            ds = xr.open_dataset(file, decode_times=False, **kwargs)
+        else:
+            raise e
     if fix_c:
         dx, dy = ds.DX, ds.DY
         ds = fix_coords(ds, dx=dx, dy=dy)
@@ -531,13 +536,11 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
 
     return flux, adv, vmean
 
-def cartesian_corrections(VAR, dim_stag, dat_mean, var_stag, vmean, dzdd, grid, mapfac, adv, tend,
+def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, mapfac, adv, tend,
                           cyclic, stagger_const, hor_avg=False, avg_dims=None):
     #decompose cartesian corrections
     #total
-    corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]].to_array("dim")
-    corr = corr.expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
-    rhodm = dat_mean["RHOD_MEAN"]
+    corr = corr.to_array("dim").expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
     if hor_avg:
         corr = avg_xy(corr, avg_dims)
         rhodm = avg_xy(rhodm, avg_dims)
@@ -559,7 +562,7 @@ def cartesian_corrections(VAR, dim_stag, dat_mean, var_stag, vmean, dzdd, grid, 
     corr.loc["res"] = corr.loc["tot"] - corr.loc["mean"]
 
     #correction flux to tendency
-    if VAR == "W":
+    if "W" in VAR:
         dcorr_dz = diff(corr, "bottom_top", grid["ZNW"])/grid["DN"]
         dcorr_dz[{"bottom_top_stag" : 0}] = 0.
         dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr.isel(bottom_top=-1)/grid["DN"][-2]).values
@@ -613,14 +616,10 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     grid["DN"] = grid["DN"].rename(bottom_top="bottom_top_stag").assign_coords(bottom_top_stag=grid["ZNW"][:-1]).reindex(bottom_top_stag=grid["ZNW"])
     grid["DX"] = attrs["DX"]
     grid["DY"] = attrs["DY"]
-    grid["ZW"] = dat_mean["Z_MEAN"]
-    grid["Z"] = destagger(dat_mean["Z_MEAN"], "bottom_top_stag", grid["ZNU"])
-    zw_inst = (dat_inst["PH"] + dat_inst["PHB"])/g
-    z_inst = destagger(zw_inst, "bottom_top_stag", grid["ZNU"])
     stagger_const = dat_inst[["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]].isel(Time=0, drop=True)
 
-    dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"], z=grid["Z"], zw=grid["ZW"])
-    dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"], z=z_inst, zw=zw_inst)
+    dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
+    dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
     #select start and end points of averaging intervals
     dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
     for v in dat_inst.coords:
@@ -688,9 +687,10 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     dzdd = xr.Dataset()
     for d in xy:
         du = d.upper()
-        dzdd[du] = diff(grid["ZW"], d, dat_mean[d + "_stag"], cyclic=cyclic[d])/grid["D" + du]
+        dzdd[du] = diff(dat_mean["Z_MEAN"], d, dat_mean[d + "_stag"], cyclic=cyclic[d])/grid["D" + du]
 
-    dzdd["T"] = dat_inst["zw"].diff("Time")/dt
+    zw_inst = (dat_inst["PH"] + dat_inst["PHB"])/g
+    dzdd["T"] = zw_inst.diff("Time")/dt
     for d in [*XY, "T"]:
         dzdd[d] = stagger_like(dzdd[d], total_tend, ignore=["bottom_top_stag"], cyclic=cyclic)
 
@@ -704,6 +704,9 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
     for d,v in zip(["X","Y"], ["U","V"]):
         dat_mean["WD_MEAN"] = dat_mean["WD_MEAN"] + dzdd_s[d]*stagger_like(dat_mean[v + "_MEAN"], dzdd_s[d], cyclic=cyclic, **stagger_const)
+
+    #height
+    grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], total_tend, cyclic=cyclic)
 
     #additional sources
     if var == "t":
@@ -730,9 +733,11 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
+        sgs = avg_xy(sgs, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
         var_stag = avg_xy(var_stag, avg_dims)
         grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)
+        grid["Z_STAG"] = avg_xy(grid["Z_STAG"], avg_dims)
 
     return dat_mean, dat_inst, total_tend, sgs, sources, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
 

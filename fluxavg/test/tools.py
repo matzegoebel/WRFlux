@@ -26,17 +26,11 @@ units_dict_tend = {"t" : "Ks$^{-1}$", "q" : "s$^{-1}$", **{v : "ms$^{-2}$" for v
 units_dict_tend_rho = {"t" : "kg m$^{-3}$Ks$^{-1}$", "q" : "kg m$^{-3}$s$^{-1}$", **{v : "kg m$^{-2}$s$^{-2}$" for v in uvw}}
 g = 9.81
 rvovrd = 461.6/287.04
-#%%definitions
+
+#%% figloc
 host = socket.gethostname()
-if host == 'pc45-c707':
-    basedir = "/media/HDD/Matthias/phd/"
-elif host in ["matze-thinkpad", "pc26-c707"]:
-    basedir = "~/phd/"
-else:
-    basedir = "/scratch/c7071088/phd/"
-
+basedir = "~/phd/"
 basedir = os.path.expanduser(basedir)
-
 figloc = basedir + "figures/"
 
 #%%open dataset
@@ -751,7 +745,7 @@ def build_mu(mut, ref, grid, cyclic=None):
     return mu
 #%% plotting
 
-def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, fname=None):
+def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, fname=None, figloc=figloc):
     pdat = xr.concat([tend, forcing], "comp")
 
     if plot_diff:

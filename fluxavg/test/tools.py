@@ -436,6 +436,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, 
 def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=False,
              recalc_w=True, hor_avg=False, avg_dims=None, fluxnames=None, w=None):
 
+    print("Comute resolved tendencies")
 
     if fluxnames is None:
         fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in ["X", "Y", "Z"]]
@@ -532,6 +533,8 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
 
 def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, mapfac, adv, tend,
                           cyclic, stagger_const, hor_avg=False, avg_dims=None):
+
+    print("Compute Cartesian corrections")
     #decompose cartesian corrections
     #total
     corr = corr.to_array("dim").expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
@@ -595,6 +598,7 @@ def total_tendency(dat_inst, var, **attrs):
     return total_tend
 #%%prepare variables
 def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
+    print("Prepare data")
     attrs = dat_inst.attrs
     dat_inst.attrs = {}
 
@@ -627,7 +631,7 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     return dat_mean, dat_inst, grid, cyclic, stagger_const, attrs
 
 def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=False, avg_dims=None):
-
+    print("\nPrepare tendency calculations for {}".format(var))
     dt = int(dat_mean.Time[1] - dat_mean.Time[0])*1e-9
 
     VAR = var.upper()
@@ -703,6 +707,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], total_tend, cyclic=cyclic)
 
     #additional sources
+    print("Compute additional SGS and additional tendencies")
+
     if var == "t":
         sources = dat_mean["T_TEND_MP_MEAN"] + dat_mean["T_TEND_RADSW_MEAN"] + dat_mean["T_TEND_RADLW_MEAN"]
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
@@ -746,6 +752,7 @@ def build_mu(mut, ref, grid, cyclic=None):
 #%% plotting
 
 def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, fname=None, figloc=figloc):
+    print("scatter plot")
     pdat = xr.concat([tend, forcing], "comp")
 
     if plot_diff:

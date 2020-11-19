@@ -631,7 +631,7 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     return dat_mean, dat_inst, grid, cyclic, stagger_const, attrs
 
 def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=False, avg_dims=None):
-    print("\nPrepare tendency calculations for {}".format(var))
+    print("\nPrepare tendency calculations for {}".format(var.upper()))
     dt = int(dat_mean.Time[1] - dat_mean.Time[0])*1e-9
 
     VAR = var.upper()
@@ -710,21 +710,20 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     print("Compute additional SGS and additional tendencies")
 
     if var == "t":
-        sources = dat_mean["T_TEND_MP_MEAN"] + dat_mean["T_TEND_RADSW_MEAN"] + dat_mean["T_TEND_RADLW_MEAN"]
+        sources = dat_mean[["T_TEND_MP_MEAN", "T_TEND_RADSW_MEAN", "T_TEND_RADLW_MEAN"]]
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
             #convert sources from dry to moist theta
             sources = sources*(1 + rvovrd*dat_mean["Q_MEAN"])
             #add mp tendency
             sources = sources + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*(dat_mean["T_MEAN"] + 300)
     elif var == "q":
-        sources = dat_mean["Q_TEND_MP_MEAN"]
+        sources = dat_mean[["Q_TEND_MP_MEAN"]]
     else:
-        sources = dat_mean["{}_TEND_PG_MEAN".format(VAR)] + dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
+        sources = dat_mean[["{}_TEND_PG_MEAN".format(VAR), "{}_TEND_COR_CURV_MEAN".format(VAR)]]
 
     #calculate tendencies from sgs fluxes and corrections
     sgs = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac, **stagger_const)
-
-    sources = sources + sgs.sum("dir", skipna=False)
+    sources["SGS"] = sgs.sum("dir", skipna=False)
 
     var_stag = xr.Dataset()
     #get variable staggered in flux direction
@@ -733,13 +732,15 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
-        sgs = avg_xy(sgs, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
         var_stag = avg_xy(var_stag, avg_dims)
         grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)
         grid["Z_STAG"] = avg_xy(grid["Z_STAG"], avg_dims)
 
-    return dat_mean, dat_inst, total_tend, sgs, sources, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
+    sources = sources.to_array("comp")
+    sources_sum = sources.sum("comp")
+
+    return dat_mean, dat_inst, total_tend, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
 
 
 def build_mu(mut, ref, grid, cyclic=None):

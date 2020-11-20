@@ -743,6 +743,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
         sgs = avg_xy(sgs, avg_dims)
+        sgsflux = avg_xy(sgsflux, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
         var_stag = avg_xy(var_stag, avg_dims)
         grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)

@@ -19,6 +19,7 @@ print = partial(print, flush=True)
 dim_dict = dict(x="U",y="V",bottom_top="W",z="W")
 xy = ["x", "y"]
 XY = ["X", "Y"]
+XYZ = [*XY, "Z"]
 uvw = ["u", "v", "w"]
 tex_names = {"t" : "\\theta", "q" : "q_\\mathrm{v}"}
 units_dict = {"t" : "K ", "q" : "", **{v : "ms$^{-1}$" for v in uvw}}
@@ -394,7 +395,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, 
     rhoz = stagger_like(dat_mean["RHOD_MEAN"], fz, cyclic=cyclic, **stagger_const)
     sgs["Z"] = -diff(fz*rhoz, d3s, new_coord=vcoord)
     sgs["Z"] = sgs["Z"]/dn/grid["MU_STAG"]*(-g)
-    for d, v in zip(["x", "y"], ["U", "V"]):
+    for d, v in zip(xy, ["U", "V"]):
         #compute corrections
         du = d.upper()
         if mapfac is None:
@@ -439,7 +440,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
     print("Comute resolved tendencies")
 
     if fluxnames is None:
-        fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in ["X", "Y", "Z"]]
+        fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
 
     #get vertical velocity
     if w is None:
@@ -452,7 +453,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
         for k in vmean.keys():
             vmean[k] = avg_xy(vmean[k], avg_dims)
     tot_flux = dat_mean[fluxnames]
-    tot_flux = tot_flux.rename(dict(zip(fluxnames, ["X", "Y", "Z"])))
+    tot_flux = tot_flux.rename(dict(zip(fluxnames, XYZ)))
     rhod8z = stagger_like(dat_mean["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
     if not cartesian:
           tot_flux["Z"] = tot_flux["Z"] - (dat_mean["F{}X_CORR".format(VAR)] + \
@@ -460,7 +461,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
-    for d in ["X", "Y", "Z"]:
+    for d in XYZ:
         if hor_avg and (d.lower() in avg_dims):
             mean_flux[d] = 0.
         else:
@@ -478,7 +479,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
         if (comp == "mean") and hor_avg:
             mf = avg_xy(mapfac, avg_dims)
             rhod8z_m = avg_xy(rhod8z, avg_dims)
-        for d in ["x", "y"]:
+        for d in xy:
             du = d.upper()
             cyc = cyclic[d]
             if hor_avg and (d in avg_dims) and (comp == "mean"):
@@ -543,7 +544,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
         rhodm = avg_xy(rhodm, avg_dims)
         dzdd = avg_xy(dzdd, avg_dims)
     #mean part
-    for i, (d, v) in enumerate(zip(["x", "y"], ["U", "V"])):
+    for i, (d, v) in enumerate(zip(xy, ["U", "V"])):
         #staggering
         if hor_avg and (d in avg_dims):
             corr.loc["mean"][i] = 0
@@ -567,7 +568,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
         dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
     dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)
     #apply corrections
-    for i, d in enumerate(["X", "Y"]):
+    for i, d in enumerate(XY):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
     tend = tend - dcorr_dz.sel(comp="tot", drop=True)[2]
 
@@ -650,10 +651,10 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         mapfac_type = "M"
     mapfac_vnames = ["MAPFAC_{}X".format(mapfac_type),"MAPFAC_{}Y".format(mapfac_type)]
     mapfac = dat_inst[mapfac_vnames].isel(Time=0, drop=True)
-    mapfac = mapfac.rename(dict(zip(mapfac_vnames,["X","Y"])))
+    mapfac = mapfac.rename(dict(zip(mapfac_vnames,XY)))
 
     #map-scale factors for fluxes
-    for d, m in zip(["X","Y"], ["UY", "VX"]):
+    for d, m in zip(XY, ["UY", "VX"]):
         mf = dat_inst["MAPFAC_" + m].isel(Time=0, drop=True)
         flx = dat_mean["F{}{}_ADV_MEAN".format(var[0].upper(), d)]
         mapfac["F" + d] = stagger_like(mf, flx, cyclic=cyclic)
@@ -700,34 +701,38 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
     #diagnostic vertically velocity, correctly staggered
     dat_mean["WD_MEAN"] = dzdd_s["T"] +  stagger_like(dat_mean["WW_MEAN"]/(-g*rhodm8z), dzdd_s["T"], cyclic=cyclic, **stagger_const)
 
-    for d,v in zip(["X","Y"], ["U","V"]):
+    for d,v in zip(XY, ["U","V"]):
         dat_mean["WD_MEAN"] = dat_mean["WD_MEAN"] + dzdd_s[d]*stagger_like(dat_mean[v + "_MEAN"], dzdd_s[d], cyclic=cyclic, **stagger_const)
 
     #height
     grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], total_tend, cyclic=cyclic)
 
     #additional sources
-    print("Compute additional SGS and additional tendencies")
+    print("Compute SGS and additional tendencies")
 
+    sources = xr.Dataset()
     if var == "t":
-        sources = dat_mean[["T_TEND_MP_MEAN", "T_TEND_RADSW_MEAN", "T_TEND_RADLW_MEAN"]]
+        sources["mp"] = dat_mean["T_TEND_MP_MEAN"]
+        sources["rad_lw"] = dat_mean["T_TEND_RADLW_MEAN"]
+        sources["rad_sw"] = dat_mean["T_TEND_RADSW_MEAN"]
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
             #convert sources from dry to moist theta
             sources = sources*(1 + rvovrd*dat_mean["Q_MEAN"])
             #add mp tendency
             sources = sources + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*(dat_mean["T_MEAN"] + 300)
     elif var == "q":
-        sources = dat_mean[["Q_TEND_MP_MEAN"]]
+        sources["mp"] = dat_mean["Q_TEND_MP_MEAN"]
     else:
-        sources = dat_mean[["{}_TEND_PG_MEAN".format(VAR), "{}_TEND_COR_CURV_MEAN".format(VAR)]]
+        sources["pg"] = dat_mean["{}_TEND_PG_MEAN".format(VAR)]
+        sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
 
     #calculate tendencies from sgs fluxes and corrections
     sgs = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac, **stagger_const)
-    sources["SGS"] = sgs.sum("dir", skipna=False)
+    sources["sgs"] = sgs.sum("dir", skipna=False)
 
     var_stag = xr.Dataset()
     #get variable staggered in flux direction
-    for d in [*XY, "Z"]:
+    for d in XYZ:
         var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
 
     if hor_avg:

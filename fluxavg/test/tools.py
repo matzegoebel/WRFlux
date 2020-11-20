@@ -24,6 +24,7 @@ uvw = ["u", "v", "w"]
 tex_names = {"t" : "\\theta", "q" : "q_\\mathrm{v}"}
 units_dict = {"t" : "K ", "q" : "", **{v : "ms$^{-1}$" for v in uvw}}
 units_dict_tend = {"t" : "Ks$^{-1}$", "q" : "s$^{-1}$", **{v : "ms$^{-2}$" for v in uvw}}
+units_dict_flux = {"t" : "Kms$^{-1}$", "q" : "ms$^{-1}$", **{v : "m$^{2}$s$^{-2}$" for v in uvw}}
 units_dict_tend_rho = {"t" : "kg m$^{-3}$Ks$^{-1}$", "q" : "kg m$^{-3}$s$^{-1}$", **{v : "kg m$^{-2}$s$^{-2}$" for v in uvw}}
 g = 9.81
 rvovrd = 461.6/287.04
@@ -762,7 +763,7 @@ def build_mu(mut, ref, grid, cyclic=None):
     return mu
 #%% plotting
 
-def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, fname=None, figloc=figloc):
+def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
     print("scatter plot")
     pdat = xr.concat([tend, forcing], "comp")
 
@@ -789,7 +790,9 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
         color = (color - color.min())/(color.max() - color.min())
 
     fig, ax = plt.subplots()
-    p = plt.scatter(pdat[0], pdat[1], c=color.values, s=10, cmap="cool")
+    kwargs.setdefault("s", 10)
+    kwargs.setdefault("cmap", "cool")
+    p = plt.scatter(pdat[0], pdat[1], c=color.values, **kwargs)
 
     for i in [0,1]:
         pdat = pdat.where(~pdat[i].isnull())
@@ -825,7 +828,17 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
     else:
         plt.colorbar(p,ax=cax,label="hour")
 
-    fig.suptitle(fname)
+    #error labels
+    err = abs(tend - forcing)
+    rmse = (err**2).mean().values**0.5
+    r2 = np.corrcoef(tend.values.flatten(), forcing.values.flatten())[1,0]
+    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.3f}".format(rmse, r2), horizontalalignment='left',
+             verticalalignment='bottom', transform=ax.transAxes)
+
+
+    if title is None:
+        title = fname
+    fig.suptitle(title)
 
     if savefig:
         fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")

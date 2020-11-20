@@ -140,8 +140,8 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
             dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
                 # check_bounds(dat_mean, attrs, var) #TODO: fix for open
-                forcing, total_tend, adv, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
-                        grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True, recalc_w=True,
+                forcing, total_tend, adv, sgs, sgsflux, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
+                        grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True,
                         hor_avg=hor_avg, avg_dims=avg_dims)
 
                 cut_boundaries_c = cut_boundaries
@@ -163,7 +163,7 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
                         print("WARNING: diagnostic and prognostic w are poorly correlated!")
                 #check for nans
                 if nan_check:
-                    check_nans(total_tend, adv, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
+                    check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
 
 
     print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error.to_string()))
@@ -189,14 +189,14 @@ def load_data(IDi, outpath, outdir):
     return dat_mean, dat_inst
 
 def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False,
-                   correct=True, recalc_w=True, hor_avg=False, avg_dims=None):
+                   correct=True, hor_avg=False, avg_dims=None):
     VAR = var.upper()
 
-    dat_mean, dat_inst, total_tend, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s \
+    dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s \
      = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
     flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=cartesian,
-                                          recalc_w=recalc_w, hor_avg=hor_avg, avg_dims=avg_dims)
+                                      hor_avg=hor_avg, avg_dims=avg_dims)
     corr = None
     if correct and cartesian:
         corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]]
@@ -207,7 +207,7 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, 
     #add all forcings
     forcing = adv.sel(comp="tot", drop=True).sum("dir") + sources_sum
 
-    return forcing, total_tend, adv, sources, flux, corr
+    return forcing, total_tend, adv, sgs, sgsflux, sources, flux, corr
 
 #%% tests
 def check_error(total_tend, forcing, attrs, var, cname, error, failed):
@@ -228,9 +228,11 @@ def check_error(total_tend, forcing, attrs, var, cname, error, failed):
         else:
             failed[cname] = [var]
 
-def check_nans(total_tend, adv, sources, fluxes, var, cut_boundaries=False):
-    for n, dat in zip(["total tendency", "advection", "sources", "X flux", "Y flux", "Z flux"], [total_tend, adv, sources, fluxes["X"], fluxes["X"], fluxes["Z"]]):
-        if (n != "total tendency") and cut_boundaries:
+def check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=False):
+    for n in ["total_tend", "adv", "sgs", "sources",
+              "sgsflux['X']", "sgsflux['Y']", "sgsflux['Z']", "fluxes['X']", "fluxes['Y']", "fluxes['Z']"):
+        dat = eval(n)
+        if (n != "total tend") and cut_boundaries:
             bounds_v = create_bounds(dat)
             dat = dat[bounds_v]
         dat = tools.find_nans(dat)

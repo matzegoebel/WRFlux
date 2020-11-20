@@ -381,6 +381,7 @@ def diff(data, dim, new_coord, rename=True, cyclic=False):
 
 def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, **stagger_const):
     sgs = xr.Dataset()
+    sgsflux = xr.Dataset()
     if VAR == "W":
         d3s = "bottom_top"
         d3 = "bottom_top_stag"
@@ -402,17 +403,18 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, 
             m = 1
         else:
             m = mapfac[du]
-        sgsflux = dat_mean["F{}{}_SGS_MEAN".format(VAR, du)]
-        sgsflux = sgsflux*stagger_like(dat_mean["RHOD_MEAN"], sgsflux, cyclic=cyclic, **stagger_const)
+        fd = dat_mean["F{}{}_SGS_MEAN".format(VAR, du)]
+        sgsflux[du] = fd
+        fd = fd*stagger_like(dat_mean["RHOD_MEAN"], fd, cyclic=cyclic, **stagger_const)
         cyc = cyclic[d]
-        if d in sgsflux.dims:
+        if d in fd.dims:
             #for momentum variances
             ds = d
             d = ds + "_stag"
-            flux8v = stagger(sgsflux, ds, new_coord=sgs[d], cyclic=cyc)
+            flux8v = stagger(fd, ds, new_coord=sgs[d], cyclic=cyc)
         else:
             ds = d + "_stag"
-            flux8v = destagger(sgsflux, ds, new_coord=sgs[d])
+            flux8v = destagger(fd, ds, new_coord=sgs[d])
 
         if VAR == "W":
             flux8z = destagger(flux8v, d3, grid["ZNU"])
@@ -423,19 +425,22 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None, 
         corr_sgs = corr_sgs*stagger_like(dzdd[du], corr_sgs, cyclic=cyclic)
 
         dx = grid["D" + du]
-        sgs[du] = -diff(sgsflux, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
+        sgs[du] = -diff(fd, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
         if VAR == "W":
             m = mapfac["Y"]
         sgs[du] = sgs[du]/dat_mean["RHOD_MEAN_STAG"] + corr_sgs*m/grid["MU_STAG"]*(-g)
+
+    sgsflux["Z"] = fz
+    sgs = sgs[XYZ]
     sgs = sgs.to_array("dir")
     if VAR == "W":
         sgs[:,:,[0,-1]] = 0
 
-    return sgs
+    return sgs, sgsflux
 
 
 def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=False,
-             recalc_w=True, hor_avg=False, avg_dims=None, fluxnames=None, w=None):
+             hor_avg=False, avg_dims=None, fluxnames=None, w=None):
 
     print("Comute resolved tendencies")
 
@@ -727,8 +732,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
 
     #calculate tendencies from sgs fluxes and corrections
-    sgs = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac, **stagger_const)
-    sources["sgs"] = sgs.sum("dir", skipna=False)
+    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac, **stagger_const)
 
     var_stag = xr.Dataset()
     #get variable staggered in flux direction
@@ -737,15 +741,16 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
+        sgs = avg_xy(sgs, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
         var_stag = avg_xy(var_stag, avg_dims)
         grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)
         grid["Z_STAG"] = avg_xy(grid["Z_STAG"], avg_dims)
 
     sources = sources.to_array("comp")
-    sources_sum = sources.sum("comp")
+    sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)
 
-    return dat_mean, dat_inst, total_tend, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
+    return dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
 
 
 def build_mu(mut, ref, grid, cyclic=None):

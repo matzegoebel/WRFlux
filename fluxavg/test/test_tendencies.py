@@ -205,7 +205,7 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, 
                                                       hor_avg=hor_avg, avg_dims=avg_dims)
 
     #add all forcings
-    forcing = adv.sel(comp="tot", drop=True).sum("dir") + sources_sum
+    forcing = adv.sel(comp="adv_r", drop=True).sum("dir") + sources_sum
 
     return forcing, total_tend, adv, sgs, sgsflux, sources, flux, corr
 
@@ -230,7 +230,7 @@ def check_error(total_tend, forcing, attrs, var, cname, error, failed):
 
 def check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=False):
     for n in ["total_tend", "adv", "sgs", "sources",
-              "sgsflux['X']", "sgsflux['Y']", "sgsflux['Z']", "fluxes['X']", "fluxes['Y']", "fluxes['Z']"):
+              "sgsflux['X']", "sgsflux['Y']", "sgsflux['Z']", "fluxes['X']", "fluxes['Y']", "fluxes['Z']"]:
         dat = eval(n)
         if (n != "total tend") and cut_boundaries:
             bounds_v = create_bounds(dat)

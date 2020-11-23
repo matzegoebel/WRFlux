@@ -477,7 +477,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
 
     #advective tendency from fluxes
     adv = {}
-    fluxes = {"tot" : tot_flux, "mean" : mean_flux}
+    fluxes = {"adv_r" : tot_flux, "mean" : mean_flux}
     for comp, flux in fluxes.items():
         adv_i = xr.Dataset()
         mf = mapfac
@@ -519,8 +519,8 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
         adv[comp] = adv_i
 
     if hor_avg:
-        adv["tot"] = avg_xy(adv["tot"], avg_dims)
-        fluxes["tot"] = avg_xy(fluxes["tot"], avg_dims)
+        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims)
+        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims)
 
     keys = adv.keys()
     adv = xr.concat(adv.values(), "comp")
@@ -530,11 +530,11 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
     flux["comp"] = list(fluxes.keys())
 
     #resolved turbulent fluxes and tendencies
-    flux = flux.reindex(comp=["tot", "mean", "res"])
-    adv = adv.reindex(comp=["tot", "mean", "res"])
+    flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
+    adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
     for d in flux.data_vars:
-        flux[d].loc["res"] = flux[d].loc["tot"] - flux[d].loc["mean"]
-        adv.loc[d, "res"] = adv.loc[d, "tot"] - adv.loc[d, "mean"]
+        flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
+        adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]
 
     return flux, adv, vmean
 
@@ -544,7 +544,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
     print("Compute Cartesian corrections")
     #decompose cartesian corrections
     #total
-    corr = corr.to_array("dim").expand_dims(comp=["tot"]).reindex(comp=["tot", "mean", "res"])
+    corr = corr.to_array("dim").expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
     if hor_avg:
         corr = avg_xy(corr, avg_dims)
         rhodm = avg_xy(rhodm, avg_dims)
@@ -563,7 +563,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
         corr.loc["mean"][i] = rho_stag*vmean_stag*var_stag["Z"]*stagger_like(dzdd[du], **kw)
 
     #resolved turbulent part
-    corr.loc["res"] = corr.loc["tot"] - corr.loc["mean"]
+    corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
 
     #correction flux to tendency
     if "W" in VAR:
@@ -576,7 +576,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
     #apply corrections
     for i, d in enumerate(XY):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
-    tend = tend - dcorr_dz.sel(comp="tot", drop=True)[2]
+    tend = tend - dcorr_dz.sel(comp="adv_r", drop=True)[2]
 
     return adv, tend, corr
 
@@ -666,7 +666,6 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         mapfac["F" + d] = stagger_like(mf, flx, cyclic=cyclic)
 
     dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
-    #resolved vertical flux with diagnosed vertical velocity
 
     #density and dry air mass
     rhodm = dat_mean["RHOD_MEAN"]

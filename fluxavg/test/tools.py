@@ -713,6 +713,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         dat_mean["WD_MEAN"] = dat_mean["WD_MEAN"] + dzdd_s[d]*stagger_like(dat_mean[v + "_MEAN"], dzdd_s[d], cyclic=cyclic, **stagger_const)
 
     #height
+    grid["ZW"] = dat_mean["Z_MEAN"]
     grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], total_tend, cyclic=cyclic)
 
     #additional sources
@@ -748,8 +749,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         sgsflux = avg_xy(sgsflux, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
         var_stag = avg_xy(var_stag, avg_dims)
-        grid["MU_STAG"] = avg_xy(grid["MU_STAG"], avg_dims)
-        grid["Z_STAG"] = avg_xy(grid["Z_STAG"], avg_dims)
+        grid = avg_xy(grid, avg_dims)
 
     sources = sources.to_array("comp")
     sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)

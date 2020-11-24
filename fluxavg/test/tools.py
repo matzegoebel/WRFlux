@@ -448,22 +448,25 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, carte
     if fluxnames is None:
         fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
 
-    #get vertical velocity
-    if w is None:
-        if cartesian:
-            w = dat_mean["WD_MEAN"]
-        else:
-            w = dat_mean["WW_MEAN"]/(-g)
-    vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
-    if hor_avg:
-        for k in vmean.keys():
-            vmean[k] = avg_xy(vmean[k], avg_dims)
     tot_flux = dat_mean[fluxnames]
     tot_flux = tot_flux.rename(dict(zip(fluxnames, XYZ)))
     rhod8z = stagger_like(dat_mean["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **stagger_const)
     if not cartesian:
           tot_flux["Z"] = tot_flux["Z"] - (dat_mean["F{}X_CORR".format(VAR)] + \
               dat_mean["F{}Y_CORR".format(VAR)] + dat_mean["CORR_D{}DT".format(VAR)])/rhod8z
+
+    #get vertical velocity
+    if w is None:
+        if cartesian:
+            w = dat_mean["WD_MEAN"]
+        else:
+            rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top", dat_mean["bottom_top_stag"], **stagger_const)
+            w = dat_mean["WW_MEAN"]/(-g*rhod)
+
+    vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
+    if hor_avg:
+        for k in vmean.keys():
+            vmean[k] = avg_xy(vmean[k], avg_dims)
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()

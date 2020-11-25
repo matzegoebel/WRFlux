@@ -610,9 +610,10 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     attrs = dat_inst.attrs
     dat_inst.attrs = {}
 
-    #strip first time as it contains only zeros
+    #strip first time as dat_inst needs to be one time stamp longer
     dat_mean = dat_mean.sel(Time=dat_mean.Time[1:])
-
+    if len(dat_mean.Time) == 0:
+        raise ValueError("dat_mean is empty! Needs to contain at least two timestep initially!")
     if t_avg:
         avg_kwargs = dict(Time=t_avg_interval, coord_func={"Time" : partial(select_ind, indeces=-1)}, boundary="trim")
         dat_mean = dat_mean.coarsen(**avg_kwargs).mean()
@@ -640,7 +641,6 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
 
 def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=False, avg_dims=None):
     print("\nPrepare tendency calculations for {}".format(var.upper()))
-    dt = int(dat_mean.Time[1] - dat_mean.Time[0])*1e-9
 
     VAR = var.upper()
     dim_stag = None #for momentum: staggering dimension
@@ -695,6 +695,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attr
         dzdd[du] = diff(dat_mean["Z_MEAN"], d, dat_mean[d + "_stag"], cyclic=cyclic[d])/grid["D" + du]
 
     zw_inst = (dat_inst["PH"] + dat_inst["PHB"])/g
+    dt = int(dat_inst.Time[1] - dat_inst.Time[0])*1e-9
     dzdd["T"] = zw_inst.diff("Time")/dt
     for d in [*XY, "T"]:
         dzdd[d] = stagger_like(dzdd[d], total_tend, ignore=["bottom_top_stag"], cyclic=cyclic)

@@ -137,11 +137,11 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
                 print("Error in running simulations!")
                 continue
             dat_mean, dat_inst = load_data(IDi, conf.outpath, conf.outdir)
-            dat_mean, dat_inst, grid, cyclic, stagger_const, attrs = tools.prepare(dat_mean, dat_inst)
+            dat_mean, dat_inst, grid, cyclic, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
                 # check_bounds(dat_mean, attrs, var) #TODO: fix for open
                 forcing, total_tend, adv, sgs, sgsflux, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
-                        grid, cyclic, stagger_const, attrs, cartesian=cartesian, correct=True,
+                        grid, cyclic, attrs, cartesian=cartesian, correct=True,
                         hor_avg=hor_avg, avg_dims=avg_dims)
 
                 cut_boundaries_c = cut_boundaries
@@ -188,20 +188,20 @@ def load_data(IDi, outpath, outdir):
 
     return dat_mean, dat_inst
 
-def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, stagger_const, attrs, cartesian=False,
+def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, attrs, cartesian=False,
                    correct=True, hor_avg=False, avg_dims=None):
     VAR = var.upper()
 
     dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s \
-     = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, stagger_const, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
+     = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
-    flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, stagger_const, cartesian=cartesian,
+    flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=cartesian,
                                       hor_avg=hor_avg, avg_dims=avg_dims)
     corr = None
     if correct and cartesian:
         corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]]
-        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm,
-                                                      dzdd, grid, mapfac, adv, total_tend, cyclic, stagger_const,
+        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
+                                                      dzdd, grid, mapfac, adv, total_tend, cyclic,
                                                       hor_avg=hor_avg, avg_dims=avg_dims)
 
     #add all forcings

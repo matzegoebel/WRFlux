@@ -70,7 +70,7 @@ def fix_coords(data, dx, dy):
 
     return data
 
-def open_dataset(file, var=None, chunks=None, del_attrs=True,fix_c=True,ht=None, **kwargs):
+def open_dataset(file, var=None, chunks=None, del_attrs=True, fix_c=True, **kwargs):
     try:
         ds = xr.open_dataset(file, **kwargs)
     except ValueError as e:
@@ -89,8 +89,6 @@ def open_dataset(file, var=None, chunks=None, del_attrs=True,fix_c=True,ht=None,
     if chunks is not None:
         ds = chunk_data(ds, chunks)
 
-    if (ht is not None) and ("bottom_top" in ds.dims):
-        ds = ds.assign_coords(height=ht)
     if del_attrs:
         ds.attrs = {}
 

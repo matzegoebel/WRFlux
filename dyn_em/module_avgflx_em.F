@@ -548,12 +548,8 @@ CONTAINS
               rhoy = 0.5*(rho_d(i,k,j)+rho_d(i,k,j-1))
               rhoxy = 0.25*(rho_d(i,k,j)+rho_d(i,k,j-1)+rho_d(i-1,k,j)+rho_d(i-1,k,j-1))
               rhoz = rho8w(i,k,j)
-              call stagger_z(rhoxz, 0.5*(rho_d(i,:,j)+rho_d(i-1,:,j)),  &
-                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                             k, kms, kme, kde              )
-              call stagger_z(rhoyz, 0.5*(rho_d(i,:,j)+rho_d(i,:,j-1)),  &
-                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                             k, kms, kme, kde              )
+              rhoxz = 0.5*(rho8w(i,k,j)+rho8w(i-1,k,j))
+              rhoyz = 0.5*(rho8w(i,k,j)+rho8w(i,k,j-1))
             else
               rhox = 1
               rhoy = 1
@@ -732,28 +728,32 @@ CONTAINS
             ENDIF
 
             IF (config_flags%output_wres_fluxes) THEN
-                IF (k .eq. kts) THEN
-                    wx = 0
-                    wy = 0
-                    wz = 0
+                IF (k .eq. kte) THEN
+                    ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
+                    rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
+                    ww_d = ww(i,k-1,j)
                 ELSE
-                    IF (k .eq. kte) THEN
-                        ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
-                        rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
-                        ww_d = ww(i,k-1,j)
+                    IF (k .eq. kts) THEN
+                        !set to arbitrary value; wx,wy=0 set later
+                        ru_d = 1
+                        rv_d = 1
                     ELSE
                         ru_d = fnm(k)*ru(i,k,j)+fnp(k)*ru(i,k-1,j)
                         rv_d = fnm(k)*rv(i,k,j)+fnp(k)*rv(i,k-1,j)
-                        ww_d = 0.5*(ww(i,k,j)+ww(i,k+1,j))
                     ENDIF
+                    ww_d = 0.5*(ww(i,k,j)+ww(i,k+1,j))
+                ENDIF
 
-                    call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                                   fwx_adv, fwy_adv, fwz_adv,  &
-                                                   ru_d, rv_d, ww_d, W,        &
-                                                   cf1, cf2, cf3, cfn, cfn1, .true.,  &
-                                                   i, j, k,                           &
-                                                   ids, ide, jds, jde, kds, kde,      &
-                                                   ims, ime, jms, jme, kms, kme       )
+                call get_staggered_from_fluxes(wx, wy, wz,                 &
+                                               fwx_adv, fwy_adv, fwz_adv,  &
+                                               ru_d, rv_d, ww_d, W,        &
+                                               cf1, cf2, cf3, cfn, cfn1, .true.,  &
+                                               i, j, k,                           &
+                                               ids, ide, jds, jde, kds, kde,      &
+                                               ims, ime, jms, jme, kms, kme       )
+                IF (k .eq. kts) THEN
+                    wx = 0
+                    wy = 0
                 ENDIF
 
                 !compute cartesian corrections

@@ -160,6 +160,29 @@ def dropna_dims(dat, dims=None, how="all", **kwargs):
 
     return dat
 
+def max_error_scaled(dat, ref):
+    """
+    Compute maximum absolute error of input data with respect to reference data
+    and scale by range of reference data.
+
+    Parameters
+    ----------
+    dat : array
+        input data.
+    ref : array
+        reference data.
+
+    Returns
+    -------
+    float
+        maximum scaled error.
+
+    """
+
+    err = abs(dat - ref)
+    value_range = ref.max() - ref.min()
+    return float(err.max()/value_range)
+
 #%%manipulate datasets
 
 def select_ind(a, axis=0, indeces=0):
@@ -769,36 +792,64 @@ def build_mu(mut, ref, grid, cyclic=None):
         mu = grid["C1F"]*mu + grid["C2F"]
     return mu
 #%% plotting
-
 def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
-    print("scatter plot")
-    pdat = xr.concat([tend, forcing], "comp")
+    fig = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
+    if var in tex_names:
+        tex_name = tex_names[var]
+    else:
+        tex_name = var
+    xlabel = "Total ${}$ tendency".format(tex_name)
+    ylabel = "Total ${}$ forcing".format(tex_name)
+    if plot_diff:
+        ylabel += " - " + xlabel
+    units = " ({})".format(units_dict_tend[var])
+    plt.xlabel(xlabel + units)
+    plt.ylabel(ylabel + units)
+
+    if title is None:
+        title = fname
+    fig.suptitle(title)
+
+    if savefig:
+        fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
+
+
+def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
+    pdat = xr.concat([dat1, dat2], "concat_dim")
 
     if plot_diff:
         pdat[1] = pdat[1] - pdat[0]
+    if hue != "eta":
+        n_hue = len(pdat[hue])
+        hue_int = np.arange(n_hue)
+        pdat = pdat.assign_coords(hue=(hue, hue_int))
     pdatf = pdat[0].stack(s=pdat[0].dims)
 
     #set color
+    cmap = "cool"
     if hue == "eta":
         if "bottom_top" in dir(pdatf):
             color = -pdatf.bottom_top
         else:
             color = -pdatf.bottom_top_stag
-    elif hue == "Time":
-        color = pdatf.Time
-    elif hue == "x":
-        color = pdatf.x
-    elif hue == "y":
-        color = pdatf.y
     else:
-        raise ValueError("Hue {} not supported".format(hue))
+        color = pdatf[hue]
+        try:
+            color.astype(int) #check if hue is numeric
+            color = (color - color.min())/(color.max() - color.min())
+            discrete = False
+        except:
+            cmap = plt.get_cmap("tab10", n_hue)
+            if n_hue > 10:
+                raise ValueError("Too many different hue values for cmap tab10!")
+            discrete = True
+            color = pdatf["hue"]
 
-    if hue != "eta":
-        color = (color - color.min())/(color.max() - color.min())
+
+    kwargs.setdefault("cmap", cmap)
 
     fig, ax = plt.subplots()
     kwargs.setdefault("s", 10)
-    kwargs.setdefault("cmap", "cool")
     p = plt.scatter(pdat[0], pdat[1], c=color.values, **kwargs)
 
     for i in [0,1]:
@@ -812,18 +863,6 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
         ax.set_xlim(minmax)
         ax.set_ylim(minmax)
 
-    if var in tex_names:
-        tex_name = tex_names[var]
-    else:
-        tex_name = var
-    xlabel = "Total ${}$ tendency".format(tex_name)
-    ylabel = "Total ${}$ forcing".format(tex_name)
-    if plot_diff:
-        ylabel += " - " + xlabel
-    units = " ({})".format(units_dict_tend[var])
-    plt.xlabel(xlabel + units)
-    plt.ylabel(ylabel + units)
-
     #colorbar
     cax = fig.add_axes([0.84,0.1,0.1,0.8], frameon=False)
     cax.set_yticks([])
@@ -833,21 +872,17 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
         cb.set_ticks(np.arange(-0.8,-0.2,0.2))
         cb.set_ticklabels(np.linspace(0.8,0.2,4).round(1))
     else:
-        plt.colorbar(p,ax=cax,label="hour")
+        cb = plt.colorbar(p,ax=cax,label=hue)
+        if discrete:
+            d = (n_hue-1)/n_hue
+            cb.set_ticks(np.arange(d/2, n_hue-1, d))
+            cb.set_ticklabels(pdat[hue].values)
 
     #error labels
-    err = abs(tend - forcing)
+    err = abs(dat1 - dat2)
     rmse = (err**2).mean().values**0.5
-    r2 = np.corrcoef(tend.values.flatten(), forcing.values.flatten())[1,0]
+    r2 = np.corrcoef(dat1.values.flatten(), dat2.values.flatten())[1,0]
     ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.3f}".format(rmse, r2), horizontalalignment='left',
              verticalalignment='bottom', transform=ax.transAxes)
-
-
-    if title is None:
-        title = fname
-    fig.suptitle(title)
-
-    if savefig:
-        fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
 
     return fig

@@ -78,9 +78,9 @@ state   real    fvx_adv_mean       ikj    dyn_em            1               XY  
 state   real    fvy_adv_mean       ikj    dyn_em            1               -               h{24} "FVY_ADV_MEAN"            "time-averaged advective y-momentum flux in y direction"   "m2 s-2"
 state   real    fvz_adv_mean       ikj    dyn_em            1               YZ              h{24} "FVZ_ADV_MEAN"            "time-averaged advective y-momentum flux in z direction"   "m2 s-2"
 
-state   real    fwx_adv_mean       ikj    dyn_em            1               XZ              h{24} "FWX_ADV_MEAN"            "time-averaged advective w-momentum flux in x direction"   "m2 s-2"
-state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective w-momentum flux in y direction"   "m2 s-2"
-state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective w-momentum flux in z direction"   "m2 s-2"
+state   real    fwx_adv_mean       ikj    dyn_em            1               XZ              h{24} "FWX_ADV_MEAN"            "time-averaged advective z-momentum flux in x direction"   "m2 s-2"
+state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective z-momentum flux in y direction"   "m2 s-2"
+state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective z-momentum flux in z direction"   "m2 s-2"
 
 #other instantaneous variables
 state   real    w_diag               ikj      dyn_em         1               Z               h "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"

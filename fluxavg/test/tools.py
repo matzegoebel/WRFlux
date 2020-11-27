@@ -475,6 +475,8 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=False,
         else:
             vel_stag = stagger_like(vmean[d], ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
             var_stag_d = var_stag[d]
+            if (VAR == "W") and (d in XY):
+                vel_stag[{"bottom_top_stag" : 0}] = 0
             mean_flux[d] = var_stag_d*vel_stag
 
     #advective tendency from fluxes
@@ -627,6 +629,9 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
 
     dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
     dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
+
+    dat_mean = dat_mean.rename(ZWIND_MEAN="W_MEAN")
+
     #select start and end points of averaging intervals
     dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
     for v in dat_inst.coords:

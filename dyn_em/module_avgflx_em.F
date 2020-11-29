@@ -370,7 +370,7 @@ CONTAINS
 
 
     REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d, th
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    thd, dzdt, u8w, v8w, rho8w
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    thd, dzdt, u8w, v8w, rho8w, rw_diag, zxu, zyv
 
     INTEGER :: i,j,k
     REAL :: local_count, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                      &
@@ -384,13 +384,12 @@ CONTAINS
             fwx_dfac, fwy_dfac, fwz_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
-            zx_s, zy_s, u_s, v_s, rho_s, dzdt_s, &
-            ftx_corr, fty_corr, corr_dtdt, &
-            fqx_corr, fqy_corr, corr_dqdt, &
-            fux_corr, fuy_corr, corr_dudt, &
-            fvx_corr, fvy_corr, corr_dvdt, &
-            fwx_corr, fwy_corr, corr_dwdt, &
+            zx_s, zy_s, u_s, v_s, rho_s,    &
+            rzxu, rzyv, rdzdt, &
             mu, dphidn
+
+    REAL :: rw_diag_s
+
 
     local_count = real(avgflx_count)
 
@@ -454,6 +453,20 @@ CONTAINS
             call stagger_z(rho8w(i,k,j), rho_d(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            k, kms, kme, kde              )
+        ENDDO
+        ENDDO
+        ENDDO
+        DO j=jts-1,jte+1
+        DO k=kts,kte
+        DO i=its-1,ite+1
+            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
+            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
+            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
+            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
+            zxu(i,k,j) = zx_s*u_s
+            zyv(i,k,j) = zy_s*v_s
+            w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g)
+            rw_diag(i,k,j) = w_diag(i,k,j)*rho8w(i,k,j)
         ENDDO
         ENDDO
         ENDDO
@@ -559,16 +572,7 @@ CONTAINS
               rhoyz = 1
             endif
 
-            !destagger to masspoints
-            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
-            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
-            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
-            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-            dzdt_s = dzdt(i,k,j)
             rho_s = rho8w(i,k,j)
-
-            w_diag(i,k,j) = dzdt_s + zx_s*u_s + zy_s*v_s + ww(i,k,j)/(-rho_s*g)
-
             !determine staggered variables from total fluxes
             IF (config_flags%output_tres_fluxes) THEN
                 call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
@@ -579,10 +583,10 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,        &
                                                ims, ime, jms, jme, kms, kme         )
 
-                !compute cartesian corrections
-                ftx_corr = rho_s*zx_s*u_s*thetaz
-                fty_corr = rho_s*zy_s*v_s*thetaz
-                corr_dtdt = rho_s*dzdt_s*thetaz
+                !for cartesian corrections
+                rzxu = rho_s*zxu(i,k,j)
+                rzyv = rho_s*zyv(i,k,j)
+                rdzdt = rho_s*dzdt(i,k,j)
 
                 !build averages
                 T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + thd(i,k,j)*rhom )/(local_count+1.)/rho_mean
@@ -598,10 +602,10 @@ CONTAINS
                 ENDIF
                 FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)*fqx_dfac
                 FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)*fqy_dfac
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac
-                FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + ftx_corr )/(local_count+1.)
-                FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + fty_corr )/(local_count+1.)
-                CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + corr_dtdt )/(local_count+1.)
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac !TODOm: how to account for small in mean fluxes?
+                FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/(local_count+1.)
+                FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/(local_count+1.)
+                CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/(local_count+1.)
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
                   FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
@@ -619,11 +623,13 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,             &
                                                ims, ime, jms, jme, kms, kme              )
 
-                !compute cartesian corrections
-                fqx_corr = rho_s*zx_s*u_s*qz
-                fqy_corr = rho_s*zy_s*v_s*qz
-                corr_dqdt = rho_s*dzdt_s*qz
-
+                !for cartesian corrections
+                rzxu = rho_s*zxu(i,k,j)
+                rzyv = rho_s*zyv(i,k,j)
+                rdzdt = rho_s*dzdt(i,k,j)
+                !use ww_m instead of ww
+                rw_diag_s = rho8w(i,k,j)*(dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j)) + ww_m(i,k,j)*msfty(i,j)/(-g)
+                !TODOm: check if using rw_diag has same error than previous solution!
                 !build averages
                 Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean
@@ -656,17 +662,12 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
 
-                !compute cartesian corrections
-                zx_s = zx(i,k,j)
-                zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i-1,k,j) + zy(i-1,k,j+1))
-                u_s = u8w(i,k,j)
-                v_s = 0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
-                dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i-1,k,j))
                 rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
-
-                fux_corr = rho_s*zx_s*u_s*uz
-                fuy_corr = rho_s*zy_s*v_s*uz
-                corr_dudt = rho_s*dzdt_s*uz
+                !for cartesian corrections
+                rzxu = rho_s*0.5*(zxu(i-1,k,j)+zxu(i,k,j))
+                rzyv = rho_s*0.5*(zyv(i-1,k,j)+zyv(i,k,j))
+                rdzdt = rho_s*0.5*(dzdt(i-1,k,j)+dzdt(i,k,j))
+                rw_diag_s = 0.5*(rw_diag(i,k,j) + rw_diag(i-1,k,j))
 
                 !build averages
                 UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
@@ -674,15 +675,10 @@ CONTAINS
                 UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
                 FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)*fux_dfac
                 FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)*fuy_dfac
-                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + fuz_adv(i,k,j) )/(local_count+1.)*fuz_dfac
-                FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + fux_corr )/(local_count+1.)
-                FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + fuy_corr )/(local_count+1.)
-                CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + corr_dudt )/(local_count+1.)
-                IF (last_timestep) THEN
-                  !add corrections to vertical flux
-                  FUZ_ADV_MEAN(i,k,j) = (FUZ_ADV_MEAN(i,k,j) + FUX_CORR_MEAN(i,k,j) + FUY_CORR_MEAN(i,k,j) + &
-                                         CORR_DUDT_MEAN(i,k,j) )/rhoxz_mean_flx
-                ENDIF
+                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + rw_diag_s*uz )/(local_count+1.)/rhoxz_mean_flx
+                FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + rzxu*uz )/(local_count+1.)
+                FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv*uz )/(local_count+1.)
+                CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt*uz )/(local_count+1.)
             ENDIF
 
             IF (config_flags%output_vres_fluxes) THEN
@@ -698,17 +694,12 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
 
-                !compute cartesian corrections
-                zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k,j-1) + zx(i+1,k,j-1))
-                zy_s = zy(i,k,j)
-                u_s = 0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
-                v_s = v8w(i,k,j)
-                dzdt_s = 0.5*(dzdt(i,k,j-1) + dzdt(i,k,j-1))
                 rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
-
-                fvx_corr = rho_s*zx_s*u_s*vz
-                fvy_corr = rho_s*zy_s*v_s*vz
-                corr_dvdt = rho_s*dzdt_s*vz
+                !for cartesian corrections
+                rzxu = rho_s*0.5*(zxu(i,k,j-1)+zxu(i,k,j))
+                rzyv = rho_s*0.5*(zyv(i,k,j-1)+zyv(i,k,j))
+                rdzdt = rho_s*0.5*(dzdt(i,k,j-1)+dzdt(i,k,j))
+                rw_diag_s = 0.5*(rw_diag(i,k,j) + rw_diag(i,k,j-1))
 
                 !build averages
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
@@ -716,25 +707,20 @@ CONTAINS
                 VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
                 FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)*fvx_dfac
                 FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)*fvy_dfac
-                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + fvz_adv(i,k,j) )/(local_count+1.)*fvz_dfac
-                FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + fvx_corr )/(local_count+1.)
-                FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + fvy_corr )/(local_count+1.)
-                CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + corr_dvdt )/(local_count+1.)
-                IF (last_timestep) THEN
-                  !add corrections to vertical flux
-                  FVZ_ADV_MEAN(i,k,j) = (FVZ_ADV_MEAN(i,k,j) + FVX_CORR_MEAN(i,k,j) + FVY_CORR_MEAN(i,k,j) + &
-                                         CORR_DVDT_MEAN(i,k,j) )/rhoyz_mean_flx
-                ENDIF
+                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + rw_diag_s*vz )/(local_count+1.)/rhoyz_mean_flx
+                FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + rzxu*vz )/(local_count+1.)
+                FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv*vz )/(local_count+1.)
+                CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt*vz )/(local_count+1.)
             ENDIF
 
             IF (config_flags%output_wres_fluxes) THEN
                 IF (k .eq. kte) THEN
                     ru_d = (2.-fnm(k-1))*ru(i,k-1,j)-fnp(k-1)*ru(i,k-2,j)
                     rv_d = (2.-fnm(k-1))*rv(i,k-1,j)-fnp(k-1)*rv(i,k-2,j)
-                    ww_d = ww(i,k-1,j)
+                    ww_d = 0
                 ELSE
                     IF (k .eq. kts) THEN
-                        !set to arbitrary value; wx,wy=0 set later
+                        !set to arbitrary value; not needed
                         ru_d = 1
                         rv_d = 1
                     ELSE
@@ -751,44 +737,25 @@ CONTAINS
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
-                IF (k .eq. kts) THEN
-                    wx = 0
-                    wy = 0
-                ENDIF
 
-                !compute cartesian corrections
+                IF (k .gt. kts) THEN
+                    WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
+                    WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
+                    FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)*fwx_dfac
+                    FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)*fwy_dfac
+                ENDIF
                 IF (k .lt. kte) THEN
-                    !destagger in z and x/y direction
-                    zx_s = 0.25*(zx(i,k,j) + zx(i+1,k,j) + zx(i,k+1,j) + zx(i+1,k+1,j))
-                    zy_s = 0.25*(zy(i,k,j) + zy(i,k,j+1) + zy(i,k+1,j) + zy(i,k+1,j+1))
-                    u_s = 0.5*(U(i,k,j) + U(i+1,k,j))
-                    v_s = 0.5*(V(i,k,j) + V(i,k,j+1))
-                    dzdt_s = 0.5*(dzdt(i,k,j) + dzdt(i,k+1,j))
+                    !destagger in z direction
                     rho_s = rho_d(i,k,j)
-
-                    fwx_corr = rho_s*zx_s*u_s*wz
-                    fwy_corr = rho_s*zy_s*v_s*wz
-                    corr_dwdt = rho_s*dzdt_s*wz
-                ELSE
-                    fwx_corr = 0
-                    fwy_corr = 0
-                    corr_dwdt = 0
-                ENDIF
-
-                !build averages
-                WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
-                WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
-                WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
-                FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)*fwx_dfac
-                FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)*fwy_dfac
-                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + fwz_adv(i,k,j) )/(local_count+1.)*fwz_dfac
-                FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + fwx_corr )/(local_count+1.)
-                FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + fwy_corr )/(local_count+1.)
-                CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + corr_dwdt )/(local_count+1.)
-                IF (last_timestep) THEN
-                  !add corrections to vertical flux
-                  FWZ_ADV_MEAN(i,k,j) = (FWZ_ADV_MEAN(i,k,j) + FWX_CORR_MEAN(i,k,j) + FWY_CORR_MEAN(i,k,j) + &
-                                         CORR_DWDT_MEAN(i,k,j) )/rho_mean_flx
+                    rzxu = rho_s*0.5*(zxu(i,k+1,j)+zxu(i,k,j))
+                    rzyv = rho_s*0.5*(zyv(i,k+1,j)+zyv(i,k,j))
+                    rdzdt = rho_s*0.5*(dzdt(i,k+1,j)+dzdt(i,k,j))
+                    rw_diag_s = 0.5*(rw_diag(i,k+1,j) + rw_diag(i,k,j))
+                    WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
+                    FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + rw_diag_s*wz )/(local_count+1.)/rho_mean_flx
+                    FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + rzxu*wz )/(local_count+1.)
+                    FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + rzyv*wz )/(local_count+1.)
+                    CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt*wz )/(local_count+1.)
                 ENDIF
             ENDIF
 

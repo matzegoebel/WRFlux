@@ -786,7 +786,9 @@ def build_mu(mut, ref, grid, cyclic=None):
     return mu
 #%% plotting
 def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
-    fig = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
+    if title is None:
+        title = fname
+    fig, ax, cax = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
     if var in tex_names:
         tex_name = tex_names[var]
     else:
@@ -796,12 +798,8 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
     if plot_diff:
         ylabel += " - " + xlabel
     units = " ({})".format(units_dict_tend[var])
-    plt.xlabel(xlabel + units)
-    plt.ylabel(ylabel + units)
-
-    if title is None:
-        title = fname
-    fig.suptitle(title)
+    ax.set_xlabel(xlabel + units)
+    ax.set_ylabel(ylabel + units)
 
     if savefig:
         fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
@@ -809,6 +807,9 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
 
 def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
     pdat = xr.concat([dat1, dat2], "concat_dim")
+    err = abs(dat1 - dat2)
+    rmse = (err**2).mean().values**0.5
+    r2 = np.corrcoef(pdat[0].values.flatten(), pdat[1].values.flatten())[1,0]
 
     if plot_diff:
         pdat[1] = pdat[1] - pdat[0]
@@ -820,17 +821,18 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
 
     #set color
     cmap = "cool"
+    discrete = False
     if hue == "eta":
         if "bottom_top" in dir(pdatf):
             color = -pdatf.bottom_top
         else:
             color = -pdatf.bottom_top_stag
+    elif hue == "Time":
+        color = pdatf["hue"]
     else:
         color = pdatf[hue]
         try:
             color.astype(int) #check if hue is numeric
-            color = (color - color.min())/(color.max() - color.min())
-            discrete = False
         except:
             cmap = plt.get_cmap("tab10", n_hue)
             if n_hue > 10:
@@ -872,10 +874,9 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
             cb.set_ticklabels(pdat[hue].values)
 
     #error labels
-    err = abs(dat1 - dat2)
-    rmse = (err**2).mean().values**0.5
-    r2 = np.corrcoef(dat1.values.flatten(), dat2.values.flatten())[1,0]
-    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.3f}".format(rmse, r2), horizontalalignment='left',
+    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.5f}".format(rmse, r2), horizontalalignment='left',
              verticalalignment='bottom', transform=ax.transAxes)
+    if title is not None:
+        fig.suptitle(title)
 
-    return fig
+    return fig, ax, cax

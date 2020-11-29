@@ -480,7 +480,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=False,
     #get vertical velocity
     if w is None:
         if cartesian:
-            w = dat_mean["WD_MEAN"]
+            w = dat_mean["WD_MEAN_STAG"]
         else:
             rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top", dat_mean["bottom_top_stag"], **grid[stagger_const])
             w = dat_mean["WW_MEAN"]/(-g*rhod)
@@ -728,16 +728,9 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     for d in [*XY, "T"]:
         dzdd[d] = stagger_like(dzdd[d], total_tend, ignore=["bottom_top_stag"], cyclic=cyclic)
 
-    #vertically destagger for w
-    dzdd_s = dzdd.copy()
-    if var == "w":
-        dzdd_s = destagger(dzdd_s, "bottom_top_stag", grid["ZNU"])
 
-    #diagnostic vertically velocity, correctly staggered
-    dat_mean["WD_MEAN"] = dzdd_s["T"] +  stagger_like(dat_mean["WW_MEAN"]/(-g*rhodm8z), dzdd_s["T"], cyclic=cyclic, **grid[stagger_const])
-
-    for d,v in zip(XY, ["U","V"]):
-        dat_mean["WD_MEAN"] = dat_mean["WD_MEAN"] + dzdd_s[d]*stagger_like(dat_mean[v + "_MEAN"], dzdd_s[d], cyclic=cyclic, **grid[stagger_const])
+    # diagnostic vertically velocity, correctly staggered
+    dat_mean["WD_MEAN_STAG"] = stagger_like(dat_mean["WD_MEAN"],dat_mean["F{}Z_ADV_MEAN".format(var[0].upper())], cyclic=cyclic, **grid[stagger_const])
 
     #height
     grid["ZW"] = dat_mean["Z_MEAN"]
@@ -781,7 +774,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     sources = sources.to_array("comp")
     sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)
 
-    return dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s
+    return dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd
 
 
 def build_mu(mut, ref, grid, cyclic=None):

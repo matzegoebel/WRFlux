@@ -384,8 +384,7 @@ CONTAINS
             fwx_dfac, fwy_dfac, fwz_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
-            zx_s, zy_s, u_s, v_s, rho_s,    &
-            rzxu, rzyv, rdzdt, &
+            rho_s, rzxu, rzyv, rdzdt, &
             mu, dphidn
 
     REAL :: rw_diag_s
@@ -459,12 +458,9 @@ CONTAINS
         DO j=jts-1,jte+1
         DO k=kts,kte
         DO i=its-1,ite+1
-            zx_s = 0.5*(zx(i,k,j) + zx(i+1,k,j))
-            zy_s = 0.5*(zy(i,k,j) + zy(i,k,j+1))
-            u_s = 0.5*(u8w(i,k,j) + u8w(i+1,k,j))
-            v_s = 0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-            zxu(i,k,j) = zx_s*u_s
-            zyv(i,k,j) = zy_s*v_s
+            !diagnostic velocity
+            zxu(i,k,j) = 0.5*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))!TODOm: include map-scale factors??
+            zyv(i,k,j) = 0.5*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
             w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g)
             rw_diag(i,k,j) = w_diag(i,k,j)*rho8w(i,k,j)
         ENDDO

@@ -748,7 +748,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
             #convert sources from dry to moist theta
             sources = sources*(1 + rvovrd*dat_mean["Q_MEAN"])
             #add mp tendency
-            sources = sources + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*(dat_mean["T_MEAN"] + 300)
+            sources["mp"] = sources["mp"] + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*(dat_mean["T_MEAN"] + 300)
     elif var == "q":
         sources["mp"] = dat_mean["Q_TEND_MP_MEAN"]
     else:

@@ -78,9 +78,41 @@ state   real    fvx_adv_mean       ikj    dyn_em            1               XY  
 state   real    fvy_adv_mean       ikj    dyn_em            1               -               h{24} "FVY_ADV_MEAN"            "time-averaged advective y-momentum flux in y direction"   "m2 s-2"
 state   real    fvz_adv_mean       ikj    dyn_em            1               YZ              h{24} "FVZ_ADV_MEAN"            "time-averaged advective y-momentum flux in z direction"   "m2 s-2"
 
-state   real    fwx_adv_mean       ikj    dyn_em            1               XZ              h{24} "FWX_ADV_MEAN"            "time-averaged advective z-momentum flux in x direction"   "m2 s-2"
-state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective z-momentum flux in y direction"   "m2 s-2"
-state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective z-momentum flux in z direction"   "m2 s-2"
+state   real    fwx_adv_mean       ikj    dyn_em            1               XZ              h{24} "FWX_ADV_MEAN"            "time-averaged advective w-momentum flux in x direction"   "m2 s-2"
+state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective w-momentum flux in y direction"   "m2 s-2"
+state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective w-momentum flux in z direction"   "m2 s-2"
+
+state   real    ftx_adv_mean_2nd        ikj    dyn_em       1               X               h{24} "FTX_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in x direction using 2nd-order scheme"                  "K m s-1"
+state   real    fty_adv_mean_2nd        ikj    dyn_em       1               Y               h{24} "FTY_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in y direction using 2nd-order scheme"                  "K m s-1"
+state   real    ftz_adv_mean_2nd        ikj    dyn_em       1               Z               h{24} "FTZ_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in z direction using 2nd-order scheme"                  "K m s-1"
+state   real    ftz_adv_mean_prog       ikj    dyn_em       1               Z               h{24} "FTZ_ADV_MEAN_PROG"       "time-averaged advective dry/moist theta flux in z direction using prognostic w"                      "K m s-1"
+state   real    ftz_adv_mean_2nd_prog   ikj    dyn_em       1               Z               h{24} "FTZ_ADV_MEAN_2ND_PROG"   "time-averaged advective dry/moist theta flux in z direction using 2nd-order scheme and prognostic w" "K m s-1"
+
+state   real    fqx_adv_mean_2nd        ikj    dyn_em       1               X               h{24} "FQX_ADV_MEAN_2ND"        "time-averaged advective moisture flux in x direction using 2nd-order scheme"                  "m s-1"
+state   real    fqy_adv_mean_2nd        ikj    dyn_em       1               Y               h{24} "FQY_ADV_MEAN_2ND"        "time-averaged advective moisture flux in y direction using 2nd-order scheme"                  "m s-1"
+state   real    fqz_adv_mean_2nd        ikj    dyn_em       1               Z               h{24} "FQZ_ADV_MEAN_2ND"        "time-averaged advective moisture flux in z direction using 2nd-order scheme"                  "m s-1"
+state   real    fqz_adv_mean_prog       ikj    dyn_em       1               Z               h{24} "FQZ_ADV_MEAN_PROG"       "time-averaged advective moisture flux in z direction using prognostic w"                      "m s-1"
+state   real    fqz_adv_mean_2nd_prog   ikj    dyn_em       1               Z               h{24} "FQZ_ADV_MEAN_2ND_PROG"   "time-averaged advective moisture flux in z direction using 2nd-order scheme and prognostic w" "m s-1"
+
+state   real    fux_adv_mean_2nd        ikj    dyn_em       1               -               h{24} "FUX_ADV_MEAN_2ND"        "time-averaged advective x-momentum flux in x direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fuy_adv_mean_2nd        ikj    dyn_em       1               XY              h{24} "FUY_ADV_MEAN_2ND"        "time-averaged advective x-momentum flux in y direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fuz_adv_mean_2nd        ikj    dyn_em       1               XZ              h{24} "FUZ_ADV_MEAN_2ND"        "time-averaged advective x-momentum flux in z direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fuz_adv_mean_prog       ikj    dyn_em       1               XZ              h{24} "FUZ_ADV_MEAN_PROG"       "time-averaged advective x-momentum flux in z direction using prognostic w"                      "m2 s-2"
+state   real    fuz_adv_mean_2nd_prog   ikj    dyn_em       1               XZ              h{24} "FUZ_ADV_MEAN_2ND_PROG"   "time-averaged advective x-momentum flux in z direction using 2nd-order scheme and prognostic w" "m2 s-2"
+
+state   real    fvx_adv_mean_2nd        ikj    dyn_em       1               XY              h{24} "FVX_ADV_MEAN_2ND"        "time-averaged advective y-momentum in x direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fvy_adv_mean_2nd        ikj    dyn_em       1               -               h{24} "FVY_ADV_MEAN_2ND"        "time-averaged advective y-momentum in y direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fvz_adv_mean_2nd        ikj    dyn_em       1               YZ              h{24} "FVZ_ADV_MEAN_2ND"        "time-averaged advective y-momentum in z direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fvz_adv_mean_prog       ikj    dyn_em       1               YZ              h{24} "FVZ_ADV_MEAN_PROG"       "time-averaged advective y-momentum in z direction using prognostic w"                      "m2 s-2"
+state   real    fvz_adv_mean_2nd_prog   ikj    dyn_em       1               YZ              h{24} "FVZ_ADV_MEAN_2ND_PROG"   "time-averaged advective y-momentum in z direction using 2nd-order scheme and prognostic w" "m2 s-2"
+
+state   real    fwx_adv_mean_2nd        ikj    dyn_em       1               XZ              h{24} "FWX_ADV_MEAN_2ND"        "time-averaged advective z-momentum flux in x direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fwy_adv_mean_2nd        ikj    dyn_em       1               YZ              h{24} "FWY_ADV_MEAN_2ND"        "time-averaged advective z-momentum flux in y direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fwz_adv_mean_2nd        ikj    dyn_em       1               -               h{24} "FWZ_ADV_MEAN_2ND"        "time-averaged advective z-momentum flux in z direction using 2nd-order scheme"                  "m2 s-2"
+state   real    fwz_adv_mean_prog       ikj    dyn_em       1               -               h{24} "FWZ_ADV_MEAN_PROG"       "time-averaged advective z-momentum flux in z direction using prognostic w"                      "m2 s-2"
+state   real    fwz_adv_mean_2nd_prog   ikj    dyn_em       1               -               h{24} "FWZ_ADV_MEAN_2ND_PROG"   "time-averaged advective z-momentum flux in z direction using 2nd-order scheme and prognostic w" "m2 s-2"
+
+
 
 #other instantaneous variables
 state   real    w_diag               ikj      dyn_em         1               Z               h "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"
@@ -137,6 +169,25 @@ state   real    fwx_corr          ikj    dyn_em         1               -       
 state   real    fwy_corr          ikj    dyn_em         1               -               h{24} "FWY_CORR"           "time-averaged correction flux for w advection in y direction"  "kg m-1 s-2"
 state   real    corr_dwdt         ikj    dyn_em         1               -               h{24} "CORR_DWDT"          "time-averaged correction flux for w tendency"  "kg m-1 s-2"
 
+state   real    ftx_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTX_CORR_2ND"       "time-averaged correction flux for 2nd-order theta advection in x direction"  "kg m-2 K s-1"
+state   real    fty_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTY_CORR_2ND"       "time-averaged correction flux for 2nd-order theta advection in y direction"  "kg m-2 K s-1"
+state   real    corr_dtdt_2nd     ikj    dyn_em         1               Z               h{24} "CORR_DTDT_2ND"      "time-averaged correction flux for 2nd-order theta tendency"  "kg m-2 K s-1"
+
+state   real    fqx_corr_2nd      ikj    dyn_em         1               Z               h{24} "FQX_CORR_2ND"       "time-averaged correction flux for 2nd-order moisture advection in x direction"  "kg m-2 s-1"
+state   real    fqy_corr_2nd      ikj    dyn_em         1               Z               h{24} "FQY_CORR_2ND"       "time-averaged correction flux for 2nd-order moisture advection in y direction"  "kg m-2 s-1"
+state   real    corr_dqdt_2nd     ikj    dyn_em         1               Z               h{24} "CORR_DQDT_2ND"      "time-averaged correction flux for 2nd-order moisture tendency"  "kg m-2 s-1"
+
+state   real    fux_corr_2nd      ikj    dyn_em         1               XZ              h{24} "FUX_CORR_2ND"       "time-averaged correction flux for 2nd-order u advection in x direction"  "kg m-1 s-2"
+state   real    fuy_corr_2nd      ikj    dyn_em         1               XZ              h{24} "FUY_CORR_2ND"       "time-averaged correction flux for 2nd-order u advection in y direction"  "kg m-1 s-2"
+state   real    corr_dudt_2nd     ikj    dyn_em         1               XZ              h{24} "CORR_DUDT_2ND"      "time-averaged correction flux for 2nd-order u tendency"  "kg m-1 s-2"
+
+state   real    fvx_corr_2nd      ikj    dyn_em         1               YZ              h{24} "FVX_CORR_2ND"       "time-averaged correction flux for 2nd-order v advection in x direction"  "kg m-1 s-2"
+state   real    fvy_corr_2nd      ikj    dyn_em         1               YZ              h{24} "FVY_CORR_2ND"       "time-averaged correction flux for 2nd-order v advection in y direction"  "kg m-1 s-2"
+state   real    corr_dvdt_2nd     ikj    dyn_em         1               YZ              h{24} "CORR_DVDT_2ND"      "time-averaged correction flux for 2nd-order v tendency"  "kg m-1 s-2"
+
+state   real    fwx_corr_2nd      ikj    dyn_em         1               -               h{24} "FWX_CORR_2ND"       "time-averaged correction flux for 2nd-order w advection in x direction"  "kg m-1 s-2"
+state   real    fwy_corr_2nd      ikj    dyn_em         1               -               h{24} "FWY_CORR_2ND"       "time-averaged correction flux for 2nd-order w advection in y direction"  "kg m-1 s-2"
+state   real    corr_dwdt_2nd     ikj    dyn_em         1               -               h{24} "CORR_DWDT_2ND"      "time-averaged correction flux for 2nd-order w tendency"  "kg m-1 s-2"
 
 # mean SGS turbulent quantities
 
@@ -205,6 +256,11 @@ rconfig  integer  output_q_fluxes          namelist,dynamics    1         0     
 rconfig  integer  output_u_fluxes          namelist,dynamics    1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_v_fluxes          namelist,dynamics    1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_w_fluxes          namelist,dynamics    1         0                    - "output_w_fluxes"   "Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_t_fluxes_add      namelist,dynamics    1         0                    - "output_t_fluxes_add"   "Output additional theta-fluxes using 2nd order advection and/or prognostic w"
+rconfig  integer  output_q_fluxes_add      namelist,dynamics    1         0                    - "output_q_fluxes_add"   "Output additional moisture fluxes using 2nd order advection and/or prognostic w"
+rconfig  integer  output_u_fluxes_add      namelist,dynamics    1         0                    - "output_u_fluxes_add"   "Output additional u-fluxes advection using 2nd order and/or prognostic w"
+rconfig  integer  output_v_fluxes_add      namelist,dynamics    1         0                    - "output_v_fluxes_add"   "Output additional v-fluxes advection using 2nd order and/or prognostic w"
+rconfig  integer  output_w_fluxes_add      namelist,dynamics    1         0                    - "output_w_fluxes_add"   "Output additional w-fluxes advection using 2nd order and/or prognostic w"
 rconfig  logical  hesselberg_avg           namelist,dynamics    1         .true.               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
 rconfig  logical  output_dry_theta_fluxes  namelist,dynamics    1         .true.               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
 
@@ -229,19 +285,24 @@ rconfig  logical  output_wres_fluxes   derived    1  .false.  -   "output_wres_f
 package  mean_th_1      output_t_fluxes==1       -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp
 package  mean_th_2      output_t_fluxes==2       -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt
 package  mean_th_3      output_t_fluxes==3       -  state:rhod_mean,mut_mean,z_mean,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean
+package  mean_th_add    output_t_fluxes_add==1   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftz_adv_mean_prog,ftz_adv_mean_2nd_prog,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd
 
 package  mean_q_1       output_q_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,q_tend_mp_mean
 package  mean_q_2       output_q_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt
 package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean
+package  mean_q_add     output_q_fluxes_add==1    -  state:fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd,fqz_adv_mean_prog,fqz_adv_mean_2nd_prog,fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd
 
 package  mean_u_1       output_u_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean,u_tend_pg,u_tend_pg_mean,u_tend_cor_curv,u_tend_cor_curv_mean
 package  mean_u_2       output_u_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt
 package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean
+package  mean_u_add     output_u_fluxes_add==1    -  state:fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd,fuz_adv_mean_prog,fuz_adv_mean_2nd_prog,fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd
 
 package  mean_v_1       output_v_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,v_tend_pg,v_tend_pg_mean,v_tend_cor_curv,v_tend_cor_curv_mean
 package  mean_v_2       output_v_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt
 package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean
+package  mean_v_add     output_v_fluxes_add==1    -  state:fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd,fvz_adv_mean_prog,fvz_adv_mean_2nd_prog,fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd
 
 package  mean_w_1       output_w_fluxes==1        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,w_tend_pg,w_tend_pg_mean,w_tend_cor_curv,w_tend_cor_curv_mean
 package  mean_w_2       output_w_fluxes==2        -  state:w_diag,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt
 package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean
+package  mean_w_add     output_w_fluxes_add==1    -  state:fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd,fwz_adv_mean_prog,fwz_adv_mean_2nd_prog,fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd

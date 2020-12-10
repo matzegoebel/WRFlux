@@ -18,16 +18,15 @@ from run_wrf import misc_tools
 '''Simulations settings'''
 params = {} #parameter dict for params not used in param_grid
 
-fpath = os.path.realpath(__file__)
-fpath = fpath[:fpath.index("/fluxavg")]
-wrf_dir_pre = fpath.split("/")[-1] #prefix for WRF build directory (_debug or _mpi are appended automatically)
 ideal_case = "em_les" #idealized WRF case
 runID = "pytest" #name for this simulation series
 
-outpath = os.environ["wrf_res"] #WRF output path root
-outdir = "test/" + runID #subdirectory for WRF output if not set in command line
-run_path = os.environ["wrf_runs"] + "/" + runID #path where run directories of simulations will be created
+outpath = os.environ["wrf_res"] + "/test/" + runID #WRF output path root
+run_path = os.environ["wrf_runs"] + "/test/" + runID #path where run directories of simulations will be created
 build_path = os.environ["wrf_builds"] #path where different versions of the compiled WRF model code reside
+serial_build = "WRF_fluxmod" #used if nslots=1
+parallel_build = "WRF_fluxmod_mpi" #used if nslots > 1
+debug_build = "WRF_fluxmod_debug" #used for -d option
 
 # runID += "_new"
 o = np.arange(2,7)
@@ -120,7 +119,8 @@ del_args =   ["output_streams", "start_time", "end_time", "dz0", "dz_method", "m
 #%%
 
 nslots_dict = {} #set number of slots for each dx
-min_n_per_proc = 30 #25, minimum number of grid points per processor
+min_nx_per_proc = 30 #25, minimum number of grid points per processor
+min_ny_per_proc = 30 #25, minimum number of grid points per processor
 even_split = False #force equal split between processors
 module_load = ""
 #%%

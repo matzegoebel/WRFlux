@@ -465,7 +465,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
 def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=False,
              hor_avg=False, avg_dims=None, fluxnames=None, w=None):
 
-    print("Comute resolved tendencies")
+    print("Compute resolved tendencies")
 
     if fluxnames is None:
         fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
@@ -804,6 +804,7 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
     if savefig:
         fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
 
+    return fig
 
 def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
     pdat = xr.concat([dat1, dat2], "concat_dim")

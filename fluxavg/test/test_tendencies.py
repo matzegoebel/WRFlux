@@ -32,7 +32,7 @@ XY = ["X", "Y"]
 exist = "s"
 
 thresh_thdry = 0.02
-thresh = 0.005
+thresh = 0.01
 
 variables = ["q", "t", "u", "v", "w"]
 # variables = ["w"]
@@ -58,7 +58,7 @@ def test_decomp():
      #Define parameter grid for simulations
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
-    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False]}
+    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
     param_grids["km_opt"] = odict(hesselberg_avg=[True])
     # param_grids["km_opt"] = odict(spec_hfx=[0.2])
     # param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
@@ -76,14 +76,15 @@ def test_decomp():
     return error, failed
 
 def test_budget_all():
-    import config_test as conf
+    import config_test_tendencies as conf
 
     setup_test_init_module(conf)
 
     #Define parameter grid for simulations
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
-    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False]}
+    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
+    param_grids["km_opt"] = odict(hesselberg_avg=[True,False])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     o = np.arange(2,7)
@@ -98,7 +99,7 @@ def test_budget_all():
     return error, failed
 
 def test_budget_bc():
-    import config_test as conf
+    import config_test_tendencies as conf
 
     #Define parameter grid for simulations
     param_grids = {}
@@ -110,7 +111,7 @@ def test_budget_bc():
 
     return error, failed
 
-def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=False, avg_dims=None):
+def run_and_check_budget(param_grids, conf, config_file="config_test_tendencies", hor_avg=False, avg_dims=None):
     #%%run_and_check_budget
     failed = {}
     error = pd.DataFrame(columns=variables)
@@ -136,7 +137,7 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
             if "wrf: SUCCESS COMPLETE WRF" not in log:
                 print("Error in running simulations!")
                 continue
-            dat_mean, dat_inst = load_data(IDi, conf.outpath, conf.outdir)
+            dat_mean, dat_inst = load_data(os.path.join(conf.outpath, IDi), comb["start_time"])
             dat_mean, dat_inst, grid, cyclic, attrs = tools.prepare(dat_mean, dat_inst)
             for var in variables:
                 # check_bounds(dat_mean, attrs, var) #TODO: fix for open
@@ -158,7 +159,7 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
 
                 check_error(total_tend, forcing, attrs, var, cname, error, failed)
                 if var in ["t", "q"]:
-                    r = np.corrcoef(dat_mean["WD_MEAN"].values.flatten(), dat_mean["ZWIND_MEAN"].values.flatten())[0,1]
+                    r = np.corrcoef(dat_mean["WD_MEAN"].values.flatten(), dat_mean["W_MEAN"].values.flatten())[0,1]
                     if r < 0.9:
                         print("WARNING: diagnostic and prognostic w are poorly correlated!")
                 #check for nans
@@ -166,7 +167,7 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
                     check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
 
 
-    print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}".format(error.to_string()))
+    print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}\n\n".format(error.to_string()))
     if failed != {}:
         message = "Reconstructed forcing deviates strongly from actual tendency for following runs/variables:\n{}"\
                            .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()]))
@@ -177,9 +178,9 @@ def run_and_check_budget(param_grids, conf, config_file="config_test", hor_avg=F
 #%%
     return error, failed
 #%% postprocess data
-def load_data(IDi, outpath, outdir):
-    dat_inst = tools.open_dataset(os.path.join(outpath, outdir) + "/instout_{}_0".format(IDi), del_attrs=False)
-    dat_mean = tools.open_dataset(os.path.join(outpath, outdir) + "/meanout_{}_0".format(IDi))
+def load_data(outpath, start_time):
+    dat_inst = tools.open_dataset("{}_0/instout_d01_{}".format(outpath, start_time), del_attrs=False)
+    dat_mean = tools.open_dataset("{}_0/meanout_d01_{}".format(outpath, start_time))
 
     const_vars = ["ZNW", "ZNU", "DN", "DNW", "FNM", "FNP", "CFN1", "CFN", "CF1", "CF2", "CF3", "C1H", "C2H", "C1F", "C2F"]
     for v in dat_inst.data_vars:
@@ -192,7 +193,7 @@ def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, attrs, cartesian=False
                    correct=True, hor_avg=False, avg_dims=None):
     VAR = var.upper()
 
-    dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd, dzdd_s \
+    dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd \
      = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
     flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=cartesian,
@@ -285,7 +286,7 @@ def setup_test_init_module(conf, restore=False):
     fpath = os.path.realpath(__file__)
     test_path = fpath[:fpath.index("test_tendencies.py")]
     fname = "module_initialize_ideal.F"
-    wrf_path = "{}/{}".format(conf.build_path, conf.wrf_dir_pre)
+    wrf_path = "{}/{}".format(conf.build_path, conf.serial_build)
     fpath = wrf_path + "/dyn_em/" + fname
     with open(fpath) as f:
         org_file = f.read()
@@ -316,4 +317,4 @@ def create_bounds(data):
 if __name__ == "__main__":
     error, failed = test_budget_all()
     error_bc, failed_bc = test_budget_bc()
-    error_d, failed_d = test_decomp()
+    # error_d, failed_d = test_decomp()

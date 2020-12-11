@@ -1364,6 +1364,7 @@ END SUBROUTINE diagnose_w
 
 SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
                    ph, ph_old, phb, w,              &
+                   dph_x, dph_y, dph_n,             &
                    mut, muuf, muvf,                 &
                    c1f, c2f,                        &
                    fnm, fnp,                        &
@@ -1373,6 +1374,7 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
                    msftx, msfty,                    &
                    non_hydrostatic,                 &
                    config_flags,                    &
+                   rk_step,                         &
                    ids, ide, jds, jde, kds, kde,    &
                    ims, ime, jms, jme, kms, kme,    &
                    its, ite, jts, jte, kts, kte    )
@@ -1395,6 +1397,8 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(INOUT) :: ph_tend
 
+   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y, dph_n
+
    REAL, DIMENSION( ims:ime, jms:jme ), INTENT(IN   ) :: muuf, muvf, mut,   &
                                                             msfux, msfuy, &
                                                             msfvx, msfvy, &
@@ -1409,16 +1413,18 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    REAL,  INTENT(IN   ) :: cfn, cfn1, rdx, rdy
 
    LOGICAL,  INTENT(IN   )  ::  non_hydrostatic
+   INTEGER,  INTENT(IN   )  ::  rk_step
 
    ! Local stuff
 
    INTEGER :: i, j, k, itf, jtf, ktf, kz, i_start, j_start
    REAL    :: ur, ul, ub, vr, vl, vb
    REAL, DIMENSION(its:ite,kts:kte) :: wdwn
+   REAL, DIMENSION( its:ite, kts:kte, jts:jte ) :: ph_tend_old
 
    INTEGER :: advective_order
 
-   LOGICAL :: specified
+   LOGICAL :: specified, get_ph_tend_comps
 
 !<DESCRIPTION>
 !
@@ -1433,6 +1439,12 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    if(config_flags%specified .or. config_flags%nested) specified = .true.
 
    advective_order = config_flags%h_sca_adv_order
+
+   IF ((config_flags%output_res_fluxes) .and. (rk_step == config_flags%rk_ord)) THEN
+     get_ph_tend_comps = .true.
+   ELSE
+     get_ph_tend_comps = .false.
+   ENDIF
 
    itf=MIN(ite,ide-1)
    jtf=MIN(jte,jde-1)
@@ -1454,6 +1466,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
 ! advective form for the geopotential equation
 
+   IF (get_ph_tend_comps) THEN
+      DO j = jts, jtf
+      DO k = 2, kte-1
+      DO i = its, itf
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
    DO j = jts, jtf
 
      DO k = 2, kte
@@ -1473,6 +1495,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
      ENDDO
 
    ENDDO
+
+   !TODOM: only do for rk_order = 3?
+   IF (get_ph_tend_comps) THEN
+      DO j = jts, jtf
+      DO k = 2, kte-1
+      DO i = its, itf
+         dph_n(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    IF (non_hydrostatic) THEN  ! add in "gw" term.
    DO j = jts, jtf            ! in hydrostatic mode, "gw" will be diagnosed
@@ -1506,7 +1539,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    jtf=MIN(jte,jde-1)
 
    IF ( (config_flags%open_ys .or. specified) .and. jts == jds ) j_start = jts+1
-   IF ( (config_flags%open_ye .or. specified) .and. jte == jde ) jtf = jtf-2
+   IF ( (config_flags%open_ye .or. specified) .and. jte == jde ) jtf = jte-2
+
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = i_start, itf
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -1531,6 +1574,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    ENDDO
 
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = i_start, itf
+         dph_y(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
 !  x (u) advection
 
    i_start = its
@@ -1539,7 +1592,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    jtf=MIN(jte,jde-1)
 
    IF ( (config_flags%open_xs .or. specified) .and. its == ids ) i_start = its+1
-   IF ( (config_flags%open_xe .or. specified) .and. ite == ide ) itf = itf-2
+   IF ( (config_flags%open_xe .or. specified) .and. ite == ide ) itf = ite-2
+
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = i_start, itf
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -1564,6 +1627,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    ENDDO
 
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = i_start, itf
+         dph_x(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
    ELSE IF (advective_order <= 4) THEN
 
 !  y (v) advection
@@ -1574,7 +1647,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    jtf=MIN(jte,jde-1)
 
    IF ( (config_flags%open_ys .or. specified) .and. jts == jds ) j_start = jts+2
-   IF ( (config_flags%open_ye .or. specified) .and. jte == jde ) jtf = jtf-3
+   IF ( (config_flags%open_ye .or. specified) .and. jte == jde ) jtf = jte-3
+
+   IF (get_ph_tend_comps) THEN
+      DO j = min(j_start,jts+1), max(jtf,jte-2)
+      DO k = 2, kte
+      DO i = i_start, itf
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -1656,6 +1739,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    END IF
 
+   IF (get_ph_tend_comps) THEN
+      DO j = min(j_start,jts+1), max(jtf,jte-2)
+      DO k = 2, kte
+      DO i = i_start, itf
+         dph_y(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
 !  x (u) advection
 
    i_start = its
@@ -1664,7 +1757,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    jtf=MIN(jte,jde-1)
 
    IF ( (config_flags%open_xs) .and. its == ids ) i_start = its+2
-   IF ( (config_flags%open_xe) .and. ite == ide ) itf = itf-3
+   IF ( (config_flags%open_xe) .and. ite == ide ) itf = ite-3
+
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = min(i_start,its+1), max(itf,ite-2)
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -1744,6 +1847,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    END IF
 
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = min(i_start,its+1), max(itf,ite-2)
+         dph_x(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
 !--------------------------
 
    ELSE IF (advective_order <= 6) THEN
@@ -1760,6 +1873,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    IF (config_flags%open_ys .or. specified ) j_start = max(jts,jds+3)
    IF (config_flags%open_ye .or. specified ) jtf     = min(jtf,jde-4)
+
+   IF (get_ph_tend_comps) THEN
+      DO j = min(j_start,jts+1), max(jtf,jte-2)
+      DO k = 2, kte
+      DO i = i_start, itf
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -1908,6 +2031,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    END IF
 
+   IF (get_ph_tend_comps) THEN
+      DO j = min(j_start,jts+1), max(jtf,jte-2)
+      DO k = 2, kte
+      DO i = i_start, itf
+         dph_y(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
 !  x (u) advection
 
    i_start = its
@@ -1917,6 +2050,16 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    IF (config_flags%open_xs .or. specified ) i_start = max(its,ids+3)
    IF (config_flags%open_xe .or. specified ) itf     = min(itf,ide-4)
+
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = min(i_start,its+1), max(itf,ite-2)
+         ph_tend_old(i,k,j) = ph_tend(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
    DO j = j_start, jtf
 
@@ -2050,12 +2193,21 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    END IF
 
+   IF (get_ph_tend_comps) THEN
+      DO j = j_start, jtf
+      DO k = 2, kte
+      DO i = min(i_start,its+1), max(itf,ite-2)
+         dph_x(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
+
    END IF  ! 6th order advection
 
 !  lateral open boundary conditions,
 !  start with north and south (y) boundaries
 
-   i_start = its
    itf=MIN(ite,ide-1)
 
    !  south
@@ -2063,6 +2215,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    IF ( (config_flags%open_ys) .and. jts == jds ) THEN
 
      j=jts
+     IF (get_ph_tend_comps) THEN
+        DO k = 2, kte
+        DO i = its,itf
+           ph_tend_old(i,k,j) = ph_tend(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
 
      DO k=2,kde
        kz = min(k,kde-1)
@@ -2075,6 +2234,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
        ENDDO
      ENDDO
 
+     IF (get_ph_tend_comps) THEN
+        DO k = 2, kte
+        DO i = its,itf
+           dph_y(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
    END IF
 
    ! north
@@ -2082,6 +2248,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    IF ( (config_flags%open_ye) .and. jte == jde ) THEN
 
      j=jte-1
+     IF (get_ph_tend_comps) THEN
+        DO k = 2, kte
+        DO i = its,itf
+           ph_tend_old(i,k,j) = ph_tend(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
 
      DO k=2,kde
        kz = min(k,kde-1)
@@ -2094,11 +2267,17 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
        ENDDO
      ENDDO
 
+     IF (get_ph_tend_comps) THEN
+        DO k = 2, kte
+        DO i = its,itf
+           dph_y(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
    END IF
 
    !  now the east and west (y) boundaries
 
-   j_start = its
    jtf=MIN(jte,jde-1)
 
    !  west
@@ -2106,6 +2285,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    IF ( (config_flags%open_xs) .and. its == ids ) THEN
 
      i=its
+     IF (get_ph_tend_comps) THEN
+        DO j = jts,jtf
+        DO k = 2, kte
+           ph_tend_old(i,k,j) = ph_tend(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
 
      DO j = jts,jtf
        DO k=2,kde-1
@@ -2126,6 +2312,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
                               +ul*(ph_old(i+1,k,j)-ph_old(i,k,j)))
      ENDDO
 
+     IF (get_ph_tend_comps) THEN
+        DO j = jts,jtf
+        DO k = 2, kte
+           dph_x(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
    END IF
 
    ! east
@@ -2133,6 +2326,13 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
    IF ( (config_flags%open_xe) .and. ite == ide ) THEN
 
      i = ite-1
+     IF (get_ph_tend_comps) THEN
+        DO j = jts,jtf
+        DO k = 2, kte
+           ph_tend_old(i,k,j) = ph_tend(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
 
      DO j = jts,jtf
        DO k=2,kde-1
@@ -2154,7 +2354,26 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
      ENDDO
 
+     IF (get_ph_tend_comps) THEN
+        DO j = jts,jtf
+        DO k = 2, kte
+           dph_x(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
+        ENDDO
+        ENDDO
+     ENDIF
    END IF
+
+   IF (get_ph_tend_comps) THEN
+      DO j = jts, jtf
+      DO k = 2, kte
+      DO i = its, itf
+         dph_x(i,k,j) = dph_x(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
+         dph_y(i,k,j) = dph_y(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
+         dph_n(i,k,j) = dph_n(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
+      ENDDO
+      ENDDO
+      ENDDO
+   ENDIF
 
   END SUBROUTINE rhs_ph
 

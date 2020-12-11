@@ -806,6 +806,7 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
+                         ,grid%dph_x, grid%dph_y, grid%dph_n                                                   &
                          ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
                          ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
                          ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
@@ -1716,6 +1717,38 @@ BENCH_START(small_step_finish_tim)
                                  grid%i_start(ij), grid%i_end(ij),  &
                                  grid%j_start(ij), grid%j_end(ij),  &
                                  k_start    , k_end                )
+
+         CALL set_physical_bc3d( ph_tend, 'w', config_flags,         &
+                               ids, ide, jds, jde, kds, kde,         &
+                               ims, ime, jms, jme, kms, kme,         &
+                               ips, ipe, jps, jpe, kps, kpe,         &
+                               grid%i_start(ij), grid%i_end(ij),     &
+                               grid%j_start(ij), grid%j_end(ij),     &
+                               k_start    , k_end                    )
+
+         CALL set_physical_bc3d( grid%dph_x, 'w', config_flags,      &
+                               ids, ide, jds, jde, kds, kde,         &
+                               ims, ime, jms, jme, kms, kme,         &
+                               ips, ipe, jps, jpe, kps, kpe,         &
+                               grid%i_start(ij), grid%i_end(ij),     &
+                               grid%j_start(ij), grid%j_end(ij),     &
+                               k_start    , k_end                    )
+
+         CALL set_physical_bc3d( grid%dph_y, 'w', config_flags,      &
+                               ids, ide, jds, jde, kds, kde,         &
+                               ims, ime, jms, jme, kms, kme,         &
+                               ips, ipe, jps, jpe, kps, kpe,         &
+                               grid%i_start(ij), grid%i_end(ij),     &
+                               grid%j_start(ij), grid%j_end(ij),     &
+                               k_start    , k_end                    )
+
+         CALL set_physical_bc3d( grid%dph_n, 'w', config_flags,      &
+                               ids, ide, jds, jde, kds, kde,         &
+                               ims, ime, jms, jme, kms, kme,         &
+                               ips, ipe, jps, jpe, kps, kpe,         &
+                               grid%i_start(ij), grid%i_end(ij),     &
+                               grid%j_start(ij), grid%j_end(ij),     &
+                               k_start    , k_end                    )
 
          CALL set_physical_bc2d( grid%mut, 't', config_flags,   &
                                  ids, ide, jds, jde,               &
@@ -4720,7 +4753,8 @@ BENCH_END(bc_2d_tim)
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
               &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
               &   grid%t_2, moist(:,:,:,P_QV),                                                      &
-              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy,                                 &
+              &   grid%ph_1, grid%ph_2, grid%phb, ph_tend, grid%zx, grid%zy,                   &
+              &   grid%dph_x, grid%dph_y, grid%dph_n,                                               &
               &   grid%dnw, grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                       &
               &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,            &
               &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                       &

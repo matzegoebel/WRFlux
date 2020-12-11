@@ -376,7 +376,8 @@ CONTAINS
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & U, V, W, ru, rv, ww, thm, Q,                                                            &
-       & ph_1, ph_2, phb, zx, zy,                                                                &
+       & ph_1, ph_2, phb, ph_tend, zx, zy,                                                       &
+       & dph_x, dph_y, dph_n,                                                                    &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
@@ -442,7 +443,8 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, V, W, ru, rv, ww,  &
-         thm, Q, ph_1, ph_2, phb, zx, zy,  &
+         thm, Q, ph_1, ph_2, phb, ph_tend, zx, zy,  &
+         dph_x, dph_y, dph_n,           &
          ftx_adv, fty_adv, ftz_adv,     &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -505,7 +507,7 @@ CONTAINS
       !calculate dry density
       mu = c1h(k)*mut(i,j)+c2h(k)
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
-      rho_d(i,k,j) = mu/(-dphidn) !TODOm: use grid%rho?
+      rho_d(i,k,j) = -mu/dphidn
       RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/(local_count+1.)
       IF (config_flags%output_tres_fluxes) THEN
           IF ( config_flags%use_theta_m .EQ. 1 ) THEN
@@ -547,7 +549,7 @@ CONTAINS
         DO j=jts-1,jte+1
         DO k=kts,kte
         DO i=its-1,ite+1
-            dzdt(i,k,j) = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
+            dzdt(i,k,j) = ph_tend(i,k,j)/g*msfty(i,j)/(c1f(k)*mut(i,j) + c2f(k))!TODOm:remove ph_1; boundary vals available?
             call stagger_z(u8w(i,k,j), U(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            k, kms, kme, kde              )
@@ -560,13 +562,19 @@ CONTAINS
         ENDDO
         ENDDO
         ENDDO
-        DO j=jts-1,jte+1
+        DO j=jts-1,jte
         DO k=kts,kte
-        DO i=its-1,ite+1
+        DO i=its-1,ite
             !diagnostic velocity
-            zxu(i,k,j) = 0.5*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))!TODOm: include map-scale factors??
-            zyv(i,k,j) = 0.5*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
-            w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g)
+            IF (k .eq. kts) THEN
+                zxu(i,k,j) = 0.5*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))!TODOm: include map-scale factors??
+                zyv(i,k,j) = 0.5*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
+            ELSE
+                zxu(i,k,j) = -dph_x(i,k,j)/g!TODOm: include map-scale factors??
+                zyv(i,k,j) = -dph_y(i,k,j)/g
+            ENDIF
+
+            w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) -dph_n(i,k,j)/g !ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g) !
             rw_diag(i,k,j) = w_diag(i,k,j)*rho8w(i,k,j)
         ENDDO
         ENDDO
@@ -749,7 +757,6 @@ CONTAINS
                 rdzdt = rho_s*dzdt(i,k,j)
                 !use ww_m instead of ww
                 rw_diag_s = rho8w(i,k,j)*(dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j)) + ww_m(i,k,j)*msfty(i,j)/(-g)
-                !TODOm: check if using rw_diag has same error than previous solution!
                 !build averages
                 Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean

@@ -1718,37 +1718,63 @@ BENCH_START(small_step_finish_tim)
                                  grid%j_start(ij), grid%j_end(ij),  &
                                  k_start    , k_end                )
 
-         CALL set_physical_bc3d( ph_tend, 'w', config_flags,         &
-                               ids, ide, jds, jde, kds, kde,         &
-                               ims, ime, jms, jme, kms, kme,         &
-                               ips, ipe, jps, jpe, kps, kpe,         &
-                               grid%i_start(ij), grid%i_end(ij),     &
-                               grid%j_start(ij), grid%j_end(ij),     &
-                               k_start    , k_end                    )
+         IF (config_flags%output_res_fluxes) THEN
+            CALL set_physical_bc3d( ph_tend, 'w', config_flags,         &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
 
-         CALL set_physical_bc3d( grid%dph_x, 'w', config_flags,      &
-                               ids, ide, jds, jde, kds, kde,         &
-                               ims, ime, jms, jme, kms, kme,         &
-                               ips, ipe, jps, jpe, kps, kpe,         &
-                               grid%i_start(ij), grid%i_end(ij),     &
-                               grid%j_start(ij), grid%j_end(ij),     &
-                               k_start    , k_end                    )
+            CALL set_physical_bc3d( grid%dph_x, 'w', config_flags,      &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
 
-         CALL set_physical_bc3d( grid%dph_y, 'w', config_flags,      &
-                               ids, ide, jds, jde, kds, kde,         &
-                               ims, ime, jms, jme, kms, kme,         &
-                               ips, ipe, jps, jpe, kps, kpe,         &
-                               grid%i_start(ij), grid%i_end(ij),     &
-                               grid%j_start(ij), grid%j_end(ij),     &
-                               k_start    , k_end                    )
+            CALL set_physical_bc3d( grid%dph_y, 'w', config_flags,      &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
 
-         CALL set_physical_bc3d( grid%dph_n, 'w', config_flags,      &
-                               ids, ide, jds, jde, kds, kde,         &
-                               ims, ime, jms, jme, kms, kme,         &
-                               ips, ipe, jps, jpe, kps, kpe,         &
-                               grid%i_start(ij), grid%i_end(ij),     &
-                               grid%j_start(ij), grid%j_end(ij),     &
-                               k_start    , k_end                    )
+            CALL set_physical_bc3d( grid%dph_n, 'w', config_flags,      &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+
+            CALL set_physical_bc3d( grid%u_save, 'u', config_flags,     &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+
+            CALL set_physical_bc3d( grid%v_save, 'v', config_flags,     &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+
+            CALL set_physical_bc3d( w_save, 'w', config_flags,          &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+         ENDIF
 
          CALL set_physical_bc2d( grid%mut, 't', config_flags,   &
                                  ids, ide, jds, jde,               &
@@ -4751,9 +4777,9 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg,grid%u_tend_cor_curv,                                              &
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
-              &   grid%u_2, grid%v_2, grid%w_2, grid%ru, grid%rv, ww1,                              &
+              &   grid%u_2, grid%u_save, grid%v_2, grid%v_save, grid%w_2, w_save, grid%ru, grid%rv, ww1,                              &
               &   grid%t_2, moist(:,:,:,P_QV),                                                      &
-              &   grid%ph_1, grid%ph_2, grid%phb, ph_tend, grid%zx, grid%zy,                   &
+              &   grid%ph_2, grid%phb, ph_tend, grid%zx, grid%zy,                                   &
               &   grid%dph_x, grid%dph_y, grid%dph_n,                                               &
               &   grid%dnw, grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                       &
               &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,            &

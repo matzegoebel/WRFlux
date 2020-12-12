@@ -375,8 +375,8 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & U, V, W, ru, rv, ww, thm, Q,                                                            &
-       & ph_1, ph_2, phb, ph_tend, zx, zy,                                                       &
+       & U, u_save, V, v_save, W, w_save, ru, rv, ww, thm, Q,                                                            &
+       & ph_2, phb, ph_tend, zx, zy,                                                             &
        & dph_x, dph_y, dph_n,                                                                    &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -442,8 +442,8 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
-         U, V, W, ru, rv, ww,  &
-         thm, Q, ph_1, ph_2, phb, ph_tend, zx, zy,  &
+         U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
+         thm, Q, ph_2, phb, ph_tend, zx, zy,  &
          dph_x, dph_y, dph_n,           &
          ftx_adv, fty_adv, ftz_adv,     &
          fqx_adv, fqy_adv, fqz_adv,        &
@@ -549,11 +549,11 @@ CONTAINS
         DO j=jts-1,jte+1
         DO k=kts,kte
         DO i=its-1,ite+1
-            dzdt(i,k,j) = ph_tend(i,k,j)/g*msfty(i,j)/(c1f(k)*mut(i,j) + c2f(k))!TODOm:remove ph_1; boundary vals available?
-            call stagger_z(u8w(i,k,j), U(i,:,j),  &
+            dzdt(i,k,j) = ph_tend(i,k,j)/g*msfty(i,j)/(c1f(k)*mut(i,j) + c2f(k))
+            call stagger_z(u8w(i,k,j), u_save(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            k, kms, kme, kde              )
-            call stagger_z(v8w(i,k,j), V(i,:,j),  &
+            call stagger_z(v8w(i,k,j), v_save(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            k, kms, kme, kde              )
             call stagger_z(rho8w(i,k,j), rho_d(i,:,j),  &
@@ -732,8 +732,8 @@ CONTAINS
                     ENDIF
                     FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j) + ( ru(i,k,j)*thetax2 ) )/(local_count+1.)*fqx_dfac
                     FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j) + ( rv(i,k,j)*thetay2 ) )/(local_count+1.)*fqy_dfac
-                    FTZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND_PROG(i,k,j) + ( W(i,k,j)*thetaz2*rho8w(i,k,j) ) )/(local_count+1.)/rhoz_mean_flx
-                    FTZ_ADV_MEAN_PROG(i,k,j) = (local_count*FTZ_ADV_MEAN_PROG(i,k,j) + ( W(i,k,j)*thetaz*rho8w(i,k,j)  ) )/(local_count+1.)/rhoz_mean_flx
+                    FTZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND_PROG(i,k,j) + ( w_save(i,k,j)*thetaz2*rho8w(i,k,j) ) )/(local_count+1.)/rhoz_mean_flx
+                    FTZ_ADV_MEAN_PROG(i,k,j) = (local_count*FTZ_ADV_MEAN_PROG(i,k,j) + ( w_save(i,k,j)*thetaz*rho8w(i,k,j)  ) )/(local_count+1.)/rhoz_mean_flx
                     FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j) + ( rw_diag(i,k,j)*thetaz2 ) )/(local_count+1.)/rhoz_mean_flx
                     FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu*thetaz2 )/(local_count+1.)
                     FTY_CORR_MEAN_2ND(i,k,j) = (local_count*FTY_CORR_MEAN_2ND(i,k,j) + rzyv*thetaz2 )/(local_count+1.)
@@ -782,8 +782,8 @@ CONTAINS
 
                     FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/(local_count+1.)*fqx_dfac
                     FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/(local_count+1.)*fqy_dfac
-                    FQZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND_PROG(i,k,j) + ( W(i,k,j)*qz2*rho8w(i,k,j) ) )/(local_count+1.)/rhoz_mean_flx
-                    FQZ_ADV_MEAN_PROG(i,k,j) = (local_count*FQZ_ADV_MEAN_PROG(i,k,j) + ( W(i,k,j)*qz*rho8w(i,k,j)  ) )/(local_count+1.)/rhoz_mean_flx
+                    FQZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND_PROG(i,k,j) + ( w_save(i,k,j)*qz2*rho8w(i,k,j) ) )/(local_count+1.)/rhoz_mean_flx
+                    FQZ_ADV_MEAN_PROG(i,k,j) = (local_count*FQZ_ADV_MEAN_PROG(i,k,j) + ( w_save(i,k,j)*qz*rho8w(i,k,j)  ) )/(local_count+1.)/rhoz_mean_flx
                     FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/(local_count+1.)/rhoz_mean_flx
                     FQX_CORR_MEAN_2ND(i,k,j) = (local_count*FQX_CORR_MEAN_2ND(i,k,j) + rzxu*qz2 )/(local_count+1.)
                     FQY_CORR_MEAN_2ND(i,k,j) = (local_count*FQY_CORR_MEAN_2ND(i,k,j) + rzyv*qz2 )/(local_count+1.)
@@ -798,7 +798,7 @@ CONTAINS
                 ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
                 call get_staggered_from_fluxes(ux, uy, uz,                 &
                                                fux_adv, fuy_adv, fuz_adv,  &
-                                               ru_d, rv_d, ww_d, U,        &
+                                               ru_d, rv_d, ww_d, u_save,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
@@ -824,14 +824,14 @@ CONTAINS
 
                 IF (config_flags%output_u_fluxes_add == 1) THEN
                     !2nd order and prognostic w fluxes
-                    ux2 = 0.5*(U(i+1,k,j) + U(i,k,j))
-                    uy2 = 0.5*(U(i,k,j-1) + U(i,k,j))
+                    ux2 = 0.5*(u_save(i+1,k,j) + u_save(i,k,j))
+                    uy2 = 0.5*(u_save(i,k,j-1) + u_save(i,k,j))
                     IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                      uz2 = (fnp(k)* U(i,k-1,j) + fnm(k)* U(i,k,j))
+                      uz2 = (fnp(k)* u_save(i,k-1,j) + fnm(k)* u_save(i,k,j))
                     ELSE
                       uz2 = uz
                     ENDIF
-                    w_s = 0.5*(W(i-1,k,j)+W(i,k,j))
+                    w_s = 0.5*(w_save(i-1,k,j)+w_save(i,k,j))
                     FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/(local_count+1.)*fux_dfac
                     FUY_ADV_MEAN_2ND(i,k,j) = (local_count*FUY_ADV_MEAN_2ND(i,k,j) + rv_d*uy2 )/(local_count+1.)*fuy_dfac
                     FUZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FUZ_ADV_MEAN_2ND_PROG(i,k,j) + w_s*uz2*rho_s )/(local_count+1.)/rhoxz_mean_flx
@@ -850,7 +850,7 @@ CONTAINS
                 ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
                 call get_staggered_from_fluxes(vx, vy, vz,                 &
                                                fvx_adv, fvy_adv, fvz_adv,  &
-                                               ru_d, rv_d, ww_d, V,        &
+                                               ru_d, rv_d, ww_d, v_save,        &
                                                cf1, cf2, cf3, cfn, cfn1, .false., &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
@@ -876,14 +876,14 @@ CONTAINS
 
                 IF (config_flags%output_v_fluxes_add == 1) THEN
                     !2nd order and prognostic w fluxes
-                    vx2 = 0.5*(V(i-1,k,j) + V(i,k,j))
-                    vy2 = 0.5*(V(i,k,j+1) + V(i,k,j))
+                    vx2 = 0.5*(v_save(i-1,k,j) + v_save(i,k,j))
+                    vy2 = 0.5*(v_save(i,k,j+1) + v_save(i,k,j))
                     IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                      vz2 = (fnp(k)* V(i,k-1,j) + fnm(k)* V(i,k,j))
+                      vz2 = (fnp(k)* v_save(i,k-1,j) + fnm(k)* v_save(i,k,j))
                     ELSE
                       vz2 = vz
                     ENDIF
-                    w_s = 0.5*(W(i,k,j-1)+W(i,k,j))
+                    w_s = 0.5*(w_save(i,k,j-1)+w_save(i,k,j)) !TODOm: boundaries available?
                     FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/(local_count+1.)*fvx_dfac
                     FVY_ADV_MEAN_2ND(i,k,j) = (local_count*FVY_ADV_MEAN_2ND(i,k,j) + ( rv_d*vy2 ) )/(local_count+1.)*fvy_dfac
                     FVZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FVZ_ADV_MEAN_2ND_PROG(i,k,j) + w_s*vz2*rho_s )/(local_count+1.)/rhoyz_mean_flx
@@ -914,7 +914,7 @@ CONTAINS
 
                 call get_staggered_from_fluxes(wx, wy, wz,                 &
                                                fwx_adv, fwy_adv, fwz_adv,  &
-                                               ru_d, rv_d, ww_d, W,        &
+                                               ru_d, rv_d, ww_d, w_save,        &
                                                cf1, cf2, cf3, cfn, cfn1, .true.,  &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
@@ -943,18 +943,18 @@ CONTAINS
                 IF (config_flags%output_w_fluxes_add == 1) THEN
                     !2nd order and prognostic w fluxes
                     IF (k .gt. kts) THEN
-                        wx2 = 0.5*(W(i-1,k,j) + W(i,k,j))
-                        wy2 = 0.5*(W(i,k,j-1) + W(i,k,j))
+                        wx2 = 0.5*(w_save(i-1,k,j) + w_save(i,k,j))
+                        wy2 = 0.5*(w_save(i,k,j-1) + w_save(i,k,j))
                         FWX_ADV_MEAN_2ND(i,k,j) = (local_count*FWX_ADV_MEAN_2ND(i,k,j) + ru_d*wx2 )/(local_count+1.)*fwx_dfac
                         FWY_ADV_MEAN_2ND(i,k,j) = (local_count*FWY_ADV_MEAN_2ND(i,k,j) + rv_d*wy2 )/(local_count+1.)*fwy_dfac
                     ENDIF
                     IF (k .lt. kte) THEN
                         IF (k .lt. kte) THEN
-                            wz2 = 0.5*(W(i,k+1,j) + W(i,k,j))
+                            wz2 = 0.5*(w_save(i,k+1,j) + w_save(i,k,j))
                         ELSE
                             wz2 = wz
                         ENDIF
-                        w_s = 0.5*(W(i,k+1,j)+W(i,k,j))
+                        w_s = 0.5*(w_save(i,k+1,j)+w_save(i,k,j))
                         FWZ_ADV_MEAN_2ND_PROG(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND_PROG(i,k,j) + w_s*wz2*rho_s )/(local_count+1.)/rho_mean_flx
                         FWZ_ADV_MEAN_PROG(i,k,j) = (local_count*FWZ_ADV_MEAN_PROG(i,k,j) + w_s*wz*rho_s )/(local_count+1.)/rho_mean_flx
                         FWZ_ADV_MEAN_2ND(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*wz2 )/(local_count+1.)/rho_mean_flx

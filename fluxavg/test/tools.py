@@ -462,33 +462,53 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
     return sgs, sgsflux
 
 
-def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=False,
-             hor_avg=False, avg_dims=None, fluxnames=None, w=None):
+def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
+             cartesian=False, force_2nd_adv=False, recalc_w=True):
 
     print("Compute resolved tendencies")
 
-    if fluxnames is None:
-        fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
+    #get appropriate staggered variables, vertical velocity, and flux variables
+    var_stag = xr.Dataset()
+    fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
+    if force_2nd_adv:
+        fluxnames = [fn + "_2ND" for fn in fluxnames]
+        for d, f in zip(XYZ, fluxnames):
+            var_stag[d] = stagger_like(dat_mean["{}_MEAN".format(VAR)], dat_mean[f], cyclic=cyclic, **grid[stagger_const])
+    else:
+        for d in XYZ:
+            var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
+
+    if cartesian and (not recalc_w):
+        fluxnames[-1] += "_PROG"
+        w = dat_mean["W_MEAN"]
+    elif cartesian:
+        w = dat_mean["WD_MEAN_STAG"]
+    else:
+        rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top", dat_mean["bottom_top_stag"], **grid[stagger_const])
+        w = dat_mean["WW_MEAN"]/(-g*rhod)
+
+    print("fluxes: " + str(fluxnames))
+    if not all([f in dat_mean for f in fluxnames]):
+        print("Fluxes not available!")
+        return
+
+    vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
+    if hor_avg:
+        var_stag = avg_xy(var_stag, avg_dims)
+        for k in vmean.keys():
+            vmean[k] = avg_xy(vmean[k], avg_dims)
 
     tot_flux = dat_mean[fluxnames]
     tot_flux = tot_flux.rename(dict(zip(fluxnames, XYZ)))
     rhod8z = stagger_like(dat_mean["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **grid[stagger_const])
+
+    corr = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
+    if force_2nd_adv:
+        corr = [corri + "_2ND" for corri in corr]
+    corr = dat_mean[corr].to_array("dir")
+    corr["dir"] = ["X", "Y", "T"]
     if not cartesian:
-          tot_flux["Z"] = tot_flux["Z"] - (dat_mean["F{}X_CORR".format(VAR)] + \
-              dat_mean["F{}Y_CORR".format(VAR)] + dat_mean["CORR_D{}DT".format(VAR)])/rhod8z
-
-    #get vertical velocity
-    if w is None:
-        if cartesian:
-            w = dat_mean["WD_MEAN_STAG"]
-        else:
-            rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top", dat_mean["bottom_top_stag"], **grid[stagger_const])
-            w = dat_mean["WW_MEAN"]/(-g*rhod)
-
-    vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
-    if hor_avg:
-        for k in vmean.keys():
-            vmean[k] = avg_xy(vmean[k], avg_dims)
+          tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"])/rhod8z
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
@@ -563,7 +583,7 @@ def adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=False,
         flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
         adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]
 
-    return flux, adv, vmean
+    return flux, adv, vmean, var_stag, corr
 
 def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, grid, mapfac, adv, tend,
                           cyclic, hor_avg=False, avg_dims=None):
@@ -571,7 +591,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, dzdd, gri
     print("Compute Cartesian corrections")
     #decompose cartesian corrections
     #total
-    corr = corr.to_array("dim").expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
+    corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
     if hor_avg:
         corr = avg_xy(corr, avg_dims)
         rhodm = avg_xy(rhodm, avg_dims)
@@ -639,7 +659,7 @@ def prepare(dat_mean, dat_inst, t_avg=False, t_avg_interval=None):
     #strip first time as dat_inst needs to be one time stamp longer
     dat_mean = dat_mean.sel(Time=dat_mean.Time[1:])
     if len(dat_mean.Time) == 0:
-        raise ValueError("dat_mean is empty! Needs to contain at least two timestep initially!")
+        raise ValueError("dat_mean is empty! Needs to contain at least two timesteps initially!")
     if t_avg:
         avg_kwargs = dict(Time=t_avg_interval, coord_func={"Time" : partial(select_ind, indeces=-1)}, boundary="trim")
         dat_mean = dat_mean.coarsen(**avg_kwargs).mean()
@@ -758,23 +778,17 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     #calculate tendencies from sgs fluxes and corrections
     sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac)
 
-    var_stag = xr.Dataset()
-    #get variable staggered in flux direction
-    for d in XYZ:
-        var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
-
     if hor_avg:
         sources = avg_xy(sources, avg_dims)
         sgs = avg_xy(sgs, avg_dims)
         sgsflux = avg_xy(sgsflux, avg_dims)
         total_tend = avg_xy(total_tend, avg_dims)
-        var_stag = avg_xy(var_stag, avg_dims)
         grid = avg_xy(grid, avg_dims)
 
     sources = sources.to_array("comp")
     sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)
 
-    return dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd
+    return dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac, dzdd
 
 
 def build_mu(mut, ref, grid, cyclic=None):
@@ -806,7 +820,10 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
 
     return fig
 
-def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
+def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", iloc=None, title=None, **kwargs):
+    if iloc is not None:
+        dat1 = dat1[iloc]
+        dat2 = dat2[iloc]
     pdat = xr.concat([dat1, dat2], "concat_dim")
     err = abs(dat1 - dat2)
     rmse = (err**2).mean().values**0.5
@@ -847,6 +864,16 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", title=None, **kwargs):
     fig, ax = plt.subplots()
     kwargs.setdefault("s", 10)
     p = plt.scatter(pdat[0], pdat[1], c=color.values, **kwargs)
+    labels = []
+    for dat in [dat1, dat2]:
+        label = ""
+        if dat.name is not None:
+            label = dat.name
+            if "units" in dat.attrs:
+                label += " ({})".format(dat.units)
+        labels.append(label)
+    plt.xlabel(labels[0])
+    plt.ylabel(labels[1])
 
     for i in [0,1]:
         pdat = pdat.where(~pdat[i].isnull())

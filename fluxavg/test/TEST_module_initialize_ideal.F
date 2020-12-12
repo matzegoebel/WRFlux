@@ -974,10 +974,10 @@ CONTAINS
   ENDDO
   ENDDO
 
-  xs=ide/2 -3
-  xe=xs + 6
-  ys=jde/2 -3
-  ye=ys + 6
+  xs=ids
+  xe=ide
+  ys=jds
+  ye=jde
   mtn_ht = 500
 #ifdef MTN
   DO j=max(ys,jds),min(ye,jde-1)

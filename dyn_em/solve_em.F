@@ -37,6 +37,7 @@ SUBROUTINE solve_em ( grid , config_flags  &
                  ,halo_em_tracer_e_7_sub,halo_em_tracer_old_e_5_sub                        &
                  ,halo_em_tracer_old_e_7_sub,halo_em_sbm_sub,period_bdy_em_a_sub                           &
                  ,period_bdy_em_b3_sub,period_bdy_em_b_sub,period_bdy_em_chem2_sub         &
+                 ,period_bdy_em_flxmod_sub,halo_em_flxmod_sub                              &
                  ,period_bdy_em_chem_old_sub,period_bdy_em_chem_sub,period_bdy_em_d3_sub   &
                  ,period_bdy_em_d_sub,period_bdy_em_e_sub,period_bdy_em_moist2_sub         &
                  ,period_bdy_em_moist_old_sub,period_bdy_em_moist_sub                      &
@@ -1653,6 +1654,13 @@ BENCH_END(phys_bc_tim)
 
      END DO small_steps
 
+     IF ( (rk_step == rk_order) .and. (config_flags%output_res_fluxes) ) THEN
+#ifdef DM_PARALLEL
+#      include "HALO_EM_FLXMOD.inc"
+#      include "PERIOD_BDY_EM_FLXMOD.inc"
+#endif
+     ENDIF
+
      !$OMP PARALLEL DO   &
      !$OMP PRIVATE ( ij )
      DO ij = 1 , grid%num_tiles
@@ -1719,13 +1727,6 @@ BENCH_START(small_step_finish_tim)
                                  k_start    , k_end                )
 
          IF (config_flags%output_res_fluxes) THEN
-            CALL set_physical_bc3d( ph_tend, 'w', config_flags,         &
-                                  ids, ide, jds, jde, kds, kde,         &
-                                  ims, ime, jms, jme, kms, kme,         &
-                                  ips, ipe, jps, jpe, kps, kpe,         &
-                                  grid%i_start(ij), grid%i_end(ij),     &
-                                  grid%j_start(ij), grid%j_end(ij),     &
-                                  k_start    , k_end                    )
 
             CALL set_physical_bc3d( grid%dph_x, 'w', config_flags,      &
                                   ids, ide, jds, jde, kds, kde,         &
@@ -1736,30 +1737,6 @@ BENCH_START(small_step_finish_tim)
                                   k_start    , k_end                    )
 
             CALL set_physical_bc3d( grid%dph_y, 'w', config_flags,      &
-                                  ids, ide, jds, jde, kds, kde,         &
-                                  ims, ime, jms, jme, kms, kme,         &
-                                  ips, ipe, jps, jpe, kps, kpe,         &
-                                  grid%i_start(ij), grid%i_end(ij),     &
-                                  grid%j_start(ij), grid%j_end(ij),     &
-                                  k_start    , k_end                    )
-
-            CALL set_physical_bc3d( grid%dph_n, 'w', config_flags,      &
-                                  ids, ide, jds, jde, kds, kde,         &
-                                  ims, ime, jms, jme, kms, kme,         &
-                                  ips, ipe, jps, jpe, kps, kpe,         &
-                                  grid%i_start(ij), grid%i_end(ij),     &
-                                  grid%j_start(ij), grid%j_end(ij),     &
-                                  k_start    , k_end                    )
-
-            CALL set_physical_bc3d( grid%u_save, 'u', config_flags,     &
-                                  ids, ide, jds, jde, kds, kde,         &
-                                  ims, ime, jms, jme, kms, kme,         &
-                                  ips, ipe, jps, jpe, kps, kpe,         &
-                                  grid%i_start(ij), grid%i_end(ij),     &
-                                  grid%j_start(ij), grid%j_end(ij),     &
-                                  k_start    , k_end                    )
-
-            CALL set_physical_bc3d( grid%v_save, 'v', config_flags,     &
                                   ids, ide, jds, jde, kds, kde,         &
                                   ims, ime, jms, jme, kms, kme,         &
                                   ips, ipe, jps, jpe, kps, kpe,         &

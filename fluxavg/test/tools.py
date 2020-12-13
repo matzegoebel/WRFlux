@@ -797,7 +797,7 @@ def build_mu(mut, ref, grid, cyclic=None):
         mu = grid["C1F"]*mu + grid["C2F"]
     return mu
 #%% plotting
-def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
+def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
     if title is None:
         title = fname
     fig, ax, cax = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
@@ -818,10 +818,21 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="eta", savefig
 
     return fig
 
-def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", iloc=None, title=None, **kwargs):
+def scatter_hue(dat1, dat2, plot_diff=False, hue="bottom_top", discrete=False, iloc=None, loc=None, title=None, **kwargs):
     if iloc is not None:
+        for d, val in iloc.items():
+            if (d not in dat1.coords) and (d + "_stag" in dat1.coords):
+                iloc[d + "_stag"] = val
+                del iloc[d]
         dat1 = dat1[iloc]
         dat2 = dat2[iloc]
+    if loc is not None:
+        for d, val in loc.items():
+            if (d not in dat1.coords) and (d + "_stag" in dat1.coords):
+                loc[d + "_stag"] = val
+                del loc[d]
+        dat1 = dat1.loc[loc]
+        dat2 = dat2.loc[loc]
     pdat = xr.concat([dat1, dat2], "concat_dim")
     err = abs(dat1 - dat2)
     rmse = (err**2).mean().values**0.5
@@ -829,27 +840,28 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", iloc=None, title=None, *
 
     if plot_diff:
         pdat[1] = pdat[1] - pdat[0]
-    if hue != "eta":
-        n_hue = len(pdat[hue])
-        hue_int = np.arange(n_hue)
-        pdat = pdat.assign_coords(hue=(hue, hue_int))
+
+    if (hue not in pdat.coords) and (hue + "_stag" in pdat.coords):
+        hue = hue + "_stag"
+
+    n_hue = len(pdat[hue])
+    hue_int = np.arange(n_hue)
+    pdat = pdat.assign_coords(hue=(hue, hue_int))
     pdatf = pdat[0].stack(s=pdat[0].dims)
 
     #set color
     cmap = "cool"
-    discrete = False
-    if hue == "eta":
-        if "bottom_top" in dir(pdatf):
-            color = -pdatf.bottom_top
-        else:
-            color = -pdatf.bottom_top_stag
-    elif hue == "Time":
+    if ("bottom_top" in hue) and (not discrete):
+        color = -pdatf[hue]
+    elif (hue == "Time") and (not discrete):
         color = pdatf["hue"]
     else:
         color = pdatf[hue]
         try:
             color.astype(int) #check if hue is numeric
         except:
+            discrete = True
+        if discrete:
             cmap = plt.get_cmap("tab10", n_hue)
             if n_hue > 10:
                 raise ValueError("Too many different hue values for cmap tab10!")
@@ -867,6 +879,9 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", iloc=None, title=None, *
         label = ""
         if dat.name is not None:
             label = dat.name
+        elif "description" in dat.attrs:
+            label = dat.description
+        if label != "":
             if "units" in dat.attrs:
                 label += " ({})".format(dat.units)
         labels.append(label)
@@ -888,15 +903,22 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="eta", iloc=None, title=None, *
     cax = fig.add_axes([0.84,0.1,0.1,0.8], frameon=False)
     cax.set_yticks([])
     cax.set_xticks([])
-    if hue == "eta":
-        cb = plt.colorbar(p,ax=cax,label="$\eta$")
+    clabel = hue
+    if "bottom_top" in hue:
+        clabel = "$\eta$"
+    if ("bottom_top" in hue) and (not discrete):
+        cb = plt.colorbar(p,ax=cax,label=clabel)
         cb.set_ticks(np.arange(-0.8,-0.2,0.2))
         cb.set_ticklabels(np.linspace(0.8,0.2,4).round(1))
     else:
-        cb = plt.colorbar(p,ax=cax,label=hue)
+        cb = plt.colorbar(p,ax=cax,label=clabel)
         if discrete:
-            d = (n_hue-1)/n_hue
-            cb.set_ticks(np.arange(d/2, n_hue-1, d))
+            if n_hue > 1:
+                d = (n_hue-1)/n_hue
+                cb.set_ticks(np.arange(d/2, n_hue-1, d))
+            else:
+                cb.set_ticks([0])
+
             cb.set_ticklabels(pdat[hue].values)
 
     #error labels

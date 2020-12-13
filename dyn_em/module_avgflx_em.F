@@ -482,9 +482,9 @@ CONTAINS
             rhoxz_mean_flx, rhoyz_mean_flx, &
             mu_mean, mux_mean, muy_mean, muz_mean, muxy_mean, muxz_mean, muyz_mean,        &
             fqx_dfac, fqy_dfac, fqz_dfac, &
-            fux_dfac, fuy_dfac, fuz_dfac, &
-            fvx_dfac, fvy_dfac, fvz_dfac, &
-            fwx_dfac, fwy_dfac, fwz_dfac, &
+            fux_dfac, fuy_dfac, &
+            fvx_dfac, fvy_dfac, &
+            fwx_dfac, fwy_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             rho_s, rzxu, rzyv, rdzdt, &
@@ -604,13 +604,10 @@ CONTAINS
           fqz_dfac = 1.
           fux_dfac = 1.
           fuy_dfac = 1.
-          fuz_dfac = 1.
           fvx_dfac = 1.
           fvy_dfac = 1.
-          fvz_dfac = 1.
           fwx_dfac = 1.
           fwy_dfac = 1.
-          fwz_dfac = 1.
           IF (last_timestep) THEN
               !mean staggered densities to normalize fluxes
               rho_mean_flx = RHOD_MEAN(i,k,j)
@@ -632,10 +629,7 @@ CONTAINS
               muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
               fwx_dfac  = msfuy(i,j)/muxz_mean
               fwy_dfac  = msfvx(i,j)/muyz_mean
-              fwz_dfac  = msfty(i,j)/(-g)
-              fqz_dfac  = fwz_dfac
-              fuz_dfac  = msfuy(i,j)/(-g)
-              fvz_dfac  = msfvy(i,j)/(-g)
+              fqz_dfac  = msfty(i,j)/(-g)
               IF (k .lt. kde) THEN
                   !k=kde only relevant for vertically staggered variables
                   mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)

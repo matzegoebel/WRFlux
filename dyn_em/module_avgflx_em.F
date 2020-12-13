@@ -378,8 +378,7 @@ CONTAINS
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & U, u_save, V, v_save, W, w_save, ru, rv, ww, thm, Q,                                                            &
-       & ph_2, phb, ph_tend, zx, zy,                                                             &
-       & dph_x, dph_y, dph_n,                                                                    &
+       & ph_1, ph_2, phb, ph_tend, zx, zy, dph_x, dph_y,                                         &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
@@ -445,8 +444,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
-         thm, Q, ph_2, phb, ph_tend, zx, zy,  &
-         dph_x, dph_y, dph_n,           &
+         thm, Q, ph_1, ph_2, phb, ph_tend, zx, zy,  &
          ftx_adv, fty_adv, ftz_adv,     &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -459,7 +457,8 @@ CONTAINS
          ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
-    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_small, fty_small, ftz_small
+    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_small, fty_small, ftz_small, &
+                                                                            dph_x, dph_y
 
     REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
     REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
@@ -569,14 +568,12 @@ CONTAINS
         DO i=its-1,ite
             !diagnostic velocity
             IF (k .eq. kts) THEN
-                zxu(i,k,j) = 0.5*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))!TODOm: include map-scale factors??
-                zyv(i,k,j) = 0.5*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
-            ELSE
-                zxu(i,k,j) = -dph_x(i,k,j)/g!TODOm: include map-scale factors??
-                zyv(i,k,j) = -dph_y(i,k,j)/g
+                dph_x(i,k,j) = -g*0.5*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))
+                dph_y(i,k,j) = -g*0.5*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
             ENDIF
-
-            w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) -dph_n(i,k,j)/g !ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g) !
+            zxu(i,k,j) = -dph_x(i,k,j)/g
+            zyv(i,k,j) = -dph_y(i,k,j)/g
+            w_diag(i,k,j) = dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-rho8w(i,k,j)*g)
             rw_diag(i,k,j) = w_diag(i,k,j)*rho8w(i,k,j)
         ENDDO
         ENDDO

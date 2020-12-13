@@ -189,7 +189,7 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
-                         dph_x, dph_y, dph_n,                             &
+                         dph_x, dph_y,                                    &
                          u_tend_pg,u_tend_cor_curv,                       &
                          v_tend_pg,v_tend_cor_curv,                       &
                          w_tend_pg,w_tend_cor_curv,                       &
@@ -292,7 +292,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                          ph_tendf, &
                                                          cqw
 
-   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y, dph_n
+   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(  OUT) :: mu_tend, &
                                                                     mu_save
@@ -647,7 +647,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      END IF
 
      CALL rhs_ph( ph_tend, u, v, ww, ph, ph, phb, w, &
-                  dph_x, dph_y, dph_n,               &
+                  dph_x, dph_y,                      &
                   mut, muu, muv,                     &
                   c1f, c2f,                          &
                   fnm, fnp,                          &

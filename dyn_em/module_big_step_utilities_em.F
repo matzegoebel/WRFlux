@@ -1364,7 +1364,7 @@ END SUBROUTINE diagnose_w
 
 SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
                    ph, ph_old, phb, w,              &
-                   dph_x, dph_y, dph_n,             &
+                   dph_x, dph_y,                    &
                    mut, muuf, muvf,                 &
                    c1f, c2f,                        &
                    fnm, fnp,                        &
@@ -1397,7 +1397,7 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
    REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(INOUT) :: ph_tend
 
-   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y, dph_n
+   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y
 
    REAL, DIMENSION( ims:ime, jms:jme ), INTENT(IN   ) :: muuf, muvf, mut,   &
                                                             msfux, msfuy, &
@@ -1466,16 +1466,6 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
 
 ! advective form for the geopotential equation
 
-   IF (get_ph_tend_comps) THEN
-      DO j = jts, jtf
-      DO k = 2, kte-1
-      DO i = its, itf
-         ph_tend_old(i,k,j) = ph_tend(i,k,j)
-      ENDDO
-      ENDDO
-      ENDDO
-   ENDIF
-
    DO j = jts, jtf
 
      DO k = 2, kte
@@ -1495,17 +1485,6 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
      ENDDO
 
    ENDDO
-
-   !TODOM: only do for rk_order = 3?
-   IF (get_ph_tend_comps) THEN
-      DO j = jts, jtf
-      DO k = 2, kte-1
-      DO i = its, itf
-         dph_n(i,k,j) = ph_tend(i,k,j) - ph_tend_old(i,k,j)
-      ENDDO
-      ENDDO
-      ENDDO
-   ENDIF
 
    IF (non_hydrostatic) THEN  ! add in "gw" term.
    DO j = jts, jtf            ! in hydrostatic mode, "gw" will be diagnosed
@@ -2369,7 +2348,6 @@ SUBROUTINE rhs_ph( ph_tend, u, v, ww,               &
       DO i = its, itf
          dph_x(i,k,j) = dph_x(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
          dph_y(i,k,j) = dph_y(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
-         dph_n(i,k,j) = dph_n(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
       ENDDO
       ENDDO
       ENDDO

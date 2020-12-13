@@ -378,7 +378,7 @@ CONTAINS
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & U, u_save, V, v_save, W, w_save, ru, rv, ww, thm, Q,                                                            &
-       & ph_1, ph_2, phb, ph_tend, zx, zy, dph_x, dph_y,                                         &
+       & ph_1, ph_2, phb, zx, zy, dph_x, dph_y,                                                  &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
@@ -444,7 +444,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
-         thm, Q, ph_1, ph_2, phb, ph_tend, zx, zy,  &
+         thm, Q, ph_1, ph_2, phb, zx, zy,  &
          ftx_adv, fty_adv, ftz_adv,     &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -550,7 +550,7 @@ CONTAINS
         DO j=jts-1,jte+1
         DO k=kts,kte
         DO i=its-1,ite+1
-            dzdt(i,k,j) = ph_tend(i,k,j)/g*msfty(i,j)/(c1f(k)*mut(i,j) + c2f(k))
+            dzdt(i,k,j) = (ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
             call stagger_z(u8w(i,k,j), u_save(i,:,j),  &
                            cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                            k, kms, kme, kde              )

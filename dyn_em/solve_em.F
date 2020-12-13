@@ -4674,7 +4674,7 @@ BENCH_END(bc_2d_tim)
                  &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
                  &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
                  &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
-                 &   grid%rhod_mean,grid%mut_mean,grid%z_mean                                               )
+                 &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean                )
             CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
          ENDDO
    !$OMP END PARALLEL DO
@@ -4741,7 +4741,7 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
-              &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%w_diag,                             &
+              &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean,grid%w_diag,     &
               &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv,                                      &
               &   grid%ftx_small, grid%fty_small, grid%ftz_small,                                            &
               &   grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,                                         &

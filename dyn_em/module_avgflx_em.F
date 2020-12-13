@@ -47,7 +47,7 @@ CONTAINS
        & u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
        & v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
        & w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
-       & rhod_mean,mut_mean,z_mean                                                               )
+       & rhod_mean,mut_mean,z_mean,dph_x_mean,dph_y_mean                                          )
 
     IMPLICIT NONE
 
@@ -93,7 +93,7 @@ CONTAINS
        u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
        v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
        w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
-       rhod_mean,z_mean
+       rhod_mean,z_mean,dph_x_mean,dph_y_mean
 
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
 
@@ -320,6 +320,8 @@ CONTAINS
 
                 rhod_mean(i,k,j) = 0.
                 z_mean(i,k,j) = 0.
+                dph_x_mean(i,k,j) = 0.
+                dph_y_mean(i,k,j) = 0.
 
             end DO
          end DO
@@ -366,7 +368,7 @@ CONTAINS
        & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
-       & RHOD_MEAN,MUT_MEAN,Z_MEAN,w_diag,                                                       &
+       & RHOD_MEAN,MUT_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN,w_diag,                                 &
        & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,        &
        & fux_adv, fuy_adv, fuz_adv, fvx_adv, fvy_adv, fvz_adv, fwx_adv, fwy_adv, fwz_adv,        &
        & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                      &
@@ -435,7 +437,7 @@ CONTAINS
        U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
-       RHOD_MEAN,Z_MEAN
+       RHOD_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN
 
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: MUT_MEAN
 
@@ -972,6 +974,8 @@ CONTAINS
             ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
             WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j))/(local_count+1.)
             WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
+            DPH_X_MEAN(i,k,j) = (local_count*DPH_X_MEAN(i,k,j) + dph_x(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
+            DPH_Y_MEAN(i,k,j) = (local_count*DPH_Y_MEAN(i,k,j) + dph_y(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
           ENDIF
 
           IF (config_flags%output_t_fluxes .eq. 1) THEN

@@ -674,7 +674,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
 
     if dz_out:
-        dcorr_dz = dcorr_dz*grid["dzdd"]
+        dcorr_dz = dcorr_dz*stagger_like(grid["dzdd"], dcorr_dz, cyclic=cyclic, **grid[stagger_const])
     tend = tend - dcorr_dz.sel(comp="adv_r", dir="T", drop=True)
 
     return adv, tend, corr

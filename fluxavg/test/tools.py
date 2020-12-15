@@ -197,7 +197,7 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
 
     Parameters
     ----------
-    data : xarray dataarray
+    data : xarray dataarray or dataset
         input data.
     data : xarray dataarray
         reference data.
@@ -212,10 +212,17 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
 
     Returns
     -------
-    data : xarray dataarray
+    data : xarray dataarray or dataset
         output data.
 
     """
+
+    if type(data) == xr.core.dataset.Dataset:
+        out = xr.Dataset()
+        for v in data.data_vars:
+            out[v] = stagger_like(data[v], ref, rename=rename, cyclic=cyclic, ignore=ignore, **stagger_kw)
+        return out
+
     if ignore is None:
         ignore = []
 

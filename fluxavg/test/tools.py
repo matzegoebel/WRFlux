@@ -425,7 +425,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
     fz = dat_mean["F{}Z_SGS_MEAN".format(VAR)]
     rhoz = stagger_like(dat_mean["RHOD_MEAN"], fz, cyclic=cyclic, **grid[stagger_const])
     sgs["Z"] = -diff(fz*rhoz, d3s, new_coord=vcoord)
-    sgs["Z"] = sgs["Z"]/dn/grid["MU_STAG"]*(-g)
+    sgs["Z"] = sgs["Z"]/dn/grid["MU_STAG_MEAN"]*(-g)
     for d, v in zip(xy, ["U", "V"]):
         #compute corrections
         du = d.upper()
@@ -458,7 +458,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
         sgs[du] = -diff(fd, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
         if VAR == "W":
             m = mapfac["Y"]
-        sgs[du] = sgs[du]/dat_mean["RHOD_MEAN_STAG"] + corr_sgs*m/grid["MU_STAG"]*(-g)
+        sgs[du] = sgs[du]/grid["RHOD_STAG_MEAN"] + corr_sgs*m/grid["MU_STAG_MEAN"]*(-g)
 
     sgsflux["Z"] = fz
     sgs = sgs[XYZ]
@@ -624,7 +624,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
         dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr.isel(bottom_top=-1)/grid["DN"][-2]).values
     else:
         dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-    dcorr_dz = dcorr_dz/grid["MU_STAG"]*(-g)
+    dcorr_dz = dcorr_dz/grid["MU_STAG_MEAN"]*(-g)
     #apply corrections
     for i, d in enumerate(XY):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
@@ -722,18 +722,20 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
 
     #density and dry air mass
+    mu = grid["C2H"]+ grid["C1H"]*(dat_inst["MU"]+ dat_inst["MUB"])
+    dat_inst["MU_STAG"] = mu
+    grid["MU_STAG_MEAN"] = grid["C2H"]+ grid["C1H"]*dat_mean["MUT_MEAN"]
     rhodm = dat_mean["RHOD_MEAN"]
-    rhodm8z = stagger(rhodm, "bottom_top", grid["ZNW"], **grid[stagger_const])
-    dat_inst["MU_STAG"] = grid["C2H"]+ grid["C1H"]*(dat_inst["MU"]+ dat_inst["MUB"])
-    grid["MU_STAG"] = grid["C2H"]+ grid["C1H"]*dat_mean["MUT_MEAN"]
     if var in uvw:
         rhodm = stagger(rhodm, dim_stag, dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag], **grid[stagger_const])
         if var == "w":
             dat_inst["MU_STAG"] = grid["C2F"] + grid["C1F"]*(dat_inst["MU"]+ dat_inst["MUB"])
-            grid["MU_STAG"] = grid["C2F"] + grid["C1F"]*dat_mean["MUT_MEAN"]
+            grid["MU_STAG_MEAN"] = grid["C2F"] + grid["C1F"]*dat_mean["MUT_MEAN"]
         else:
             dat_inst["MU_STAG"] = stagger(dat_inst["MU_STAG"], dim_stag, dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
-            grid["MU_STAG"] = stagger(grid["MU_STAG"], dim_stag, dat_mean[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
+            grid["MU_STAG_MEAN"] = stagger(grid["MU_STAG_MEAN"], dim_stag, dat_mean[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
+
+    ref = rhodm
     if hor_avg:
         rhodm = avg_xy(rhodm, avg_dims)
     dat_mean["RHOD_MEAN_STAG"] = rhodm

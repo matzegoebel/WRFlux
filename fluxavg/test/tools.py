@@ -183,6 +183,20 @@ def max_error_scaled(dat, ref):
     value_range = ref.max() - ref.min()
     return float(err.max()/value_range)
 
+def warn_duplicate_dim(data, name=None):
+    """Warn if dataarray or dataset contains the staggered and unstaggered version of any dimension"""
+    if type(data) == xr.core.dataset.Dataset:
+        for v in data.data_vars:
+            warn_duplicate_dim(data[v], name=v)
+        return
+
+    if name is None:
+        name = data.name
+    for d in data.dims:
+        if d + "_stag" in data.dims:
+            print("WARNING: datarray {0} contains both dimensions {1} and {1}_stag".format(name, d))
+
+
 #%%manipulate datasets
 
 def select_ind(a, axis=0, indeces=0):

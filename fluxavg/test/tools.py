@@ -536,16 +536,17 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
         corr = tot_flux[XY]
         corr["T"] = dat_mean[VAR + "_MEAN"]
         corr = rhod8z*stagger_like(corr, rhod8z, cyclic=cyclic, **grid[stagger_const])
+        corr = corr.to_array("dir")
     else:
         corr = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
         if force_2nd_adv:
             corr = [corri + "_2ND" for corri in corr]
         corr = dat_mean[corr]
-    corr = corr.to_array("dir")
-    corr["dir"] = ["X", "Y", "T"]
+        corr = corr.to_array("dir")
+        corr["dir"] = ["X", "Y", "T"]
 
     if not cartesian:
-          tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"])/rhod8z
+        tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"])/rhod8z
 
   #  mean advective fluxes
     mean_flux = xr.Dataset()
@@ -656,8 +657,8 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
             corr_d = stagger_like(vmean[d.upper()], **kw)
         else:
             corr_d = stagger_like(grid["dzd{}_{}".format(d, v.lower())], **kw)
+        corr.loc["mean"][i] = corr_d*rho_stag*var_stag["Z"]
 
-    corr.loc["mean"][i] = corr_d*rho_stag*var_stag["Z"]
     #resolved turbulent part
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
 

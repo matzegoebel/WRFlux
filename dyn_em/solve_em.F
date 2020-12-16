@@ -1744,6 +1744,22 @@ BENCH_START(small_step_finish_tim)
                                   grid%j_start(ij), grid%j_end(ij),     &
                                   k_start    , k_end                    )
 
+            CALL set_physical_bc3d( grid%u_save, 'u', config_flags,          &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+
+            CALL set_physical_bc3d( grid%v_save, 'v', config_flags,          &
+                                  ids, ide, jds, jde, kds, kde,         &
+                                  ims, ime, jms, jme, kms, kme,         &
+                                  ips, ipe, jps, jpe, kps, kpe,         &
+                                  grid%i_start(ij), grid%i_end(ij),     &
+                                  grid%j_start(ij), grid%j_end(ij),     &
+                                  k_start    , k_end                    )
+
             CALL set_physical_bc3d( w_save, 'w', config_flags,          &
                                   ids, ide, jds, jde, kds, kde,         &
                                   ims, ime, jms, jme, kms, kme,         &

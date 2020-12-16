@@ -3198,7 +3198,7 @@ halo      HALO_EM_D3_3 dyn_em 24:u_1,u_2,v_1,v_2,w_1,w_2,t_1,t_2,ph_1,ph_2,tke_1
 halo      HALO_EM_D3_5 dyn_em 48:u_1,u_2,v_1,v_2,w_1,w_2,t_1,t_2,ph_1,ph_2,tke_1,tke_2,moist,chem,tracer,scalar;4:mu_1,mu_2
 halo      HALO_EM_E_3 dyn_em 24:u_1,u_2,v_1,v_2,w_1,w_2,t_1,t_2,ph_1,ph_2,tke_1,tke_2,;4:mu_1,mu_2
 halo      HALO_EM_E_5 dyn_em 48:u_1,u_2,v_1,v_2,w_1,w_2,t_1,t_2,ph_1,ph_2,tke_1,tke_2,;4:mu_1,mu_2
-halo      HALO_EM_FLXMOD dyn_em 8:w_save,dph_x,dph_y
+halo      HALO_EM_FLXMOD dyn_em 8:u_save,v_save,w_save,dph_x,dph_y
 halo      HALO_EM_MOIST_E_3 dyn_em 24:moist
 halo      HALO_EM_MOIST_E_5 dyn_em 48:moist
 halo      HALO_EM_MOIST_E_7 dyn_em 80:moist
@@ -3293,7 +3293,7 @@ period    PERIOD_EM_DA dyn_em 2:ru_m,rv_m,ww_m,mut,muts
 period    PERIOD_EM_F dyn_em 2:muus,muvs
 period    PERIOD_EM_G dyn_em 2:msftx,msfux,msfvy
 period    PERIOD_EM_THETAM dyn_em 3:h_diabatic
-period    PERIOD_BDY_EM_FLXMOD dyn_em 2:w_save,dph_x,dph_y
+period    PERIOD_BDY_EM_FLXMOD dyn_em 2:u_save,v_save,w_save,dph_x,dph_y
 
 #
 #swap SWAP_ETAMP_NEW  dyn_em 1:dz8w,p_phy,pi_phy,rho,th_phy,moist,F_ICE_PHY,F_RAIN_PHY,F_RIMEF_PHY,RAINNC,RAINNCV,SR,LOWLYR

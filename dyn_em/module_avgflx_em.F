@@ -849,7 +849,7 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
 
-                rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j-1))
+                rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j))
                 !for cartesian corrections
                 rzxu = rho_s*0.5*(zxu(i,k,j-1)+zxu(i,k,j))
                 rzyv = rho_s*0.5*(zyv(i,k,j-1)+zyv(i,k,j))

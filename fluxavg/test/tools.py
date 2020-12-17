@@ -184,6 +184,32 @@ def max_error_scaled(dat, ref):
     value_range = ref.max() - ref.min()
     return float(err.max()/value_range)
 
+def index_of_agreement(dat, ref, dim=None):
+    """
+    Index of agreement by Willmott (1981)
+
+    Parameters
+    ----------
+    dat : datarray
+        input data.
+    ref : datarray
+        reference data.
+    dim : str or list, optional
+        dimensions along which to calculate the index.
+        The default is None, which means all dimensions.
+
+    Returns
+    -------
+    datarray
+        index of agreement.
+
+    """
+
+    mse = ((dat-ref)**2).mean(dim=dim)
+    ref_mean = ref.mean(dim=dim)
+    norm = ((abs(dat -ref_mean) + abs(ref -ref_mean))**2).mean(dim=dim)
+    return 1 - mse/norm
+
 def warn_duplicate_dim(data, name=None):
     """Warn if dataarray or dataset contains the staggered and unstaggered version of any dimension"""
     if type(data) == xr.core.dataset.Dataset:
@@ -1131,9 +1157,6 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="bottom_top", discrete=False, i
         dat1 = dat1.loc[loc]
         dat2 = dat2.loc[loc]
     pdat = xr.concat([dat1, dat2], "concat_dim")
-    err = abs(dat1 - dat2)
-    rmse = (err**2).mean().values**0.5
-    r2 = np.corrcoef(pdat[0].values.flatten(), pdat[1].values.flatten())[1,0]
 
     if plot_diff:
         pdat[1] = pdat[1] - pdat[0]
@@ -1219,8 +1242,12 @@ def scatter_hue(dat1, dat2, plot_diff=False, hue="bottom_top", discrete=False, i
             cb.set_ticklabels(pdat[hue].values)
 
     #error labels
-    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.5f}".format(rmse, r2), horizontalalignment='left',
-             verticalalignment='bottom', transform=ax.transAxes)
+    err = abs(dat1 - dat2)
+    rmse = (err**2).mean().values**0.5
+    r2 = np.corrcoef(pdat[0].values.flatten(), pdat[1].values.flatten())[1,0]
+    ioa = index_of_agreement(dat1, dat2)
+    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.5f}\nIOA={2:.8f}".format(rmse, r2, ioa.values),
+            horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
     if title is not None:
         fig.suptitle(title)
 

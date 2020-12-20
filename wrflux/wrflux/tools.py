@@ -3,10 +3,9 @@
 """
 Created on Tue Jan 22 12:53:04 2019
 
-@author: csat8800
+@author: Matthias Göbel
 """
 import numpy as np
-from matplotlib import pyplot as plt
 import xarray as xr
 xr.set_options(keep_attrs=True)
 import os
@@ -14,7 +13,8 @@ import pandas as pd
 from datetime import datetime
 from functools import partial
 import socket
-import testing
+from wrflux import plotting
+
 print = partial(print, flush=True)
 
 dim_dict = dict(x="U",y="V",bottom_top="W",z="W")
@@ -22,7 +22,6 @@ xy = ["x", "y"]
 XY = ["X", "Y"]
 XYZ = [*XY, "Z"]
 uvw = ["u", "v", "w"]
-tex_names = {"t" : "\\theta", "q" : "q_\\mathrm{v}"}
 units_dict = {"t" : "K ", "q" : "", **{v : "ms$^{-1}$" for v in uvw}}
 units_dict_tend = {"t" : "Ks$^{-1}$", "q" : "s$^{-1}$", **{v : "ms$^{-2}$" for v in uvw}}
 units_dict_flux = {"t" : "Kms$^{-1}$", "q" : "ms$^{-1}$", **{v : "m$^{2}$s$^{-2}$" for v in uvw}}
@@ -125,6 +124,7 @@ def avg_xy(data, avg_dims):
 
 def find_nans(dat):
     """Drop all indeces of each dimension that do not contain NaNs"""
+
     nans = dat.isnull()
     nans = nans.where(nans)
     nans = dropna_dims(nans)
@@ -847,7 +847,7 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
                 if (e > 0.01) and ((len(comb) == 0) or (sorted(comb) == ['cartesian', 'correct'])):
                     print("Error more than 1%: {}%".format(e*100))
                 if plot:
-                    fig = scatter_tend_forcing(datout_c["tend"], datout_c["forcing"], var, fname=fname, title=title, figloc=figloc, **plot_kws)
+                    fig = plotting.scatter_tend_forcing(datout_c["tend"], datout_c["forcing"], var, fname=fname, title=title, figloc=figloc, **plot_kws)
 
             datout["tend"] = datout["tend"].expand_dims(comp=["tendency"])
             datout["forcing"] = datout["forcing"].expand_dims(comp=["forcing"])
@@ -899,13 +899,6 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
                     if os.path.isfile(fpath):
                         os.remove(fpath)
                     d.to_netcdf(fpath)
-
-            if do_tests:
-                testing.test_tendencies(datout)
-                if var == variables[-1]:
-                    testing.test_w(dat_inst)
-
-            #TODO: return super dataset
 
 
 #%%prepare
@@ -1140,136 +1133,3 @@ def build_mu(mut, grid, full_levels=False):
     else:
         mu = grid["C1H"]*mut + grid["C2H"]
     return mu
-#%% plotting
-def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", savefig=True, title=None, fname=None, figloc=figloc, **kwargs):
-    if title is None:
-        title = fname
-    fig, ax, cax = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
-    if var in tex_names:
-        tex_name = tex_names[var]
-    else:
-        tex_name = var
-    xlabel = "Total ${}$ tendency".format(tex_name)
-    ylabel = "Total ${}$ forcing".format(tex_name)
-    if plot_diff:
-        ylabel += " - " + xlabel
-    units = " ({})".format(units_dict_tend[var])
-    ax.set_xlabel(xlabel + units)
-    ax.set_ylabel(ylabel + units)
-
-    if savefig:
-        fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
-
-    return fig
-
-def scatter_hue(dat1, dat2, plot_diff=False, hue="bottom_top", discrete=False, iloc=None, loc=None, title=None, **kwargs):
-    if iloc is not None:
-        for d, val in iloc.items():
-            if (d not in dat1.coords) and (d + "_stag" in dat1.coords):
-                iloc[d + "_stag"] = val
-                del iloc[d]
-        dat1 = dat1[iloc]
-        dat2 = dat2[iloc]
-    if loc is not None:
-        for d, val in loc.items():
-            if (d not in dat1.coords) and (d + "_stag" in dat1.coords):
-                loc[d + "_stag"] = val
-                del loc[d]
-        dat1 = dat1.loc[loc]
-        dat2 = dat2.loc[loc]
-    pdat = xr.concat([dat1, dat2], "concat_dim")
-
-    if plot_diff:
-        pdat[1] = pdat[1] - pdat[0]
-
-    if (hue not in pdat.coords) and (hue + "_stag" in pdat.coords):
-        hue = hue + "_stag"
-
-    n_hue = len(pdat[hue])
-    hue_int = np.arange(n_hue)
-    pdat = pdat.assign_coords(hue=(hue, hue_int))
-    pdatf = pdat[0].stack(s=pdat[0].dims)
-
-    #set color
-    cmap = "cool"
-    if ("bottom_top" in hue) and (not discrete):
-        color = -pdatf[hue]
-    elif (hue == "Time") and (not discrete):
-        color = pdatf["hue"]
-    else:
-        color = pdatf[hue]
-        try:
-            color.astype(int) #check if hue is numeric
-        except:
-            discrete = True
-        if discrete:
-            cmap = plt.get_cmap("tab10", n_hue)
-            if n_hue > 10:
-                raise ValueError("Too many different hue values for cmap tab10!")
-            discrete = True
-            color = pdatf["hue"]
-
-
-    kwargs.setdefault("cmap", cmap)
-
-    fig, ax = plt.subplots()
-    kwargs.setdefault("s", 10)
-    p = plt.scatter(pdat[0], pdat[1], c=color.values, **kwargs)
-    labels = []
-    for dat in [dat1, dat2]:
-        label = ""
-        if dat.name is not None:
-            label = dat.name
-        elif "description" in dat.attrs:
-            label = dat.description
-        if label != "":
-            if "units" in dat.attrs:
-                label += " ({})".format(dat.units)
-        labels.append(label)
-    plt.xlabel(labels[0])
-    plt.ylabel(labels[1])
-
-    for i in [0,1]:
-        pdat = pdat.where(~pdat[i].isnull())
-    if not plot_diff:
-        minmax = [pdat.min(), pdat.max()]
-        dist = minmax[1] - minmax[0]
-        minmax[0] -= 0.03*dist
-        minmax[1] += 0.03*dist
-        plt.plot(minmax, minmax, c="k")
-        ax.set_xlim(minmax)
-        ax.set_ylim(minmax)
-
-    #colorbar
-    cax = fig.add_axes([0.84,0.1,0.1,0.8], frameon=False)
-    cax.set_yticks([])
-    cax.set_xticks([])
-    clabel = hue
-    if "bottom_top" in hue:
-        clabel = "$\eta$"
-    if ("bottom_top" in hue) and (not discrete):
-        cb = plt.colorbar(p,ax=cax,label=clabel)
-        cb.set_ticks(np.arange(-0.8,-0.2,0.2))
-        cb.set_ticklabels(np.linspace(0.8,0.2,4).round(1))
-    else:
-        cb = plt.colorbar(p,ax=cax,label=clabel)
-        if discrete:
-            if n_hue > 1:
-                d = (n_hue-1)/n_hue
-                cb.set_ticks(np.arange(d/2, n_hue-1, d))
-            else:
-                cb.set_ticks([0])
-
-            cb.set_ticklabels(pdat[hue].values)
-
-    #error labels
-    err = abs(dat1 - dat2)
-    rmse = (err**2).mean().values**0.5
-    r2 = np.corrcoef(pdat[0].values.flatten(), pdat[1].values.flatten())[1,0]
-    ioa = index_of_agreement(dat1, dat2)
-    ax.text(0.74,0.07,"RMSE={0:.2E}\nR$^2$={1:.5f}\nIOA={2:.8f}".format(rmse, r2, ioa.values),
-            horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
-    if title is not None:
-        fig.suptitle(title)
-
-    return fig, ax, cax

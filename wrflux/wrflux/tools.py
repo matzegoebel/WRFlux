@@ -580,8 +580,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
 
     print("fluxes: " + str(fluxnames))
     if not all([f in dat_mean for f in fluxnames]):
-        print("Fluxes not available!")
-        return
+        raise ValueError("Fluxes not available!")
 
     vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
     if hor_avg:
@@ -777,8 +776,13 @@ def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=No
     return total_tend
 
 def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=None, pre_iloc=None, pre_loc=None,
-                    t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
+                    t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, ignore_exist=True,
                     save_output=True, do_tests=False, plot=False, **plot_kws):
+
+    if hor_avg:
+        avg = "_avg_" + "".join(avg_dims)
+    else:
+        avg = ""
 
     if type(param_combs) == pd.core.series.Series:
         param_combs = pd.DataFrame(param_combs).T
@@ -790,6 +794,18 @@ def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=N
         outpath_c = os.path.join(conf.outpath, IDi)
         run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
         print("\n\n\n{0}\nSimulation: {1}\n{0}\n".format("#"*50, name))
+
+        if ignore_exist:
+            #check if postprocessed output already exists
+            skip = True
+            for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
+                for var in variables:
+                    fpath = "{}_0/postprocessed/{}/{}{}.nc".format(outpath_c, var.upper(), c, avg)
+                    if not os.path.isfile(fpath):
+                        skip = False
+            if skip:
+                print("Postprocessed output already available!")
+                continue
 
         #check logs
         with open("{}/init.log".format(run_dir)) as f:
@@ -816,6 +832,17 @@ def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=N
             datout = {}
             VAR = var.upper()
             print("\n\n{0}\nProcess variable {1}\n".format("#"*20, VAR))
+            if ignore_exist:
+                #check if postprocessed output already exists
+                skip = True
+                for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
+                    fpath = "{}_0/postprocessed/{}/{}{}.nc".format(outpath_c, VAR, c, avg)
+                    if not os.path.isfile(fpath):
+                        skip = False
+                if skip:
+                    print("Postprocessed output already available!")
+                    continue
+
             dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac, \
              = calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
@@ -901,10 +928,6 @@ def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=N
             #save data
             print("\nSave data")
             if save_output:
-                if hor_avg:
-                    avg = "_avg_" + "".join(avg_dims)
-                else:
-                    avg = ""
                 for dn, d in datout.items():
                     #add height as coordinate
                     if "flux" in dn:

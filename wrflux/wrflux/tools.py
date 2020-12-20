@@ -248,6 +248,18 @@ def warn_duplicate_dim(data, name=None):
         if d + "_stag" in data.dims:
             print("WARNING: datarray {0} contains both dimensions {1} and {1}_stag".format(name, d))
 
+def rolling_mean(ds, dim, window, periodic=True, center=True):
+    if periodic:
+        if center:
+            pad = int(np.floor(window/2))
+            pad = (pad, pad)
+        else:
+            pad = (window - 1, 0)
+        ds = ds.pad({dim : pad}, mode='wrap')
+    ds = ds.rolling({dim : window}, center=center).mean()
+    if periodic:
+        ds = ds.isel({dim : np.arange(pad[0], len(ds[dim]) - pad[1])})
+    return ds
 
 #%%manipulate datasets
 
@@ -764,19 +776,32 @@ def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=No
 
     return total_tend
 
-def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pre_loc=None,
+def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=None, pre_iloc=None, pre_loc=None,
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                     save_output=True, do_tests=False, plot=False, **plot_kws):
 
-    outpath = conf.outpath + "/"
-    for name, param_comb in conf.param_combs.iterrows():
+    if type(param_combs) == pd.core.series.Series:
+        param_combs = pd.DataFrame(param_combs).T
+    for name, param_comb in param_combs.iterrows():
         if name in ["composite_idx", "core_param"]:
             continue
 
         IDi = param_comb["fname"]
-        outpath_c = outpath + IDi
-
+        outpath_c = os.path.join(conf.outpath, IDi)
+        run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
         print("\n\n\n{0}\nSimulation: {1}\n{0}\n".format("#"*50, name))
+
+        #check logs
+        with open("{}/init.log".format(run_dir)) as f:
+            log = f.read()
+        if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
+            print("Error in initializing simulations!")
+            continue
+        with open("{}/run.log".format(run_dir)) as f:
+            log = f.read()
+        if "wrf: SUCCESS COMPLETE WRF" not in log:
+            print("Error in running simulations!")
+            continue
 
         dat = load_data(outpath_c, param_comb["start_time"], pre_iloc=pre_iloc, pre_loc=pre_loc)
         if dat is None:
@@ -799,7 +824,7 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
             short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
 
             IDcs = []
-            for comb in combs:
+            for comb in budget_methods:
                 datout_c = {}
                 c, comb, IDc = get_comb(comb, keys, short_names, base_setting=base_setting)
                 IDcs.append(IDc)

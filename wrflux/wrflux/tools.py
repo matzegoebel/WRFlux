@@ -163,8 +163,8 @@ def dropna_dims(dat, dims=None, how="all", **kwargs):
 
 def max_error_scaled(dat, ref):
     """
-    Compute maximum absolute error of input data with respect to reference data
-    and scale by range of reference data.
+    Compute maximum squared error of the input data with respect to the reference data
+    and scale by the variance of the reference data.
 
     Parameters
     ----------
@@ -180,9 +180,9 @@ def max_error_scaled(dat, ref):
 
     """
 
-    err = abs(dat - ref)
-    value_range = ref.max() - ref.min()
-    return float(err.max()/value_range)
+    err = (dat - ref)**2
+    norm = ((ref - ref.mean())**2).mean()
+    return float(err.max()/norm)
 
 def index_of_agreement(dat, ref, dim=None):
     """
@@ -208,6 +208,31 @@ def index_of_agreement(dat, ref, dim=None):
     mse = ((dat-ref)**2).mean(dim=dim)
     ref_mean = ref.mean(dim=dim)
     norm = ((abs(dat -ref_mean) + abs(ref -ref_mean))**2).mean(dim=dim)
+    return 1 - mse/norm
+
+def nse(dat, ref, dim=None):
+    """
+    Nash–Sutcliffe model efficiency coefficient
+
+    Parameters
+    ----------
+    dat : datarray
+        input data.
+    ref : datarray
+        reference data.
+    dim : str or list, optional
+        dimensions along which to calculate the index.
+        The default is None, which means all dimensions.
+
+    Returns
+    -------
+    datarray
+        nse.
+
+    """
+
+    mse = ((dat-ref)**2).mean(dim=dim)
+    norm = ((ref - ref.mean(dim=dim))**2).mean(dim=dim)
     return 1 - mse/norm
 
 def warn_duplicate_dim(data, name=None):

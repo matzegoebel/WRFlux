@@ -520,7 +520,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
 
 
 def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
-             cartesian=False, force_2nd_adv=False, recalc_w=True, dz_out=False):
+             cartesian=False, force_2nd_adv=False, dz_out=False):
 
     print("Compute resolved tendencies")
 
@@ -535,10 +535,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
         for d in XYZ:
             var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
 
-    if cartesian and (not recalc_w):
-        fluxnames[-1] += "_PROG"
-        w = dat_mean["W_MEAN"]
-    elif cartesian:
+    if cartesian:
         w = dat_mean["WD_MEAN"]
     else:
         rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top", dat_mean["bottom_top_stag"], **grid[stagger_const])
@@ -773,7 +770,7 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
              = calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
             #calc fluxes and tendencies
-            keys = ["cartesian","correct","dz_out","recalc_w","force_2nd_adv"] #available settings
+            keys = ["cartesian","correct","dz_out","force_2nd_adv"] #available settings
             short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
 
             IDcs = []
@@ -787,8 +784,7 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
                 total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, **attrs)
 
                 dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
-                                      cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
-                                      recalc_w=c["recalc_w"],dz_out=c["dz_out"])
+                                      cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],dz_out=c["dz_out"])
                 if dat is None:
                     continue
                 else:
@@ -823,7 +819,7 @@ def calc_tendencies(variables, conf, combs, base_setting=None, pre_iloc=None, pr
                 title = "{}\n{}".format(IDi, IDc)
 
                 e = max_error_scaled(datout_c["tend"], datout_c["forcing"])
-                if (e > 0.01) and ((len(comb) == 0) or (sorted(comb) == ['cartesian', 'correct', 'recalc_w'])):
+                if (e > 0.01) and ((len(comb) == 0) or (sorted(comb) == ['cartesian', 'correct'])):
                     print("Error more than 1%: {}%".format(e*100))
                 if plot:
                     fig = scatter_tend_forcing(datout_c["tend"], datout_c["forcing"], var, fname=fname, title=title, figloc=figloc, **plot_kws)

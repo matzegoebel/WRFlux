@@ -6,7 +6,7 @@ Created on Fri Nov 22 17:36:46 2019
 Settings for submit_jobs.py
 Test settings for automated tests.
 
-@author: matze
+@author: Matthias Göbel
 
 """
 import os
@@ -25,10 +25,9 @@ outpath = os.environ["wrf_res"] + "/test/" + runID #WRF output path root
 run_path = os.environ["wrf_runs"] + "/test/" + runID #path where run directories of simulations will be created
 build_path = os.environ["wrf_builds"] #path where different versions of the compiled WRF model code reside
 serial_build = "WRF_fluxmod" #used if nslots=1
-parallel_build = "WRF_fluxmod_mpi" #used if nslots > 1
+parallel_build = "WRF_fluxmod" #used if nslots > 1
 debug_build = "WRF_fluxmod_debug" #used for -d option
 
-# runID += "_new"
 o = np.arange(2,7)
 # names of parameter values for output filenames; either dictionaries or lists (not for composite parameters)
 param_names = {"th" : ["thd", "thm", "thdm"],
@@ -50,8 +49,8 @@ params["n_rep"] = 1 #number of repetitions for each configuration
 #horizontal grid
 params["dx"] = 500 #horizontal grid spacing x-direction(m)
 params["dy"] = None #horizontal grid spacing y-direction (m), if None: dy = dx
-params["lx"] = 5000 #minimum horizontal extent in east west (m)
-params["ly"] = 5000 #minimum horizontal extent in north south (m)
+params["lx"] = 10000 #minimum horizontal extent in east west (m)
+params["ly"] = 10000 #minimum horizontal extent in north south (m)
 #use minimum number of grid points set below:
 use_min_gridpoints = False #"x", "y", True (for both) or False
 params["min_gridpoints_x"] = 2 #minimum number of grid points in x direction (including boundary)
@@ -105,11 +104,11 @@ params["output_q_fluxes"] = 1
 params["output_u_fluxes"] = 1
 params["output_v_fluxes"] = 1
 params["output_w_fluxes"] = 1
-params["output_t_fluxes_add"] = 1
-params["output_q_fluxes_add"] = 1
-params["output_u_fluxes_add"] = 1
-params["output_v_fluxes_add"] = 1
-params["output_w_fluxes_add"] = 1
+params["output_t_fluxes_2nd"] = 1
+params["output_q_fluxes_2nd"] = 1
+params["output_u_fluxes_2nd"] = 1
+params["output_v_fluxes_2nd"] = 1
+params["output_w_fluxes_2nd"] = 1
 params["hesselberg_avg"] = True
 params["output_dry_theta_fluxes"] = True
 
@@ -124,8 +123,8 @@ del_args =   ["output_streams", "start_time", "end_time", "dz0", "dz_method", "m
 #%%
 
 nslots_dict = {} #set number of slots for each dx
-min_nx_per_proc = 30 #25, minimum number of grid points per processor
-min_ny_per_proc = 30 #25, minimum number of grid points per processor
+min_nx_per_proc = 10 #25, minimum number of grid points per processor
+min_ny_per_proc = 10 #25, minimum number of grid points per processor
 even_split = False #force equal split between processors
 module_load = ""
 #%%

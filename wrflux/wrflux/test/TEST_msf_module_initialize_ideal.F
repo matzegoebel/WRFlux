@@ -584,6 +584,29 @@ CONTAINS
 
     DO j = jts, jte
       DO i = its, ite
+         if ((j < jde) .and. (i < ide)) then
+            !assign random numbers for testing purposes
+            call RANDOM_NUMBER(rnd)
+            grid%msftx(i,j)    = 1 - 0.1*rnd
+            call RANDOM_NUMBER(rnd)
+            grid%msfty(i,j)    = 1 - 0.1*rnd
+         !periodic boundary values
+         elseif (j == jde) then
+            grid%msftx(i,j)    = grid%msftx(i,jds)
+            grid%msfty(i,j)    = grid%msfty(i,jds)
+         elseif (i == ide) then
+            grid%msftx(i,j)    = grid%msftx(ids,j)
+            grid%msfty(i,j)    = grid%msfty(ids,j)
+         endif
+
+         grid%msfux(i,j)    = grid%msftx(i,j)
+         grid%msfuy(i,j)    = grid%msfty(i,j)
+         grid%msfvx(i,j)    = grid%msftx(i,j)
+         grid%msfvx_inv(i,j)= 1/grid%msfvx(i,j)
+         grid%msfvy(i,j)    = grid%msfty(i,j)
+         grid%msft(i,j)     = grid%msfty(i,j)
+         grid%msfu(i,j)     = grid%msfuy(i,j)
+         grid%msfv(i,j)     = grid%msfvx(i,j)
          mminlu2 = ' '
          mminlu2(1:4) = 'USGS'
          CALL nl_set_mminlu(1, mminlu2)
@@ -595,16 +618,7 @@ CONTAINS
          grid%isltyp(i,j) = 8
          grid%xice(i,j) = 0.
          grid%snow(i,j) = 0.
-         grid%msft(i,j)     = 1.
-         grid%msfu(i,j)     = 1.
-         grid%msfv(i,j)     = 1.
-         grid%msftx(i,j)    = 1.
-         grid%msfty(i,j)    = 1.
-         grid%msfux(i,j)    = 1.
-         grid%msfuy(i,j)    = 1.
-         grid%msfvx(i,j)    = 1.
-         grid%msfvx_inv(i,j)= 1.
-         grid%msfvy(i,j)    = 1.
+
          grid%sina(i,j)     = 0.
          grid%cosa(i,j)     = 1.
          grid%e(i,j)        = 0.

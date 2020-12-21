@@ -775,229 +775,198 @@ def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=No
 
     return total_tend
 
-def calc_tendencies(variables, param_combs, budget_methods, conf, base_setting=None, pre_iloc=None, pre_loc=None,
-                    t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, ignore_exist=True,
-                    save_output=True, do_tests=False, plot=False, **plot_kws):
+def load_postproc(outpath, var, avg=None):
+    datout = {}
+    if avg is None:
+        avg = ""
+    outpath = os.path.join(outpath, "postprocessed", var.upper())
+    for f in ["grid", "adv", "tend", "sources", "sgs", "sgsflux", "flux"]:
+        file = "{}/{}{}.nc".format(outpath, f, avg)
+        if f in ["sgsflux","flux","grid"]:
+           datout[f] = xr.open_dataset(file)
+        else:
+           datout[f] = xr.open_dataarray(file)
+    return datout
+
+def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct", base_setting=None,
+                    pre_iloc=None, pre_loc=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, skip_exist=True, save_output=True):
 
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
     else:
         avg = ""
 
-    if type(param_combs) == pd.core.series.Series:
-        param_combs = pd.DataFrame(param_combs).T
-    for name, param_comb in param_combs.iterrows():
-        if name in ["composite_idx", "core_param"]:
-            continue
+    budget_methods = make_list(budget_methods)
+    dat = load_data(outpath, inst_file=inst_file, mean_file=mean_file, start_time=start_time,
+                    pre_iloc=pre_iloc, pre_loc=pre_loc)
+    if dat is None:
+        return
+    else:
+        dat_mean, dat_inst = dat
 
-        IDi = param_comb["fname"]
-        outpath_c = os.path.join(conf.outpath, IDi)
-        run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
-        print("\n\n\n{0}\nSimulation: {1}\n{0}\n".format("#"*50, name))
+    if skip_exist:
+        #check if postprocessed output already exists
+        skip = True
+        for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
+            for var in variables:
+                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), c, avg)
+                if not os.path.isfile(fpath):
+                    skip = False
+        if skip:
+            print("Postprocessed output already available!")
+            return {var : load_postproc(outpath, var, avg=avg) for var in variables}, dat_inst, dat_mean
 
-        if ignore_exist:
+    dat_mean, dat_inst, grid, cyclic, attrs = prepare(dat_mean, dat_inst, t_avg=t_avg, t_avg_interval=t_avg_interval)
+    datout_all = {}
+    #prepare variable tendencies
+    for var in variables:
+        datout = {}
+        VAR = var.upper()
+        print("\n\n{0}\nProcess variable {1}\n".format("#"*20, VAR))
+        if skip_exist:
             #check if postprocessed output already exists
             skip = True
             for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
-                for var in variables:
-                    fpath = "{}_0/postprocessed/{}/{}{}.nc".format(outpath_c, var.upper(), c, avg)
-                    if not os.path.isfile(fpath):
-                        skip = False
+                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, c, avg)
+                if not os.path.isfile(fpath):
+                    skip = False
             if skip:
                 print("Postprocessed output already available!")
+                datout_all[var] = load_postproc(outpath, var, avg=avg)
                 continue
 
-        #check logs
-        with open("{}/init.log".format(run_dir)) as f:
-            log = f.read()
-        if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
-            print("Error in initializing simulations!")
-            continue
-        with open("{}/run.log".format(run_dir)) as f:
-            log = f.read()
-        if "wrf: SUCCESS COMPLETE WRF" not in log:
-            print("Error in running simulations!")
-            continue
+        dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac, \
+         = calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
-        dat = load_data(outpath_c, param_comb["start_time"], pre_iloc=pre_iloc, pre_loc=pre_loc)
-        if dat is None:
-            continue
-        else:
-            dat_mean, dat_inst = dat
+        #calc fluxes and tendencies
+        keys = ["cartesian","correct","dz_out","force_2nd_adv"] #available settings
+        short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
 
-        dat_mean, dat_inst, grid, cyclic, attrs = prepare(dat_mean, dat_inst, t_avg=t_avg, t_avg_interval=t_avg_interval)
+        IDcs = []
 
-        #prepare variable tendencies
-        for var in variables:
-            datout = {}
-            VAR = var.upper()
-            print("\n\n{0}\nProcess variable {1}\n".format("#"*20, VAR))
-            if ignore_exist:
-                #check if postprocessed output already exists
-                skip = True
-                for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
-                    fpath = "{}_0/postprocessed/{}/{}{}.nc".format(outpath_c, VAR, c, avg)
-                    if not os.path.isfile(fpath):
-                        skip = False
-                if skip:
-                    print("Postprocessed output already available!")
-                    continue
+        for comb in budget_methods:
+            datout_c = {}
+            c, comb, IDc = get_comb(comb.copy(), keys, short_names, base_setting=base_setting)
+            IDcs.append(IDc)
+            print("\n" + IDc)
 
-            dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac, \
-             = calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
+            #calculate total tendency
+            total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, **attrs)
 
-            #calc fluxes and tendencies
-            keys = ["cartesian","correct","dz_out","force_2nd_adv"] #available settings
-            short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
+            dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
+                                  cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],dz_out=c["dz_out"])
+            if dat is None:
+                continue
+            else:
+                datout_c["flux"], datout_c["adv"], vmean, var_stag, corr = dat
 
-            IDcs = []
-            for comb in budget_methods:
-                datout_c = {}
-                c, comb, IDc = get_comb(comb, keys, short_names, base_setting=base_setting)
-                IDcs.append(IDc)
-                print("\n" + IDc)
+            datout_c["tend"] = total_tend
 
-                #calculate total tendency
-                total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, **attrs)
+            if c["correct"] and c["cartesian"]:
+                datout_c["adv"], datout_c["tend"], corr = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
+                                                            grid, mapfac, datout_c["adv"], total_tend, cyclic, c["dz_out"],
+                                                            hor_avg=hor_avg, avg_dims=avg_dims)
 
-                dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
-                                      cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],dz_out=c["dz_out"])
-                if dat is None:
-                    continue
+            #add all forcings
+            datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
+
+            if "dim" in datout_c["tend"].coords:
+                datout_c["tend"] = datout_c["tend"].drop("dim")
+
+            #aggregate different IDs
+            loc = dict(ID=[IDc])
+            for dn in ["flux", "adv", "forcing", "tend"]:
+                datout_c[dn] = datout_c[dn].expand_dims(loc)
+                if dn not in datout:
+                    datout[dn] = datout_c[dn]
                 else:
-                    datout_c["flux"], datout_c["adv"], vmean, var_stag, corr = dat
+                    datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
 
-                datout_c["tend"] = total_tend
+        datout["tend"] = datout["tend"].expand_dims(comp=["tendency"])
+        datout["forcing"] = datout["forcing"].expand_dims(comp=["forcing"])
+        datout["tend"] = xr.concat([datout["tend"], datout["forcing"]], "comp")
+        adv_sum = datout["adv"].sum("dir")
+        datout["adv"] = datout["adv"].reindex(dir=[*XYZ, "sum"])
+        datout["adv"].loc[{"dir":"sum"}] = adv_sum
 
-                if c["correct"] and c["cartesian"]:
-                    datout_c["adv"], datout_c["tend"], corr = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
-                                                                grid, mapfac, datout_c["adv"], total_tend, cyclic, c["dz_out"],
-                                                                hor_avg=hor_avg, avg_dims=avg_dims)
+        units = units_dict_tend[var]
+        units_flx = units_dict_flux[var]
+        datout["sgsflux"] = sgsflux.assign_attrs(description="SGS {}-flux".format(VAR), units=units_flx)
+        datout["flux"] = datout["flux"].assign_attrs(description="resolved {}-flux".format(VAR), units=units_flx)
+        datout["adv"] = datout["adv"].assign_attrs(description="advective {}-tendency".format(VAR), units=units)
+        datout["sgs"] = sgs.assign_attrs(description="SGS {}-tendency".format(VAR), units=units)
+        datout["tend" ]= datout["tend"].assign_attrs(description="{}-tendency".format(VAR), units=units)
+        datout["sources"] = sources.assign_attrs(description="{}-tendency".format(VAR), units=units)
+        desc = " staggered to {}-grid".format(VAR)
+        grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(description="time-averaged dry air mass" + desc, units="Pa")
+        grid["Z_STAG"] = grid["Z_STAG"].assign_attrs(description="time-averaged geopotential height" + desc)
+        datout["grid"] = grid
 
-                #add all forcings
-                datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
+        for dn, d in datout.items():
+            warn_duplicate_dim(d, name=dn)
 
-                if "dim" in datout_c["tend"].coords:
-                    datout_c["tend"] = datout_c["tend"].drop("dim")
 
-                #aggregate different IDs
-                loc = dict(ID=[IDc])
-                for dn in ["flux", "adv", "forcing", "tend"]:
-                    datout_c[dn] = datout_c[dn].expand_dims(loc)
-                    if dn not in datout:
-                        datout[dn] = datout_c[dn]
-                    else:
-                        datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
-
-                #scatter plots
-                fname = "{}_{}".format(IDi, IDc.replace(" ", "+"))
-                if hor_avg:
-                    fname = fname + "_{}avg".format("".join(avg_dims))
-                title = "{}\n{}".format(IDi, IDc)
-
-                e = max_error_scaled(datout_c["tend"], datout_c["forcing"])
-                if (e > 0.01) and ((len(comb) == 0) or (sorted(comb) == ['cartesian', 'correct'])):
-                    print("Error more than 1%: {}%".format(e*100))
-                if plot:
-                    fig = plotting.scatter_tend_forcing(datout_c["tend"], datout_c["forcing"], var, fname=fname, title=title, figloc=figloc, **plot_kws)
-
-            datout["tend"] = datout["tend"].expand_dims(comp=["tendency"])
-            datout["forcing"] = datout["forcing"].expand_dims(comp=["forcing"])
-            datout["tend"] = xr.concat([datout["tend"], datout["forcing"]], "comp")
-            adv_sum = datout["adv"].sum("dir")
-            datout["adv"] = datout["adv"].reindex(dir=[*XYZ, "sum"])
-            datout["adv"].loc[{"dir":"sum"}] = adv_sum
-
-            units = units_dict_tend[var]
-            units_flx = units_dict_flux[var]
-            datout["sgsflux"] = sgsflux.assign_attrs(description="SGS {}-flux".format(VAR), units=units_flx)
-            datout["flux"] = datout["flux"].assign_attrs(description="resolved {}-flux".format(VAR), units=units_flx)
-            datout["adv"] = datout["adv"].assign_attrs(description="advective {}-tendency".format(VAR), units=units)
-            datout["sgs"] = sgs.assign_attrs(description="SGS {}-tendency".format(VAR), units=units)
-            datout["tend" ]= datout["tend"].assign_attrs(description="{}-tendency".format(VAR), units=units)
-            datout["sources"] = sources.assign_attrs(description="{}-tendency".format(VAR), units=units)
-            desc = " staggered to {}-grid".format(VAR)
-            grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(description="time-averaged dry air mass" + desc, units="Pa")
-            grid["Z_STAG"] = grid["Z_STAG"].assign_attrs(description="time-averaged geopotential height" + desc)
-            datout["grid"] = grid
-
+        #save data
+        print("\nSave data")
+        if save_output:
             for dn, d in datout.items():
-                warn_duplicate_dim(d, name=dn)
+                #add height as coordinate
+                if "flux" in dn:
+                    for D in XYZ:
+                        z = stagger_like(grid["ZW"], d[D], cyclic=cyclic, **grid[stagger_const])
+                        z = z.assign_attrs(description=z.description +  " staggered to {}-flux grid".format(D))
+                        d[D] = d[D].assign_coords({"zf{}".format(D.lower()) : z})
+                elif dn != "grid":
+                    d = d.assign_coords(z=grid["Z_STAG"])
+                if "ID" in d.dims:
+                    d = d.sel(ID=IDcs)
+                if "rep" in d.dims:
+                    d = d.isel(rep=0, drop=True)
+                d = d.assign_attrs(attrs)
+                datout[dn] = d
+                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, dn, avg)
+                if os.path.isfile(fpath):
+                    os.remove(fpath)
+                d.to_netcdf(fpath)
+        datout_all[var] = datout
 
-
-            #save data
-            print("\nSave data")
-            if save_output:
-                for dn, d in datout.items():
-                    #add height as coordinate
-                    if "flux" in dn:
-                        for D in XYZ:
-                            z = stagger_like(grid["ZW"], d[D], cyclic=cyclic, **grid[stagger_const])
-                            z = z.assign_attrs(description=z.description +  " staggered to {}-flux grid".format(D))
-                            d[D] = d[D].assign_coords({"zf{}".format(D.lower()) : z})
-                    elif dn != "grid":
-                        d = d.assign_coords(z=grid["Z_STAG"])
-                    if "ID" in d.dims:
-                        d = d.sel(ID=IDcs)
-                    if "rep" in d.dims:
-                        d = d.isel(rep=0, drop=True)
-                    d = d.assign_attrs(attrs)
-                    datout[dn] = d
-                    fpath = "{}_0/postprocessed/{}/{}{}.nc".format(outpath_c, VAR, dn, avg)
-                    if os.path.isfile(fpath):
-                        os.remove(fpath)
-                    d.to_netcdf(fpath)
-
+    return datout_all, dat_inst, dat_mean
 
 #%%prepare
 
-def load_data(outpath, start_time, pre_iloc=None, pre_loc=None):
+def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc=None, pre_loc=None):
     dat_inst = []
     dat_mean = []
     n = 0
     print("Load files")
-    t_start = start_time
-    inst_file = "instout_d01_" + t_start
-    mean_file = "meanout_d01_" + t_start
-    fpath = outpath + "_{}/".format(n)
-    while os.path.isdir(fpath):
+    if inst_file is None:
+        if start_time is None:
+            raise ValueError("Either inst_file or start_time must be given!")
+        inst_file = "instout_d01_" + start_time
+    if mean_file is None:
+        if start_time is None:
+            raise ValueError("Either mean_file or start_time must be given!")
+        mean_file = "meanout_d01_" + start_time
+    fpath = outpath + "/"
 
-        di = open_dataset(fpath + inst_file, del_attrs=False)
-        dm = open_dataset(fpath + mean_file)
+    dat_inst = open_dataset(fpath + inst_file, del_attrs=False)
+    dat_mean = open_dataset(fpath + mean_file)
 
-        #select subset of data
-        if pre_iloc is not None:
-            if "Time" in pre_iloc:
-                raise ValueError("Time axis should not be indexed with iloc, as mean and inst output may have different frequencies!")
-            dm = dm[pre_iloc]
-            di = di[pre_iloc]
-        if pre_loc is not None:
-            dm = dm.loc[pre_loc]
-            di = di.loc[pre_loc]
-        if np.prod(list(dm.sizes.values())) == 0:
-            raise ValueError("At least one dimension is empy after indexing!")
-
-        dat_inst.append(di)
-        dat_mean.append(dm)
-
-        n += 1
-        fpath = outpath + "_{}/".format(n)
+    #select subset of data
+    if pre_iloc is not None:
+        if "Time" in pre_iloc:
+            raise ValueError("Time axis should not be indexed with iloc, as mean and inst output may have different frequencies!")
+        dat_mean = dat_mean[pre_iloc]
+        dat_inst = dat_inst[pre_iloc]
+    if pre_loc is not None:
+        dat_mean = dat_mean.loc[pre_loc]
+        dat_inst = dat_inst.loc[pre_loc]
+    if np.prod(list(dat_mean.sizes.values())) == 0:
+        raise ValueError("At least one dimension is empy after indexing!")
 
     if len(dat_inst) * len(dat_mean) == 0:
-        print("No files available at {}!".format(fpath))
+        print("Inst or mean file not available at {}!".format(fpath))
         return
-
-    if len(dat_inst) > 1:
-        print("Concat {} repetitions".format(len(dat_inst)))
-        dat_inst = xr.concat(dat_inst, "rep")
-        dat_mean = xr.concat(dat_mean, "rep")
-        const_vars = ["ZNW", "ZNU", "DN", "DNW", "FNM", "FNP", "CFN1", "CFN", "CF1", "CF2", "CF3", "C1H", "C2H", "C1F", "C2F"]
-        for v in dat_inst.data_vars:
-            if (v in const_vars) or ("MAPFAC" in v):
-                dat_inst[v] = dat_inst[v].sel(rep=0, drop=True)
-    else:
-        dat_inst = dat_inst[0]
-        dat_mean = dat_mean[0]
 
     dims = ["Time", "bottom_top", "bottom_top_stag", "soil_layers_stag", "y", "y_stag", "x", "x_stag", "seed_dim_stag", "rep"]
     dat_mean = dat_mean.transpose(*[d for d in dims if d in dat_mean.dims])

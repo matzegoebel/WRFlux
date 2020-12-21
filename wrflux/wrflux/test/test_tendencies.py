@@ -6,7 +6,7 @@ Created on Thu Jul  9 15:54:43 2020
 Calculate the WRF budget terms for theta or qv under different assumptions.
 Scatter and profile plots of the individual terms and sums.
 
-@author: c7071088
+@author: Matthias Göbel
 """
 from run_wrf.submit_jobs import submit_jobs
 import shutil
@@ -14,13 +14,14 @@ from run_wrf import misc_tools
 from collections import OrderedDict as odict
 from run_wrf.misc_tools import Capturing
 from collections import Counter
-import matplotlib.pyplot as plt
 import os
-import tools
+from wrflux import tools
 import xarray as xr
 import pandas as pd
 import numpy as np
 import pytest
+import testing
+import importlib
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 
@@ -29,62 +30,69 @@ os.environ["MKL_NUM_THREADS"]="1"
 os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
-exist = "s"
+exist = "o"
 
-thresh_thdry = 0.02
-thresh = 0.01
+# thresh_thdry = 0.02#TODOm
 
 variables = ["q", "t", "u", "v", "w"]
-# variables = ["w"]
-cut_boundaries = False
-b = 1
-bounds = {"x" : slice(b,-b), "y" : slice(b,-b), "bottom_top" : slice(b,-b)}
-# bounds = {"x" : slice(b,-b)}
-# bounds = {"bottom_top" : slice(None,-b)}
-cartesian = False
-plot = True
-plot_diff = False
+# variables = ["q"]
+
 raise_error = False
-nan_check = True
+skip_exist = True
+debug = [True,False]
+random_msf = False #change mapscale factors from 1 to random values
+
 #TODO: sgs boundary values for open bc should be zero!
 #TODO: hor avg needs boundary points?
-#TODO: more tests: mean_flux: mean~ tot, test hesselberg
+#TODO: more tests: mean_flux: mean~ tot
 #TODO: go through with debugger to find hidden errors and add comments
+
+# t_avg = False #average over time
+# t_avg_interval = 4 #size of the time averaging window
+
+hor_avg = False#TODOm
+avg_dims = ["y"]
+plot = True
+plot_kws = dict(
+    # plot_diff = True, #plot difference between forcing and tendency against tendency
+    discrete=True,
+    # iloc={"bottom_top" : [0,1,2,3,-4,-3,-2,-1]},
+    hue="dir",
+    s=40,
+    ignore_missing_hue=True
+    # savefig = False
+    )
+#%%set calculation methods
+budget_methods = [
+            [[], "native"],
+            ["cartesian", "correct"],
+           # ["cartesian", "correct", "dz_out"],#TODOm:needed for anything?
+         ]
+
+budget_methods_2nd = [
+            [[], "native"],
+            ["cartesian", "2nd"],
+            ["cartesian", "correct", "2nd"],
+            ["cartesian"],
+            ["cartesian", "correct"],
+            # ["cartesian", "correct", "dz_out"],
+         ]
+
+if exist != "s":
+    skip_exist = False
 #%%test functions
-
-def test_decomp():
-    import config_test_decomp as conf
-    config_file="config_test_decomp"
-     #Define parameter grid for simulations
-    param_grids = {}
-    th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
-    th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
-    param_grids["km_opt"] = odict(hesselberg_avg=[True])
-    # param_grids["km_opt"] = odict(spec_hfx=[0.2])
-    # param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
-    # param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
-    # o = np.arange(2,7)
-    # param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
-    # param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th2=th2)
-    # param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
-    hor_avg = True
-    avg_dims = ["x"]
-
-    error, failed = run_and_check_budget(param_grids, conf, config_file=config_file,
-                                         hor_avg=hor_avg, avg_dims=avg_dims)
-
-    return error, failed
 
 def test_budget_all():
     import config_test_tendencies as conf
 
-    setup_test_init_module(conf)
+    setup_test_init_module(conf, random_msf=random_msf) #TODOm: also for debug!
 
     #Define parameter grid for simulations
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
     param_grids["km_opt"] = odict(hesselberg_avg=[True,False])
+    # param_grids["km_opt"] = odict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     o = np.arange(2,7)
@@ -93,13 +101,14 @@ def test_budget_all():
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
 
-    error, failed = run_and_check_budget(param_grids, conf)
-    setup_test_init_module(conf, restore=True)
+    failed = run_and_check_budget(param_grids)
+    # setup_test_init_module(conf, restore=True)
 
-    return error, failed
+    return failed
 
 def test_budget_bc():
     import config_test_tendencies as conf
+    setup_test_init_module(conf, random_msf=random_msf) #TODOm: also for debug!
 
     #Define parameter grid for simulations
     param_grids = {}
@@ -107,158 +116,113 @@ def test_budget_bc():
     param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], spec_hfx=[0.2])
     param_grids["symmetric BC"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
 
-    error, failed = run_and_check_budget(param_grids, conf)
+    failed = run_and_check_budget(param_grids, conf)
+    # setup_test_init_module(conf, restore=True)
 
-    return error, failed
+    return failed
 
-def run_and_check_budget(param_grids, conf, config_file="config_test_tendencies", hor_avg=False, avg_dims=None):
+def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tendencies", hor_avg=False, avg_dims=None):
     #%%run_and_check_budget
-    failed = {}
-    error = pd.DataFrame(columns=variables)
+    failed = pd.DataFrame(columns=variables)
+
     for label, param_grid in param_grids.items():
         print("\n\n\nTest " + label)
-        param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
         #initialize and run simulations
-        combs, output = capture_submit(init=True, exist=exist, config_file=config_file, param_combs=param_combs)
-        combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
-                                       config_file=config_file, param_combs=param_combs)
-        print("\n\n")
-        #% postprocessing
-        for cname, comb in combs.iterrows():
-            IDi = comb["fname"]
-            print("\n Run: {}".format(cname))
-            with open("{}_0/init.log".format(comb["run_dir"])) as f:
-                log = f.read()
-            if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
-                print("Error in initializing simulations!")
+        for deb in tools.make_list(debug):
+            cfile = config_file
+            if deb:
+                cfile = cfile + "_debug"
+            conf = importlib.import_module(cfile)
+            param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
+            combs, output = capture_submit(init=True, exist=exist, debug=deb, config_file=cfile, param_combs=param_combs)
+            combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
+                                           config_file=cfile, param_combs=param_combs)
+            print("\n\n")
+
+            for cname, param_comb in param_combs.iterrows():
+                if cname in ["core_param", "composite_idx"]:
+                    continue
+                IDi = param_comb["fname"]
+                #check logs
+                run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
+                with open("{}/init.log".format(run_dir)) as f:
+                    log = f.read()
+                if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
+                    print("Error in initializing simulation {}!".format(cname))
+                    failed.loc[IDi, :] = "INIT "
+                    continue
+                with open("{}/run.log".format(run_dir)) as f:
+                    log = f.read()
+                if "wrf: SUCCESS COMPLETE WRF" not in log:
+                    print("Error in running simulation {}!".format(cname))
+                    failed.loc[IDi, :] = "RUN "
+                    continue
+
+        for cname, param_comb in param_combs.iterrows():
+            if cname in ["core_param", "composite_idx"]:
                 continue
-            with open("{}_0/run.log".format(comb["run_dir"])) as f:
-                log = f.read()
-            if "wrf: SUCCESS COMPLETE WRF" not in log:
-                print("Error in running simulations!")
-                continue
-            dat_mean, dat_inst = load_data(os.path.join(conf.outpath, IDi), comb["start_time"])
-            dat_mean, dat_inst, grid, cyclic, attrs = tools.prepare(dat_mean, dat_inst)
+            IDi = param_comb["fname"]
+            print("\n\n\n{0}\nPostprocess simulation: {1}\n{0}\n".format("#"*50, cname))
+
+            if IDi not in failed.index:
+                failed.loc[IDi] = ""
+            #postprocessing
+            print("Postprocess data")
+            if param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"]:
+                adv_2nd = True
+                bm = budget_methods_2nd
+            else:
+                adv_2nd = False
+                bm = budget_methods
+
+            outpath_c = os.path.join(conf.outpath, IDi) + "_0"
+            datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
+                                  skip_exist=skip_exist, hor_avg=hor_avg, avg_dims=avg_dims, save_output=True)
+
+            print("\n\n\n{0}\nRun tests\n{0}\n".format("#"*50))
+
             for var in variables:
-                # check_bounds(dat_mean, attrs, var) #TODO: fix for open
-                forcing, total_tend, adv, sgs, sgsflux, sources, fluxes, corr = get_tendencies(var, dat_inst, dat_mean,
-                        grid, cyclic, attrs, cartesian=cartesian, correct=True,
-                        hor_avg=hor_avg, avg_dims=avg_dims)
+                print("Variable: " + var)
+                datout_v = datout[var]
+                # cut_boundaries_c = cut_boundaries TODOm
+                # if not attrs["PERIODIC_X"]:
+                #     bounds["x"] = slice(b,-b)
+                #     cut_boundaries_c = True
+                # if not attrs["PERIODIC_Y"]:
+                #     bounds["y"] = slice(b,-b)
+                #     cut_boundaries_c = True
+                # if cut_boundaries_c:
+                #     bounds_v = create_bounds(forcing)
+                #     forcing = forcing[bounds_v]
+                #     total_tend = total_tend[bounds_v]
+                #tests
+                failed_i = {}
+                failed_i["budget"] = testing.test_budget(datout_v, thresh=0.01, plot=plot, **plot_kws)
+                failed_i["decomp_sum"] = testing.test_decomp_sum(datout_v, thresh=0.03, plot=True, **plot_kws)
+                if adv_2nd:
+                    failed_i["2nd"] = testing.test_2nd(datout_v, thresh=0.01, plot=plot, **plot_kws)
+                failed_i["NaN"] = testing.test_nan(datout_v)
+                if var == variables[-1]:
+                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.01, plot=plot, **plot_kws)
 
-                cut_boundaries_c = cut_boundaries
-                if not attrs["PERIODIC_X"]:
-                    bounds["x"] = slice(b,-b)
-                    cut_boundaries_c = True
-                if not attrs["PERIODIC_Y"]:
-                    bounds["y"] = slice(b,-b)
-                    cut_boundaries_c = True
-                if cut_boundaries_c:
-                    bounds_v = create_bounds(forcing)
-                    forcing = forcing[bounds_v]
-                    total_tend = total_tend[bounds_v]
+                failed.loc[IDi, var] += ",".join([key for key, val in failed_i.items() if val])
 
-                check_error(total_tend, forcing, attrs, var, cname, error, failed)
-                if var in ["t", "q"]:
-                    r = np.corrcoef(dat_mean["WD_MEAN"].values.flatten(), dat_mean["W_MEAN"].values.flatten())[0,1]
-                    if r < 0.9:
-                        print("WARNING: diagnostic and prognostic w are poorly correlated!")
-                #check for nans
-                if nan_check:
-                    check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=cut_boundaries_c)
-
-
-    print("\n\nMaximum absolute tendency reconstruction error normalized by tendency range in %:\n{}\n\n".format(error.to_string()))
-    if failed != {}:
-        message = "Reconstructed forcing deviates strongly from actual tendency for following runs/variables:\n{}"\
-                           .format("\n".join(["{} : {}".format(k,v) for k,v in failed.items()]))
+    if (failed != "").values.any():
+        message = "\n\n{}\nFailed tests:\n{}".format("#"*100,failed.to_string())
         if raise_error:
             raise RuntimeError(message)
         else:
             print(message)
-#%%
-    return error, failed
-#%% postprocess data
-def load_data(outpath, start_time):
-    dat_inst = tools.open_dataset("{}_0/instout_d01_{}".format(outpath, start_time), del_attrs=False)
-    dat_mean = tools.open_dataset("{}_0/meanout_d01_{}".format(outpath, start_time))
 
-    const_vars = ["ZNW", "ZNU", "DN", "DNW", "FNM", "FNP", "CFN1", "CFN", "CF1", "CF2", "CF3", "C1H", "C2H", "C1F", "C2F"]
-    for v in dat_inst.data_vars:
-        if (v in const_vars) or ("MAPFAC" in v):
-            dat_inst[v] = dat_inst[v].sel(drop=True)
+    return failed
 
-    return dat_mean, dat_inst
 
-def get_tendencies(var, dat_inst, dat_mean, grid, cyclic, attrs, cartesian=False,
-                   correct=True, hor_avg=False, avg_dims=None):
-    VAR = var.upper()
-
-    dat_mean, dat_inst, total_tend, sgs, sgsflux, sources, sources_sum, var_stag, grid, dim_stag, mapfac, dzdd \
-     = tools.calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
-
-    flux, adv, vmean = tools.adv_tend(dat_mean, VAR, var_stag, grid, mapfac, cyclic, cartesian=cartesian,
-                                      hor_avg=hor_avg, avg_dims=avg_dims)
-    corr = None
-    if correct and cartesian:
-        corr = dat_mean[["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]]
-        adv, total_tend, corr = tools.cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
-                                                      dzdd, grid, mapfac, adv, total_tend, cyclic,
-                                                      hor_avg=hor_avg, avg_dims=avg_dims)
-
-    #add all forcings
-    forcing = adv.sel(comp="adv_r", drop=True).sum("dir") + sources_sum
-
-    return forcing, total_tend, adv, sgs, sgsflux, sources, flux, corr
-
-#%% tests
-def check_error(total_tend, forcing, attrs, var, cname, error, failed):
-    value_range = total_tend.max() - total_tend.min()
-    max_error = abs(forcing - total_tend).max()
-    e = max_error/value_range
-    error.loc[cname, var] = np.round(e.values*100,4)
-    if (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1) and (var == "t"):
-        thresh_v = thresh_thdry
-    else:
-        thresh_v = thresh
-    if e > thresh_v:
-        if plot:
-            fig = tools.scatter_tend_forcing(total_tend, forcing, var, plot_diff=plot_diff, savefig=False)
-            fig.suptitle(cname)
-        if cname in failed:
-            failed[cname].append(var)
-        else:
-            failed[cname] = [var]
-
-def check_nans(total_tend, adv, sgs, sgsflux, sources, fluxes, var, cut_boundaries=False):
-    for n in ["total_tend", "adv", "sgs", "sources",
-              "sgsflux['X']", "sgsflux['Y']", "sgsflux['Z']", "fluxes['X']", "fluxes['Y']", "fluxes['Z']"]:
-        dat = eval(n)
-        if (n != "total tend") and cut_boundaries:
-            bounds_v = create_bounds(dat)
-            dat = dat[bounds_v]
-        dat = tools.find_nans(dat)
-        if len(dat) != 0:
-            print("\nWARNING: found NaNs in {} for variable {}:\n{}".format(n, var, dat.coords))
-
-def check_bounds(dat_mean, attrs, var):
-    for dim in ["x", "y"]:
-        if not attrs["PERIODIC_{}".format(dim.upper())]:
-            for comp in ["ADV", "SGS"]:
-                for flx_dir in ["X", "Y", "Z"]:
-                    flx_name = "F{}{}_{}_MEAN".format(var.upper(), flx_dir, comp)
-                    flx = dat_mean[flx_name]
-                    if (comp == "SGS") and (flx_dir == "Z"):
-                        #sgs surface flux is filled everywhere
-                        flx = flx[:,1:]
-                    dims = dim
-                    if dim not in flx.dims:
-                        dims = dim + "_stag"
-                    if not (flx[{dims : [0,-1]}] == 0).all():
-                        print("For non-periodic BC in {0} direction, {1} should be zero on {0} boundaries!".format(dim, flx_name))
 #%% misc
 @pytest.fixture(autouse=True)
-def run_around_tests():
+def run_around_tests(request):
     """Delete test data before and after every test"""
+
+    # request.addfinalizer(setup_test)
 
     # Code that will run before each test
     delete_test_data()
@@ -266,6 +230,8 @@ def run_around_tests():
     yield
     # Code that will run after each test
     delete_test_data()
+
+
 
 def delete_test_data():
     for d in [os.environ["wrf_res"] + "/test/pytest", os.environ["wrf_runs"] + "/pytest"]:
@@ -282,39 +248,36 @@ def capture_submit(*args, **kwargs):
 
     return combs, output
 
-def setup_test_init_module(conf, restore=False):
-    fpath = os.path.realpath(__file__)
-    test_path = fpath[:fpath.index("test_tendencies.py")]
+def setup_test_init_module(conf, restore=False, random_msf=True):
     fname = "module_initialize_ideal.F"
     wrf_path = "{}/{}".format(conf.build_path, conf.serial_build)
     fpath = wrf_path + "/dyn_em/" + fname
-    with open(fpath) as f:
-        org_file = f.read()
-    with open(test_path + "TEST_" + fname) as f:
-        test_file = f.read()
-    if (test_file != org_file) or restore:
-        if restore:
-            m = "Restore"
-            shutil.copy(fpath + ".org", fpath)
+
+    if restore:
+        m = "Restore"
+        shutil.copy(fpath + ".org", fpath)
+    else:
+        with open(fpath) as f:
+            org_file = f.read()
+        path = os.path.realpath(__file__)
+        test_path = path[:path.index("test_tendencies.py")]
+        testf = "TEST_"
+        if random_msf:
+            testf += "msf_"
+        with open(test_path + testf + fname) as f:
+            test_file = f.read()
+        if test_file == org_file:
+            return
         else:
             m = "Copy"
             shutil.copy(fpath, fpath + ".org")
-            shutil.copy(test_path + "TEST_" + fname, fpath)
+            shutil.copy(test_path + testf + fname, fpath)
+
         print(m +  " module_initialize_ideal.F and recompile")
         os.chdir(wrf_path)
         os.system("./compile em_les > log 2> err")
 
-def create_bounds(data):
-    bounds_v = bounds.copy()
-    for d in ["x", "y", "bottom_top"]:
-        if d not in bounds:
-            bounds_v[d] = slice(None)
-        if d not in data.dims:
-            bounds_v[d + "_stag"] = bounds_v[d]
-            del bounds_v[d]
-    return bounds_v
 #%%main
 if __name__ == "__main__":
-    error, failed = test_budget_all()
-    error_bc, failed_bc = test_budget_bc()
-    # error_d, failed_d = test_decomp()
+    failed = test_budget_all()
+    #failed_bc = test_budget_bc()

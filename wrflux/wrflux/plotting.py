@@ -114,7 +114,7 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", 
 
     return fig
 
-def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", discrete=False,
+def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False, discrete=False,
                 iloc=None, loc=None, savefig=False, figloc=None, title=None, **kwargs):
     if iloc is not None:
         for d, val in iloc.items():
@@ -132,9 +132,13 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", discrete=False,
         ref = ref.loc[loc]
     pdat = xr.concat([dat, ref], "concat_dim")
 
-    if plot_diff:
-        pdat[1] = pdat[1] - pdat[0]
+    if plot_diff:#TODOm: change label
+        pdat[0] = dat - ref
 
+    if ignore_missing_hue:
+        if ((hue not in pdat.coords) and (hue + "_stag" not in pdat.coords)) or (pdat[hue].shape == ()):
+            hue = "bottom_top"
+            discrete = False
     if (hue not in pdat.coords) and (hue + "_stag" in pdat.coords):
         hue = hue + "_stag"
 

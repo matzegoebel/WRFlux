@@ -261,6 +261,32 @@ def rolling_mean(ds, dim, window, periodic=True, center=True):
         ds = ds.isel({dim : np.arange(pad[0], len(ds[dim]) - pad[1])})
     return ds
 
+def correct_dims_stag(loc, dat):
+    """
+    Add "_stag" to every key in dictionary loc, for which the unmodified key
+    is not a dimension of dat but the modified key is. Returns a copy.
+
+    Parameters
+    ----------
+    loc : dict
+        input dictionary.
+    dat : datarray or dataset
+        reference data.
+
+    Returns
+    -------
+    loc : dict
+        modified dictionary.
+
+    """
+
+    loc = loc.copy()
+    for d, val in loc.items():
+        if (d not in dat.dims) and (d + "_stag" in dat.dims):
+            loc[d + "_stag"] = val
+            del loc[d]
+    return loc
+
 #%%manipulate datasets
 
 def select_ind(a, axis=0, indeces=0):

@@ -39,7 +39,6 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
     if loc is not None:
         dat = dat.loc[loc]
 
-    # cmap = plt.get_cmap("tab10")
     cross_dim_u = cross_dim.upper()
     dat = dat.rename({cross_dim : cross_dim_u})
 
@@ -115,19 +114,13 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", 
     return fig
 
 def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False, discrete=False,
-                iloc=None, loc=None, savefig=False, figloc=None, title=None, **kwargs):
+                iloc=None, loc=None, savefig=False, close=False, figloc=None, title=None, **kwargs):
     if iloc is not None:
-        for d, val in iloc.items():
-            if (d not in dat.coords) and (d + "_stag" in dat.coords):
-                iloc[d + "_stag"] = val
-                del iloc[d]
+        iloc = tools.correct_dims_stag(iloc, dat)
         dat = dat[iloc]
         ref = ref[iloc]
     if loc is not None:
-        for d, val in loc.items():
-            if (d not in dat.coords) and (d + "_stag" in dat.coords):
-                loc[d + "_stag"] = val
-                del loc[d]
+        loc = tools.correct_dims_stag(loc, dat)
         dat = dat.loc[loc]
         ref = ref.loc[loc]
     pdat = xr.concat([dat, ref], "concat_dim")
@@ -136,10 +129,10 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         pdat[0] = dat - ref
 
     if ignore_missing_hue:
-        if ((hue not in pdat.coords) and (hue + "_stag" not in pdat.coords)) or (pdat[hue].shape == ()):
+        if ((hue not in pdat.dims) and (hue + "_stag" not in pdat.dims)):
             hue = "bottom_top"
             discrete = False
-    if (hue not in pdat.coords) and (hue + "_stag" in pdat.coords):
+    if (hue not in pdat.dims) and (hue + "_stag" in pdat.dims):
         hue = hue + "_stag"
 
     n_hue = len(pdat[hue])
@@ -160,9 +153,9 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         except:
             discrete = True
         if discrete:
-            cmap = plt.get_cmap("tab10", n_hue)
-            if n_hue > 10:
-                raise ValueError("Too many different hue values for cmap tab10!")
+            cmap = plt.get_cmap("tab20", n_hue)
+            if n_hue > 20:
+                raise ValueError("Too many different hue values for cmap tab20!")
             discrete = True
             color = pdatf["hue"]
 
@@ -198,18 +191,18 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         ax.set_ylim(minmax)
 
     #colorbar
-    cax = fig.add_axes([0.84,0.1,0.1,0.8], frameon=False)
+    cax = fig.add_axes([0.92,0.125,0.05,.75], frameon=True)
     cax.set_yticks([])
     cax.set_xticks([])
     clabel = hue
     if "bottom_top" in hue:
         clabel = "$\eta$"
     if ("bottom_top" in hue) and (not discrete):
-        cb = plt.colorbar(p,ax=cax,label=clabel)
+        cb = plt.colorbar(p,cax=cax,label=clabel)
         cb.set_ticks(np.arange(-0.8,-0.2,0.2))
         cb.set_ticklabels(np.linspace(0.8,0.2,4).round(1))
     else:
-        cb = plt.colorbar(p,ax=cax,label=clabel)
+        cb = plt.colorbar(p,cax=cax,label=clabel)
         if discrete:
             if n_hue > 1:
                 d = (n_hue-1)/n_hue
@@ -232,7 +225,9 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     #     if figloc is None:
     #         figloc = "~/"
     #     fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
-
+    if close:
+        plt.show()
+        plt.close()
 
     return fig, ax, cax
 

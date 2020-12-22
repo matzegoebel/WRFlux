@@ -8,11 +8,11 @@ Created on Thu Dec 17 09:35:43 2020
 from wrflux import tools, plotting
 import xarray as xr
 
-def test_budget(datout, thresh=0.01, plot=True, **plot_kws):
+def test_budget(tend, thresh=0.01, plot=True, **plot_kws):
     failed = False
     for ID in ["native", "cartesian correct"]:
-        ref = datout["tend"].sel(comp="tendency", ID=ID, drop=True)
-        dat = datout["tend"].sel(comp="forcing", ID=ID, drop=True)
+        ref = tend.sel(comp="tendency", ID=ID, drop=True)
+        dat = tend.sel(comp="forcing", ID=ID, drop=True)
         e = tools.max_error_scaled(dat, ref)
         if e > thresh:
             log = " tendency vs forcing for ID='{}': maximum error in forcing more than {}%: {:.3f}%".format(ID, thresh*100, e*100)
@@ -24,7 +24,7 @@ def test_budget(datout, thresh=0.01, plot=True, **plot_kws):
     return failed
 
 
-def test_2nd(datout, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
+def test_2nd(adv, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
     base = "cartesian"
     failed = False
     for correct in [False, True]:
@@ -34,10 +34,10 @@ def test_2nd(datout, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
                 ID += " correct"
             ID2 = ID + " 2nd"
             for i in [ID, ID2]:
-                if i not in datout["adv"].ID:
+                if i not in adv.ID:
                     raise ValueError("Could not find output of budget method '{}'".format(i))
 
-            data = datout["adv"]
+            data = adv
             sum_s = ""
             t = thresh
             if sum_dir:
@@ -56,13 +56,13 @@ def test_2nd(datout, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
                 failed = True
     return failed
 
-def test_decomp_sum(datout, thresh=0.03, plot=True, **plot_kws):
+def test_decomp_sumdir(adv, corr, thresh=0.01, plot=True, **plot_kws):
 #native sum vs. cartesian sum
     ID = "native"
     ID2 = "cartesian correct"
-    data = datout["adv"].sel(dir="sum")
+    data = adv.sel(dir="sum")
     ref = data.sel(ID=ID)
-    dat = data.sel(ID=ID2)
+    dat = data.sel(ID=ID2) + corr.sel(ID=ID2, dir="T")
     e = tools.max_error_scaled(dat, ref)
     failed = False
     if e > thresh:
@@ -71,6 +71,47 @@ def test_decomp_sum(datout, thresh=0.03, plot=True, **plot_kws):
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
+    return failed
+
+def test_dz_out(adv, plot=True, **plot_kws):
+    failed = False
+    ID = "cartesian correct"
+    if "bottom_top" in adv.dims:
+        eta = adv["bottom_top"][1].values
+    else:
+        eta = adv["bottom_top_stag"][2].values
+
+    for corr_varz, threshs in zip([True, False],[[0.99, 0.99, 0.9999, 0.99], [0.92, 0.99, 0.9999, 0.99]]) :
+        ID2 = "cartesian correct dz_out"
+        if corr_varz:
+            ID2 = ID2 + " corr_varz"
+        for thresh, loc in zip(threshs,#TODOm
+                       [{"dir" : ["X", "sum"]}, {"comp" : "mean"}, {"dir" : ["Y", "Z"]}, {"bottom_top" : slice(eta, None)}]):
+            loc = tools.correct_dims_stag(loc, adv)
+            ref = adv.sel(ID=ID, **loc)
+            dat = adv.sel(ID=ID2, **loc)
+            e = tools.nse(dat, ref).values
+            if e < thresh:
+                log = "'{}' vs '{}' for loc={}: NSE in adv less than {}%: {:.3f}%".format(ID, ID2, loc, thresh*100, e*100)
+                print(log)
+                if plot:
+                    plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+                failed = True
+    return failed
+
+def test_decomp_sumcomp(adv, thresh=0.01, plot=True, **plot_kws):
+#native sum vs. cartesian sum
+    failed = False
+    for ID in adv.ID:
+        ref = adv.sel(ID=ID, comp="adv_r")
+        dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
+        e = tools.max_error_scaled(dat, ref)
+        if e > thresh:
+            log = " 'mean + trb_r' vs 'adv_r': maximum error in adv sum more than {}%: {:.3f}%".format(thresh*100, e*100)
+            print(log)
+            if plot:
+                plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+            failed = True
     return failed
 
 
@@ -89,45 +130,12 @@ def test_nan(datout):
                 v = f
             else:
                 v = "{}/{}".format(f, dv)
-            dnan = tools.find_nans(d[dv])
+            dnan = tools.find_bad(d[dv])
             if sum(dnan.shape) != 0:
                 print("\nWARNING: found NaNs in {} :\n{}".format(v, dnan.coords))
                 failed = True
 
     return failed
-#%%recalc_w vs not recalc_w
-#TODOm delete
-    # base_i = base + " correct"
-    # ID = base_i + " recalc_w"
-    # ID2 = base_i
-    # for sum_dir in [False, True]:
-    #     data = datout["adv"]
-    #     if sum_dir:
-    #         data = data.sel(dir="sum")
-    #         thresh = .2 #TODO really need such high threshold? problem with mean?
-    #         sum_s = "sum"
-    #     else:
-    #         thresh = .5
-    #         sum_s = ""
-    #     ref = data.sel(ID=ID)
-    #     dat = data.sel(ID=ID2)
-    #     # dat = dat_mean["FQZ_ADV_MEAN"]
-    #     # ref = dat_mean["FQZ_ADV_MEAN_PROG"]
-
-    #     e = tools.max_error_scaled(dat, ref)*100
-    #     plot_kws = dict(
-    #         s=20,
-    #         # discrete=True,
-    #         # plot_diff=True,
-    #         # iloc= {"x" : slice(1,5)},
-    #         # iloc= {"bottom_top" : slice(0,5)},
-    #         hue="comp",
-    #          # plot_iloc =
-    #     )
-    #     if e > thresh:
-    #         log = " '{}' vs '{}': maximum error in adv {} more than {}%: {:.3f}%".format(ID, ID2, sum_s, thresh, e)
-    #         print(log)
-    #         plotting.scatter_hue(dat, ref, title=log, **plot_kws)
 
 
 #%% mean vs adv_r

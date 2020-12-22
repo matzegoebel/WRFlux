@@ -59,24 +59,23 @@ plot_kws = dict(
     # iloc={"bottom_top" : [0,1,2,3,-4,-3,-2,-1]},
     hue="dir",
     s=40,
-    ignore_missing_hue=True
-    # savefig = False
+    ignore_missing_hue=True,
+    # savefig = False,
+    close = True
     )
 #%%set calculation methods
 budget_methods = [
             [[], "native"],
             ["cartesian", "correct"],
-           # ["cartesian", "correct", "dz_out"],#TODOm:needed for anything?
          ]
-
-budget_methods_2nd = [
-            [[], "native"],
+budget_methods_2nd = [*budget_methods,
             ["cartesian", "2nd"],
             ["cartesian", "correct", "2nd"],
             ["cartesian"],
-            ["cartesian", "correct"],
-            # ["cartesian", "correct", "dz_out"],
          ]
+budget_methods_dzout = [*budget_methods,
+                        ["cartesian", "correct", "dz_out"],
+                        ["cartesian", "correct", "dz_out", "corr_varz"],]
 
 if exist != "s":
     skip_exist = False
@@ -91,17 +90,19 @@ def test_budget_all():
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
-    param_grids["km_opt"] = odict(hesselberg_avg=[True,False])
-    # param_grids["km_opt"] = odict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2])
+    param_grids["hor_avg"] = odict(km_opt=[2])
+    param_grids["dz_out"] = odict(spec_hfx=[None])
+    param_grids["hessel"] = odict(hesselberg_avg=[True,False])
+    param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     o = np.arange(2,7)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
-    param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th2=th2)
-    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th2=th2)
+    param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
+    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th=th2)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
 
-    failed = run_and_check_budget(param_grids)
+    failed = run_and_check_budget(param_grids, hor_avg=hor_avg, avg_dims=avg_dims)
     # setup_test_init_module(conf, restore=True)
 
     return failed
@@ -116,7 +117,7 @@ def test_budget_bc():
     param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], spec_hfx=[0.2])
     param_grids["symmetric BC"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
 
-    failed = run_and_check_budget(param_grids, conf)
+    failed = run_and_check_budget(param_grids, conf, hor_avg=hor_avg, avg_dims=avg_dims)
     # setup_test_init_module(conf, restore=True)
 
     return failed
@@ -135,7 +136,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             conf = importlib.import_module(cfile)
             param_combs = misc_tools.grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
             combs, output = capture_submit(init=True, exist=exist, debug=deb, config_file=cfile, param_combs=param_combs)
-            combs, output = capture_submit(init=False, wait=True, pool_jobs=True, exist=exist,
+            combs, output = capture_submit(init=False, wait=True, debug=deb, pool_jobs=True, exist=exist,
                                            config_file=cfile, param_combs=param_combs)
             print("\n\n")
 
@@ -168,16 +169,24 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 failed.loc[IDi] = ""
             #postprocessing
             print("Postprocess data")
-            if param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"]:
+            adv_2nd = False
+            dzout = False
+            bm = budget_methods
+            hor_avg_i = hor_avg
+            if label == "hor_avg":
+                #test hor_avg
+                hor_avg_i = True
+            elif label == "dz_out":
+                #test dzout
+                dzout = True
+                bm = budget_methods_dzout
+            elif param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"] == 2:
                 adv_2nd = True
                 bm = budget_methods_2nd
-            else:
-                adv_2nd = False
-                bm = budget_methods
 
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
-                                  skip_exist=skip_exist, hor_avg=hor_avg, avg_dims=avg_dims, save_output=True)
+                                  skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, save_output=True)
 
             print("\n\n\n{0}\nRun tests\n{0}\n".format("#"*50))
 
@@ -197,13 +206,25 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 #     total_tend = total_tend[bounds_v]
                 #tests
                 failed_i = {}
-                failed_i["budget"] = testing.test_budget(datout_v, thresh=0.01, plot=plot, **plot_kws)
-                failed_i["decomp_sum"] = testing.test_decomp_sum(datout_v, thresh=0.03, plot=True, **plot_kws)
+                failed_i["budget"] = testing.test_budget(datout_v["tend"], thresh=0.01, plot=plot, **plot_kws)
+                adv = datout_v["adv"]
+                corr = datout_v["corr"]
+                if var == "w":#TODOm
+                    adv = adv.isel(bottom_top_stag=slice(0,-1))
+                    corr = corr.isel(bottom_top_stag=slice(0,-1))
+                else:
+                    adv = adv.isel(bottom_top=slice(0,-1))
+                    corr = corr.isel(bottom_top=slice(0,-1))
+
+                failed_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, thresh=0.04, plot=True, **plot_kws)
+                failed_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(datout_v["adv"], thresh=0.01, plot=True, **plot_kws)
+                if dzout:#TODOm: why limit?
+                    failed_i["dz_out"] = testing.test_dz_out(adv, plot=plot, **plot_kws)
                 if adv_2nd:
-                    failed_i["2nd"] = testing.test_2nd(datout_v, thresh=0.01, plot=plot, **plot_kws)
+                    failed_i["2nd"] = testing.test_2nd(datout_v["adv"], thresh=0.01, plot=plot, **plot_kws)
                 failed_i["NaN"] = testing.test_nan(datout_v)
                 if var == variables[-1]:
-                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.01, plot=plot, **plot_kws)
+                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.015, plot=plot, **plot_kws)
 
                 failed.loc[IDi, var] += ",".join([key for key, val in failed_i.items() if val])
 

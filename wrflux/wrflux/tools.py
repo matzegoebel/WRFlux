@@ -122,15 +122,22 @@ def avg_xy(data, avg_dims):
 
     return data.mean(avg_dims_final)
 
-def find_nans(dat):
-    """Drop all indeces of each dimension that do not contain NaNs"""
+def find_bad(dat, nan=True, inf=True):
+    """Drop all indeces of each dimension that do not contain NaNs or infs."""
 
-    nans = dat.isnull()
-    nans = nans.where(nans)
-    nans = dropna_dims(nans)
-    dat = dat.loc[nans.indexes]
+    nans = False
+    infs = False
+    if nan:
+        nans = dat.isnull()
+    if inf:
+        infs = dat == np.inf
+    invalid = nans | infs
+    invalid = invalid.where(invalid)
+    invalid = dropna_dims(invalid)
+    dat = dat.loc[invalid.indexes]
 
     return dat
+
 
 def dropna_dims(dat, dims=None, how="all", **kwargs):
     """
@@ -565,7 +572,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
             flux8z = stagger(flux8v, d3, grid["ZNW"], **grid[stagger_const])
             flux8z[:,[0,-1]] = 0
         corr_sgs = diff(flux8z, d3s, new_coord=vcoord)/dn
-        corr_sgs = corr_sgs*stagger_like(dzdd[du], corr_sgs, cyclic=cyclic)
+        corr_sgs = corr_sgs*stagger_like(dzdd[du], corr_sgs, cyclic=cyclic, **grid[stagger_const])
 
         dx = grid["D" + du]
         sgs[du] = -diff(fd, ds, new_coord=sgs[d], cyclic=cyc)/dx*m
@@ -583,7 +590,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
 
 
 def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
-             cartesian=False, force_2nd_adv=False, dz_out=False):
+             cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=False):
 
     print("Compute resolved tendencies")
 
@@ -618,22 +625,29 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
     tot_flux = tot_flux.rename(dict(zip(fluxnames, XYZ)))
     rhod8z = stagger_like(dat_mean["RHOD_MEAN"], tot_flux["Z"], cyclic=cyclic, **grid[stagger_const])
 
-    if dz_out:
-        corr = tot_flux[XY]
-        corr["T"] = dat_mean[VAR + "_MEAN"]
-        corr = rhod8z*stagger_like(corr, rhod8z, cyclic=cyclic, **grid[stagger_const])
-        corr = corr.to_array("dir")
-    else:
-        corr = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
-        if force_2nd_adv:
-            corr = [corri + "_2ND" for corri in corr]
-        corr = dat_mean[corr]
-        corr = corr.to_array("dir")
-        corr["dir"] = ["X", "Y", "T"]
+
+    corr = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
+    if force_2nd_adv:
+        corr = [corri + "_2ND" for corri in corr]
+    corr = dat_mean[corr]
+    corr = corr.to_array("dir")
+    corr["dir"] = ["X", "Y", "T"]
 
     if not cartesian:
         tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"])/rhod8z
 
+    if dz_out:
+        if corr_varz:
+            dzdd = stagger_like(grid["dzdd"], corr, cyclic=cyclic, **grid[stagger_const])
+            corr = corr.where(abs(dzdd) > 1e-6, 0)
+            dzdd = dzdd.where(corr != 0, 1)
+            corr = corr/dzdd#dzdd[1,3,6:8]
+        else:
+            corr = tot_flux[XY]
+            corr["T"] = dat_mean[VAR + "_MEAN"]
+            corr = rhod8z*stagger_like(corr, rhod8z, cyclic=cyclic, **grid[stagger_const])
+            corr = corr.to_array("dir")
+  #%%
   #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in XYZ:
@@ -680,7 +694,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
                 fac = avg_xy(fac, avg_dims)
             if not dz_out:
                 fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[du].dims)
-            fac = stagger_like(fac, flux[du], cyclic=cyclic)
+            fac = stagger_like(fac, flux[du], cyclic=cyclic, **grid[stagger_const])
             adv_i[du] = -diff(fac*flux[du]/mf_flx, ds, dat_mean[d], cyclic=cyc)*mf["X"]*mf["Y"]/dx
         fz = rhod8z_m*flux["Z"]
         if VAR == "W":
@@ -745,8 +759,11 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
             corr_d = stagger_like(grid["dzd{}_{}".format(d, v.lower())], **kw)
         corr.loc["mean"][i] = corr_d*rho_stag*var_stag["Z"]
 
+
     #resolved turbulent part
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
+
+    corr.loc[{"comp" : ["trb_r", "mean"], "dir" : "T"}] = 0.
 
     #correction flux to tendency
     if "W" in VAR:
@@ -755,16 +772,18 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
         dcorr_dz[{"bottom_top_stag" : -1}] = -(2*corr.isel(bottom_top=-1)/grid["DN"][-2]).values
     else:
         dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"])/grid["DNW"]
-    dcorr_dz = dcorr_dz/grid["MU_STAG_MEAN"]*(-g)
+    dcorr_dz = dcorr_dz*(-g)/grid["MU_STAG_MEAN"]
+
+    if dz_out:
+        dcorr_dz = dcorr_dz*stagger_like(grid["dzdd"], dcorr_dz, cyclic=cyclic, **grid[stagger_const])
+
     #apply corrections
     for i, d in enumerate(XY):
         adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
 
-    if dz_out:
-        dcorr_dz = dcorr_dz*stagger_like(grid["dzdd"], dcorr_dz, cyclic=cyclic, **grid[stagger_const])
     tend = tend - dcorr_dz.sel(comp="adv_r", dir="T", drop=True)
 
-    return adv, tend, corr
+    return adv, tend, dcorr_dz
 
 def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=None, **attrs):
     #instantaneous variable
@@ -806,7 +825,7 @@ def load_postproc(outpath, var, avg=None):
     if avg is None:
         avg = ""
     outpath = os.path.join(outpath, "postprocessed", var.upper())
-    for f in ["grid", "adv", "tend", "sources", "sgs", "sgsflux", "flux"]:
+    for f in ["grid", "adv", "tend", "sources", "sgs", "sgsflux", "flux", "corr"]:
         file = "{}/{}{}.nc".format(outpath, f, avg)
         if f in ["sgsflux","flux","grid"]:
            datout[f] = xr.open_dataset(file)
@@ -833,7 +852,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
     if skip_exist:
         #check if postprocessed output already exists
         skip = True
-        for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
+        for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]:
             for var in variables:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), c, avg)
                 if not os.path.isfile(fpath):
@@ -852,7 +871,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         if skip_exist:
             #check if postprocessed output already exists
             skip = True
-            for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]:
+            for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, c, avg)
                 if not os.path.isfile(fpath):
                     skip = False
@@ -865,7 +884,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
          = calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims)
 
         #calc fluxes and tendencies
-        keys = ["cartesian","correct","dz_out","force_2nd_adv"] #available settings
+        keys = ["cartesian","correct","dz_out","force_2nd_adv","corr_varz"] #available settings
         short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
 
         IDcs = []
@@ -875,12 +894,18 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             c, comb, IDc = get_comb(comb.copy(), keys, short_names, base_setting=base_setting)
             IDcs.append(IDc)
             print("\n" + IDc)
+            if c["dz_out"]:
+                if not c["cartesian"]:
+                    raise ValueError("dz_out can only be used for cartesian calculations!")
+            elif c["corr_varz"]:
+                raise ValueError("corr_varz can only be used together with dz_out!")
 
             #calculate total tendency
             total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, **attrs)
 
             dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
-                                  cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],dz_out=c["dz_out"])
+                                  cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
+                                  dz_out=c["dz_out"], corr_varz=c["corr_varz"])
             if dat is None:
                 continue
             else:
@@ -889,7 +914,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             datout_c["tend"] = total_tend
 
             if c["correct"] and c["cartesian"]:
-                datout_c["adv"], datout_c["tend"], corr = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
+                datout_c["adv"], datout_c["tend"], datout_c["corr"] = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
                                                             grid, mapfac, datout_c["adv"], total_tend, cyclic, c["dz_out"],
                                                             hor_avg=hor_avg, avg_dims=avg_dims)
 
@@ -901,7 +926,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
             #aggregate different IDs
             loc = dict(ID=[IDc])
-            for dn in ["flux", "adv", "forcing", "tend"]:
+            for dn in datout_c.keys():
                 datout_c[dn] = datout_c[dn].expand_dims(loc)
                 if dn not in datout:
                     datout[dn] = datout_c[dn]
@@ -923,6 +948,8 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         datout["sgs"] = sgs.assign_attrs(description="SGS {}-tendency".format(VAR), units=units)
         datout["tend" ]= datout["tend"].assign_attrs(description="{}-tendency".format(VAR), units=units)
         datout["sources"] = sources.assign_attrs(description="{}-tendency".format(VAR), units=units)
+        if c["correct"] and c["cartesian"]:
+            datout["corr"] = datout["corr"].assign_attrs(description="{}-tendency correction".format(VAR), units=units)
         desc = " staggered to {}-grid".format(VAR)
         grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(description="time-averaged dry air mass" + desc, units="Pa")
         grid["Z_STAG"] = grid["Z_STAG"].assign_attrs(description="time-averaged geopotential height" + desc)
@@ -944,8 +971,8 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
                         d[D] = d[D].assign_coords({"zf{}".format(D.lower()) : z})
                 elif dn != "grid":
                     d = d.assign_coords(z=grid["Z_STAG"])
-                if "ID" in d.dims:
-                    d = d.sel(ID=IDcs)
+                # if "ID" in d.dims:
+                #     d = d.sel(ID=IDcs)
                 if "rep" in d.dims:
                     d = d.isel(rep=0, drop=True)
                 d = d.assign_attrs(attrs)
@@ -963,7 +990,6 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc=None, pre_loc=None):
     dat_inst = []
     dat_mean = []
-    n = 0
     print("Load files")
     if inst_file is None:
         if start_time is None:
@@ -1130,11 +1156,11 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         grid["dzd{}_{}".format(d.lower(), vel)] = stagger_like(dph, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
 
     rhod = - 1/diff(g*zw_inst, "bottom_top_stag", dat_inst.bottom_top)*grid["DNW"]*mu
-    dat_inst["RHOD_STAG"] = stagger_like(rhod, ref, cyclic=cyclic)
+    dat_inst["RHOD_STAG"] = stagger_like(rhod, ref, cyclic=cyclic, **grid[stagger_const])
 
     #height
     grid["ZW"] = dat_mean["Z_MEAN"]
-    grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], ref, cyclic=cyclic)
+    grid["Z_STAG"] = stagger_like(dat_mean["Z_MEAN"], ref, cyclic=cyclic, **grid[stagger_const])
 
     #additional sources
     print("Compute SGS and additional tendencies")

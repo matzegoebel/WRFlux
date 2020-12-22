@@ -31,7 +31,6 @@ debug_build = "WRF_fluxmod_debug" #used for -d option
 o = np.arange(2,7)
 # names of parameter values for output filenames; either dictionaries or lists (not for composite parameters)
 param_names = {"th" : ["thd", "thm", "thdm"],
-               "th2" : ["thd", "thm"],
                "h_adv_order" : [2, 3],
                "v_adv_order" : [2, 3],
                "adv_order" : o,
@@ -97,7 +96,7 @@ params["v_mom_adv_order"] = 3
 
 #indices for output streams and their respective name and output interval (minutes, floats allowed)
 # 0 is the standard output stream
-params["output_streams"] = {24: ["meanout", 10.], 0: ["instout", 10.] }
+params["output_streams"] = {24: ["meanout", 30.], 0: ["instout", 30.] }
 
 params["output_t_fluxes"] = 1
 params["output_q_fluxes"] = 1

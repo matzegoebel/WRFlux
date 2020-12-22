@@ -636,6 +636,7 @@ CONTAINS
               rhoxz = 0.5*(rho8w(i,k,j)+rho8w(i-1,k,j))
               rhoyz = 0.5*(rho8w(i,k,j)+rho8w(i,k,j-1))
             else
+              rhom = 1
               rhox = 1
               rhoy = 1
               rhoxy = 1

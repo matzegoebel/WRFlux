@@ -33,11 +33,7 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
         dat = dat.dropna("bottom_top_stag", "all")
     dat = multiplier*dat
 
-    if iloc is not None:
-        dat = dat[iloc]
-
-    if loc is not None:
-        dat = dat.loc[loc]
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
 
     cross_dim_u = cross_dim.upper()
     dat = dat.rename({cross_dim : cross_dim_u})
@@ -70,8 +66,8 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
         display_ticks(pax)
     middle_column =  int((len(pax[0])-1)/2)
     label = var
-    if var in tools.tex_names:
-        label = tools.tex_names[var]
+    if var in tex_names:
+        label = tex_names[var]
 
     t = "tendency"
     if t not in attrs["description"]:
@@ -115,14 +111,8 @@ def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", 
 
 def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False, discrete=False,
                 iloc=None, loc=None, savefig=False, close=False, figloc=None, title=None, **kwargs):
-    if iloc is not None:
-        iloc = tools.correct_dims_stag(iloc, dat)
-        dat = dat[iloc]
-        ref = ref[iloc]
-    if loc is not None:
-        loc = tools.correct_dims_stag(loc, dat)
-        dat = dat.loc[loc]
-        ref = ref.loc[loc]
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     pdat = xr.concat([dat, ref], "concat_dim")
 
     if plot_diff:#TODOm: change label

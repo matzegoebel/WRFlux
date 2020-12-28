@@ -30,6 +30,8 @@ g = 9.81
 rvovrd = 461.6/287.04
 stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]
 
+outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
+# outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]
 #%% figloc
 host = socket.gethostname()
 basedir = "~/phd/"
@@ -168,17 +170,21 @@ def dropna_dims(dat, dims=None, how="all", **kwargs):
 
     return dat
 
-def max_error_scaled(dat, ref):
+def max_error_scaled(dat, ref, dim=None):
     """
     Compute maximum squared error of the input data with respect to the reference data
-    and scale by the variance of the reference data.
+    and scale by the variance of the reference data. If dim is given the variance and
+    maximum error is computed over these dimensions. Then the maximum of the result is taken.
 
     Parameters
     ----------
-    dat : array
+    dat : dataarray
         input data.
-    ref : array
+    ref : dataarray
         reference data.
+    dim : str or sequence of str, optional
+        Dimension(s) over which to calculate variance and maximum error.
+        The default is None, which means all dimensions.
 
     Returns
     -------
@@ -187,9 +193,15 @@ def max_error_scaled(dat, ref):
 
     """
 
+    if dim is not None:
+        dim = correct_dims_stag_list(dim, ref)
+
     err = (dat - ref)**2
-    norm = ((ref - ref.mean())**2).mean()
-    return float(err.max()/norm)
+    norm = ((ref - ref.mean(dim=dim))**2).mean(dim=dim)
+    err = err.max(dim=dim)/norm
+    if err.shape != ():
+        err = err.max()
+    return float(err)
 
 def index_of_agreement(dat, ref, dim=None):
     """
@@ -211,6 +223,9 @@ def index_of_agreement(dat, ref, dim=None):
         index of agreement.
 
     """
+
+    if dim is not None:
+        dim = correct_dims_stag_list(dim, ref)
 
     mse = ((dat-ref)**2).mean(dim=dim)
     ref_mean = ref.mean(dim=dim)
@@ -237,6 +252,9 @@ def nse(dat, ref, dim=None):
         nse.
 
     """
+
+    if dim is not None:
+        dim = correct_dims_stag_list(dim, ref)
 
     mse = ((dat-ref)**2).mean(dim=dim)
     norm = ((ref - ref.mean(dim=dim))**2).mean(dim=dim)
@@ -271,7 +289,8 @@ def rolling_mean(ds, dim, window, periodic=True, center=True):
 def correct_dims_stag(loc, dat):
     """
     Add "_stag" to every key in dictionary loc, for which the unmodified key
-    is not a dimension of dat but the modified key is. Returns a copy.
+    is not a dimension of dat but the modified key is. Delete keys that are
+    not dimensions of dat. Returns a copy.
 
     Parameters
     ----------
@@ -287,12 +306,54 @@ def correct_dims_stag(loc, dat):
 
     """
 
-    loc = loc.copy()
+    loc_out = loc.copy()
     for d, val in loc.items():
-        if (d not in dat.dims) and (d + "_stag" in dat.dims):
-            loc[d + "_stag"] = val
-            del loc[d]
-    return loc
+        if d not in dat.dims:
+            if d + "_stag" in dat.dims:
+                loc_out[d + "_stag"] = val
+            del loc_out[d]
+    return loc_out
+
+def correct_dims_stag_list(l, dat):
+    """
+    Add "_stag" to every item in iterable l, for which the unmodified item
+    is not a dimension of dat but the modified item is. Delete items that are
+    not dimensions of dat. Returns a copy.
+
+    Parameters
+    ----------
+    l : iterable
+        input iterable.
+    dat : datarray or dataset
+        reference data.
+
+    Returns
+    -------
+    loc : list
+        modified list.
+
+    """
+
+    l_out = []
+    for i,d in enumerate(l):
+        if d in dat.dims:
+            l_out.append(d)
+        else:
+            if d + "_stag" in dat.dims:
+                l_out.append(d + "_stag")
+    return l_out
+
+def loc_data(dat, loc=None, iloc=None, copy=True):
+    if copy:
+        dat = dat.copy()
+    if iloc is not None:
+        iloc = correct_dims_stag(iloc, dat)
+        dat = dat[iloc]
+    if loc is not None:
+        loc = correct_dims_stag(loc, dat)
+        dat = dat.loc[loc]
+
+    return dat
 
 #%%manipulate datasets
 
@@ -825,7 +886,7 @@ def load_postproc(outpath, var, avg=None):
     if avg is None:
         avg = ""
     outpath = os.path.join(outpath, "postprocessed", var.upper())
-    for f in ["grid", "adv", "tend", "sources", "sgs", "sgsflux", "flux", "corr"]:
+    for f in outfiles:
         file = "{}/{}{}.nc".format(outpath, f, avg)
         if f in ["sgsflux","flux","grid"]:
            datout[f] = xr.open_dataset(file)
@@ -833,33 +894,40 @@ def load_postproc(outpath, var, avg=None):
            datout[f] = xr.open_dataarray(file)
     return datout
 
-def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct", base_setting=None,
-                    pre_iloc=None, pre_loc=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, skip_exist=True, save_output=True):
+def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct",
+                    pre_iloc=None, pre_loc=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, skip_exist=True,
+                    save_output=True, return_model_output=True):
 
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
     else:
         avg = ""
 
-    budget_methods = make_list(budget_methods)
-    dat = load_data(outpath, inst_file=inst_file, mean_file=mean_file, start_time=start_time,
-                    pre_iloc=pre_iloc, pre_loc=pre_loc)
-    if dat is None:
-        return
-    else:
-        dat_mean, dat_inst = dat
-
+    skip = False
     if skip_exist:
         #check if postprocessed output already exists
         skip = True
-        for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]:
+        for c in outfiles:
             for var in variables:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), c, avg)
                 if not os.path.isfile(fpath):
                     skip = False
-        if skip:
-            print("Postprocessed output already available!")
-            return {var : load_postproc(outpath, var, avg=avg) for var in variables}, dat_inst, dat_mean
+
+    if return_model_output or (not skip):
+        budget_methods = make_list(budget_methods)
+        dat = load_data(outpath, inst_file=inst_file, mean_file=mean_file, start_time=start_time,
+                        pre_iloc=pre_iloc, pre_loc=pre_loc)
+        if dat is None:
+            return
+        else:
+            dat_mean, dat_inst = dat
+
+    if skip:
+         print("Postprocessed output already available!")
+         out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
+         if return_model_output:
+             out = [out, dat_inst, dat_mean]
+         return out
 
     dat_mean, dat_inst, grid, cyclic, attrs = prepare(dat_mean, dat_inst, t_avg=t_avg, t_avg_interval=t_avg_interval)
     datout_all = {}
@@ -871,7 +939,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         if skip_exist:
             #check if postprocessed output already exists
             skip = True
-            for c in ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]:
+            for c in outfiles:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, c, avg)
                 if not os.path.isfile(fpath):
                     skip = False
@@ -891,7 +959,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
         for comb in budget_methods:
             datout_c = {}
-            c, comb, IDc = get_comb(comb.copy(), keys, short_names, base_setting=base_setting)
+            c, comb, IDc = get_comb(comb.copy(), keys, short_names)
             IDcs.append(IDc)
             print("\n" + IDc)
             if c["dz_out"]:
@@ -983,7 +1051,10 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
                 d.to_netcdf(fpath)
         datout_all[var] = datout
 
-    return datout_all, dat_inst, dat_mean
+    out = datout_all
+    if return_model_output:
+        out = [out, dat_inst, dat_mean]
+    return out
 
 #%%prepare
 
@@ -1027,16 +1098,12 @@ def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc
     return dat_mean, dat_inst
 
 
-def get_comb(comb, keys, short_names, base_setting=None):
+def get_comb(comb, keys, short_names):
     if (len(comb) > 0) and (type(comb[0]) == list):
         IDc = comb[1]
         comb = comb[0]
     else:
         IDc = " ".join(comb)
-
-    if base_setting is not None:
-        base_setting = make_list(base_setting)
-        comb = comb + base_setting
 
     for i, key in enumerate(comb):
         if key in short_names:

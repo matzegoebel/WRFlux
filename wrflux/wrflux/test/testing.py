@@ -8,12 +8,16 @@ Created on Thu Dec 17 09:35:43 2020
 from wrflux import tools, plotting
 import xarray as xr
 
-def test_budget(tend, thresh=0.01, plot=True, **plot_kws):
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+
     failed = False
     for ID in ["native", "cartesian correct"]:
-        ref = tend.sel(comp="tendency", ID=ID, drop=True)
-        dat = tend.sel(comp="forcing", ID=ID, drop=True)
-        e = tools.max_error_scaled(dat, ref)
+        ref = tend.sel(ID=ID, drop=True)
+        dat = forcing.sel(ID=ID, drop=True)
+        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+
+        e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
         if e > thresh:
             log = " tendency vs forcing for ID='{}': maximum error in forcing more than {}%: {:.3f}%".format(ID, thresh*100, e*100)
             print(log)
@@ -24,7 +28,8 @@ def test_budget(tend, thresh=0.01, plot=True, **plot_kws):
     return failed
 
 
-def test_2nd(adv, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
+def test_2nd(adv, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, thresh_sum=0.02, plot=True, **plot_kws):
+
     base = "cartesian"
     failed = False
     for correct in [False, True]:
@@ -46,7 +51,9 @@ def test_2nd(adv, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
                 t = thresh_sum
             ref = data.sel(ID=ID)
             dat = data.sel(ID=ID2)
-            e = tools.max_error_scaled(dat, ref)
+            dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+            ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+            e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
             if e > t:
                 log = "'{}' vs '{}': maximum error in adv {} more than {}%: {:.3f}%".format(ID, ID2, sum_s, thresh*100, e*100)
                 print(log)
@@ -56,14 +63,19 @@ def test_2nd(adv, thresh=0.01, thresh_sum=0.02, plot=True, **plot_kws):
                 failed = True
     return failed
 
-def test_decomp_sumdir(adv, corr, thresh=0.01, plot=True, **plot_kws):
+def test_decomp_sumdir(adv, corr=None, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
 #native sum vs. cartesian sum
+
     ID = "native"
     ID2 = "cartesian correct"
     data = adv.sel(dir="sum")
     ref = data.sel(ID=ID)
-    dat = data.sel(ID=ID2) + corr.sel(ID=ID2, dir="T")
-    e = tools.max_error_scaled(dat, ref)
+    dat = data.sel(ID=ID2)
+    if corr is not None:
+        dat = dat + corr.sel(ID=ID2, dir="T")
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+    e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
     failed = False
     if e > thresh:
         log = " '{}' vs '{}': maximum error in adv sum more than {}%: {:.3f}%".format(ID, ID2, thresh*100, e*100)
@@ -73,7 +85,7 @@ def test_decomp_sumdir(adv, corr, thresh=0.01, plot=True, **plot_kws):
         failed = True
     return failed
 
-def test_dz_out(adv, plot=True, **plot_kws):
+def test_dz_out(adv, avg_dims_error=None, loc=None, iloc=None, plot=True, **plot_kws):
     failed = False
     ID = "cartesian correct"
     if "bottom_top" in adv.dims:
@@ -85,27 +97,32 @@ def test_dz_out(adv, plot=True, **plot_kws):
         ID2 = "cartesian correct dz_out"
         if corr_varz:
             ID2 = ID2 + " corr_varz"
-        for thresh, loc in zip(threshs,#TODOm
+        for thresh, l in zip(threshs,#TODOm
                        [{"dir" : ["X", "sum"]}, {"comp" : "mean"}, {"dir" : ["Y", "Z"]}, {"bottom_top" : slice(eta, None)}]):
-            loc = tools.correct_dims_stag(loc, adv)
-            ref = adv.sel(ID=ID, **loc)
-            dat = adv.sel(ID=ID2, **loc)
-            e = tools.nse(dat, ref).values
+
+            l = tools.correct_dims_stag(l, adv)
+            ref = adv.sel(ID=ID, **l)
+            dat = adv.sel(ID=ID2, **l)
+            dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+            ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+            e = tools.nse(dat, ref, dim=avg_dims_error).values.min()
             if e < thresh:
-                log = "'{}' vs '{}' for loc={}: NSE in adv less than {}%: {:.3f}%".format(ID, ID2, loc, thresh*100, e*100)
+                log = "'{}' vs '{}' for loc={}: NSE in adv less than {}%: {:.3f}%".format(ID, ID2, l, thresh*100, e*100)
                 print(log)
                 if plot:
                     plotting.scatter_hue(dat, ref, title=log, **plot_kws)
                 failed = True
     return failed
 
-def test_decomp_sumcomp(adv, thresh=0.01, plot=True, **plot_kws):
+def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
 #native sum vs. cartesian sum
     failed = False
     for ID in adv.ID:
         ref = adv.sel(ID=ID, comp="adv_r")
         dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
-        e = tools.max_error_scaled(dat, ref)
+        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+        e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
         if e > thresh:
             log = " 'mean + trb_r' vs 'adv_r': maximum error in adv sum more than {}%: {:.3f}%".format(thresh*100, e*100)
             print(log)
@@ -154,13 +171,14 @@ def test_nan(datout):
     #TODO: why is turbulent so strong on slope?
 
 
-def test_w(dat_inst, thresh=0.01, plot=True, **plot_kws):
-    #%% w vs wd
+def test_w(dat_inst, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+    dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
+
     dat = dat_inst["W"]
     ref = dat_inst["W_DIAG"]
     # dat = dat_mean["W_MEAN"]
     # ref = dat_mean["WD_MEAN"]
-    e = tools.max_error_scaled(dat, ref)
+    e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
     failed = False
     if e > thresh:
         log = " w vs wd: maximum difference more than {}%: {:.3f}%".format(thresh*100, e*100)

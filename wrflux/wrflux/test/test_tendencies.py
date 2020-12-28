@@ -20,7 +20,7 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 import pytest
-import testing
+from wrflux.test import testing
 import importlib
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
@@ -30,12 +30,12 @@ os.environ["MKL_NUM_THREADS"]="1"
 os.environ["OPENBLAS_NUM_THREADS"]="1"
 
 XY = ["X", "Y"]
-exist = "o"
+exist = "s"
 
 # thresh_thdry = 0.02#TODOm
 
 variables = ["q", "t", "u", "v", "w"]
-# variables = ["q"]
+# variables = ["u"]
 
 raise_error = False
 skip_exist = True
@@ -46,21 +46,29 @@ random_msf = False #change mapscale factors from 1 to random values
 #TODO: hor avg needs boundary points?
 #TODO: more tests: mean_flux: mean~ tot
 #TODO: go through with debugger to find hidden errors and add comments
+#TODO: test t_avg
+
+#TODO errors:
+#w decomposition (native vs cartesian) at top eta=0
+#w vs w_diag for w close to 0
+
 
 # t_avg = False #average over time
 # t_avg_interval = 4 #size of the time averaging window
 
-hor_avg = False#TODOm
+hor_avg = False
 avg_dims = ["y"]
-plot = True
-plot_kws = dict(
+kw = dict(
+    avg_dims_error = [*avg_dims, "bottom_top", "Time"], #dimensions over which to calculate error norms
+    plot = True,
     # plot_diff = True, #plot difference between forcing and tendency against tendency
     discrete=True,
-    # iloc={"bottom_top" : [0,1,2,3,-4,-3,-2,-1]},
-    hue="dir",
+    # iloc={"x" : [*np.arange(9),*np.arange(-9,0)]},
+    # iloc={"y" : [*np.arange(-9,0)]},
+    hue="bottom_top",
     s=40,
     ignore_missing_hue=True,
-    # savefig = False,
+    # savefig = False,#TODOm
     close = True
     )
 #%%set calculation methods
@@ -90,8 +98,9 @@ def test_budget_all():
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
-    param_grids["hor_avg"] = odict(km_opt=[2])
+    # param_grids["dz_out"] = odict(hybrid_opt=[0])
     param_grids["dz_out"] = odict(spec_hfx=[None])
+    param_grids["hor_avg"] = odict(km_opt=[2])
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
@@ -206,7 +215,9 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 #     total_tend = total_tend[bounds_v]
                 #tests
                 failed_i = {}
-                failed_i["budget"] = testing.test_budget(datout_v["tend"], thresh=0.01, plot=plot, **plot_kws)
+                tend = datout_v["tend"].sel(comp="tendency")
+                forcing = datout_v["tend"].sel(comp="forcing")
+                failed_i["budget"] = testing.test_budget(tend, forcing, thresh=0.01, **kw)
                 adv = datout_v["adv"]
                 corr = datout_v["corr"]
                 if var == "w":#TODOm
@@ -216,15 +227,15 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                     adv = adv.isel(bottom_top=slice(0,-1))
                     corr = corr.isel(bottom_top=slice(0,-1))
 
-                failed_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, thresh=0.04, plot=True, **plot_kws)
-                failed_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(datout_v["adv"], thresh=0.01, plot=True, **plot_kws)
+                failed_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, thresh=0.04, **kw)
+                failed_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(datout_v["adv"], thresh=0.01, **kw)
                 if dzout:#TODOm: why limit?
-                    failed_i["dz_out"] = testing.test_dz_out(adv, plot=plot, **plot_kws)
+                    failed_i["dz_out"] = testing.test_dz_out(adv, **kw)
                 if adv_2nd:
-                    failed_i["2nd"] = testing.test_2nd(datout_v["adv"], thresh=0.01, plot=plot, **plot_kws)
+                    failed_i["2nd"] = testing.test_2nd(datout_v["adv"], thresh=0.01, **kw)
                 failed_i["NaN"] = testing.test_nan(datout_v)
                 if var == variables[-1]:
-                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.015, plot=plot, **plot_kws)
+                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.015, **kw)
 
                 failed.loc[IDi, var] += ",".join([key for key, val in failed_i.items() if val])
 

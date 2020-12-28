@@ -103,11 +103,11 @@ params["output_q_fluxes"] = 1
 params["output_u_fluxes"] = 1
 params["output_v_fluxes"] = 1
 params["output_w_fluxes"] = 1
-params["output_t_fluxes_2nd"] = 1
-params["output_q_fluxes_2nd"] = 1
-params["output_u_fluxes_2nd"] = 1
-params["output_v_fluxes_2nd"] = 1
-params["output_w_fluxes_2nd"] = 1
+params["output_t_fluxes_add"] = 1
+params["output_q_fluxes_add"] = 1
+params["output_u_fluxes_add"] = 1
+params["output_v_fluxes_add"] = 1
+params["output_w_fluxes_add"] = 1
 params["hesselberg_avg"] = True
 params["output_dry_theta_fluxes"] = True
 

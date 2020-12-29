@@ -707,10 +707,11 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
 
     if dz_out:
         if corr_varz:
-            dzdd = stagger_like(grid["dzdd"], corr, cyclic=cyclic, **grid[stagger_const])
-            corr = corr.where(abs(dzdd) > 1e-6, 0)
-            dzdd = dzdd.where(corr != 0, 1)
-            corr = corr/dzdd#dzdd[1,3,6:8]
+            corr.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
+            corr.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
+            corr_t = dat_mean[VAR + "_MEAN"]
+            corr_t = rhod8z*stagger_like(corr_t, rhod8z, cyclic=cyclic, **grid[stagger_const])
+            corr["T"] = corr_t
         else:
             corr = tot_flux[XY]
             corr["T"] = dat_mean[VAR + "_MEAN"]

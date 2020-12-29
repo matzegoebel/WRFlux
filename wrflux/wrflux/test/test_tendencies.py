@@ -42,6 +42,7 @@ skip_exist = True
 debug = [True,False]
 random_msf = False #change mapscale factors from 1 to random values
 
+tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w"]
 #TODO: sgs boundary values for open bc should be zero!
 #TODO: hor avg needs boundary points?
 #TODO: more tests: mean_flux: mean~ tot
@@ -49,7 +50,6 @@ random_msf = False #change mapscale factors from 1 to random values
 #TODO: test t_avg
 
 #TODO errors:
-#w decomposition (native vs cartesian) at top eta=0
 #w vs w_diag for w close to 0
 
 
@@ -73,17 +73,15 @@ kw = dict(
     )
 #%%set calculation methods
 budget_methods = [
-            [[], "native"],
-            ["cartesian", "correct"],
-         ]
-budget_methods_2nd = [*budget_methods,
-            ["cartesian", "2nd"],
-            ["cartesian", "correct", "2nd"],
-            ["cartesian"],
-         ]
-budget_methods_dzout = [*budget_methods,
-                        ["cartesian", "correct", "dz_out"],
-                        ["cartesian", "correct", "dz_out", "corr_varz"],]
+                 [[], "native"],
+                 ["cartesian", "correct"]]
+budget_methods_2nd = [
+                     ["cartesian", "2nd"],
+                     ["cartesian", "correct", "2nd"],
+                     ["cartesian"]]
+budget_methods_dzout = [
+                       ["cartesian", "correct", "dz_out"],
+                       ["cartesian", "correct", "dz_out", "corr_varz"]]
 
 if exist != "s":
     skip_exist = False
@@ -98,8 +96,8 @@ def test_budget_all():
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
-    # param_grids["dz_out"] = odict(hybrid_opt=[0])
-    param_grids["dz_out"] = odict(spec_hfx=[None])
+    ### param_grids["dz_out"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    param_grids["dz_out"] = odict(hybrid_opt=[0])
     param_grids["hor_avg"] = odict(km_opt=[2])
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
@@ -110,30 +108,25 @@ def test_budget_all():
     param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th=th2)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
-
-    failed = run_and_check_budget(param_grids, hor_avg=hor_avg, avg_dims=avg_dims)
-    # setup_test_init_module(conf, restore=True)
-
-    return failed
-
-def test_budget_bc():
-    import config_test_tendencies as conf
-    setup_test_init_module(conf, random_msf=random_msf) #TODOm: also for debug!
-
-    #Define parameter grid for simulations
-    param_grids = {}
     param_grids["open BC x"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False], spec_hfx=[0.2])
     param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], spec_hfx=[0.2])
-    param_grids["symmetric BC"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
+ #   param_grids["symmetric BC x"] = odict(symmetric_xs=[True],symmetric_xe=[True],periodic_x=[False], spec_hfx=[0.2])#TODOm
+    param_grids["symmetric BC y"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], spec_hfx=[0.2])
 
-    failed = run_and_check_budget(param_grids, conf, hor_avg=hor_avg, avg_dims=avg_dims)
-    # setup_test_init_module(conf, restore=True)
+    failed, failed_short, err, err_short = run_and_check_budget(param_grids, hor_avg=hor_avg, avg_dims=avg_dims)
+    setup_test_init_module(conf, restore=True)
 
-    return failed
+    return failed, failed_short, err, err_short
+
+#%%
 
 def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tendencies", hor_avg=False, avg_dims=None):
     #%%run_and_check_budget
-    failed = pd.DataFrame(columns=variables)
+    index = pd.MultiIndex.from_product([["INIT", "RUN", "NaN"] + tests, variables])
+    failed = pd.DataFrame(index=index)
+    failed_short = pd.DataFrame(columns=variables)
+    index = pd.MultiIndex.from_product([tests, variables])
+    err = pd.DataFrame(index=index)
 
     for label, param_grid in param_grids.items():
         print("\n\n\nTest " + label)
@@ -153,19 +146,20 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 if cname in ["core_param", "composite_idx"]:
                     continue
                 IDi = param_comb["fname"]
+                failed[IDi] = ""
                 #check logs
                 run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
                 with open("{}/init.log".format(run_dir)) as f:
                     log = f.read()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
                     print("Error in initializing simulation {}!".format(cname))
-                    failed.loc[IDi, :] = "INIT "
+                    failed[IDi].loc["INIT", :] = "F"
                     continue
                 with open("{}/run.log".format(run_dir)) as f:
                     log = f.read()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
                     print("Error in running simulation {}!".format(cname))
-                    failed.loc[IDi, :] = "RUN "
+                    failed[IDi].loc["RUN", :] = "F"
                     continue
 
         for cname, param_comb in param_combs.iterrows():
@@ -174,12 +168,12 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             IDi = param_comb["fname"]
             print("\n\n\n{0}\nPostprocess simulation: {1}\n{0}\n".format("#"*50, cname))
 
-            if IDi not in failed.index:
-                failed.loc[IDi] = ""
+            failed[IDi] = ""
+            err[IDi] = ""
             #postprocessing
             print("Postprocess data")
             adv_2nd = False
-            dzout = False
+            dz_out = False
             bm = budget_methods
             hor_avg_i = hor_avg
             if label == "hor_avg":
@@ -187,12 +181,11 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 hor_avg_i = True
             elif label == "dz_out":
                 #test dzout
-                dzout = True
-                bm = budget_methods_dzout
-            elif param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"] == 2:
+                dz_out = True
+                bm = bm + budget_methods_dzout
+            if param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"] == 2:
                 adv_2nd = True
-                bm = budget_methods_2nd
-
+                bm = bm + budget_methods_2nd
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
                                   skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, save_output=True)
@@ -202,51 +195,59 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             for var in variables:
                 print("Variable: " + var)
                 datout_v = datout[var]
-                # cut_boundaries_c = cut_boundaries TODOm
-                # if not attrs["PERIODIC_X"]:
-                #     bounds["x"] = slice(b,-b)
-                #     cut_boundaries_c = True
-                # if not attrs["PERIODIC_Y"]:
-                #     bounds["y"] = slice(b,-b)
-                #     cut_boundaries_c = True
-                # if cut_boundaries_c:
-                #     bounds_v = create_bounds(forcing)
-                #     forcing = forcing[bounds_v]
-                #     total_tend = total_tend[bounds_v]
+
+                #cut boundaries for non-periodic BC
+                attrs = datout_v["adv"].attrs
+                iloc = {}
+                if not attrs["PERIODIC_X"]:
+                    iloc["x"] = slice(1,-1)
+                if not attrs["PERIODIC_Y"]:
+                    iloc["y"] = slice(1,-1)
+                for n, dat in datout_v.items():
+                    datout_v[n] = tools.loc_data(dat, iloc=iloc)
+
                 #tests
                 failed_i = {}
-                tend = datout_v["tend"].sel(comp="tendency")
-                forcing = datout_v["tend"].sel(comp="forcing")
-                failed_i["budget"] = testing.test_budget(tend, forcing, thresh=0.01, **kw)
+                err_i = {}
+                if "budget" in tests:
+                    tend = datout_v["tend"].sel(comp="tendency")
+                    forcing = datout_v["tend"].sel(comp="forcing")
+                    failed_i["budget"], err_i["budget"] = testing.test_budget(tend, forcing, **kw)
                 adv = datout_v["adv"]
                 corr = datout_v["corr"]
-                if var == "w":#TODOm
-                    adv = adv.isel(bottom_top_stag=slice(0,-1))
-                    corr = corr.isel(bottom_top_stag=slice(0,-1))
-                else:
-                    adv = adv.isel(bottom_top=slice(0,-1))
-                    corr = corr.isel(bottom_top=slice(0,-1))
-
-                failed_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, thresh=0.04, **kw)
-                failed_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(datout_v["adv"], thresh=0.01, **kw)
-                if dzout:#TODOm: why limit?
-                    failed_i["dz_out"] = testing.test_dz_out(adv, **kw)
-                if adv_2nd:
-                    failed_i["2nd"] = testing.test_2nd(datout_v["adv"], thresh=0.01, **kw)
+                if "decomp_sumdir" in tests:
+                    failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, **kw)
+                if "decomp_sumcomp" in tests:
+                    failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(adv, **kw)
+                if dz_out and ("dz_out" in tests):#TODOm: why limit?
+                    if var == "q":
+                        thresh = 0.2
+                    else:
+                        thresh = 0.9
+                    failed_i["dz_out"], err_i["dz_out"] = testing.test_dz_out(adv, thresh=thresh, **kw)
+                if adv_2nd and ("adv_2nd" in tests):
+                    failed_i["adv_2nd"], err_i["adv_2nd"] = testing.test_2nd(adv, **kw)
+                if (var == variables[-1]) and ("w" in tests):
+                    failed_i["w"], err_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), **kw)
                 failed_i["NaN"] = testing.test_nan(datout_v)
-                if var == variables[-1]:
-                    failed_i["w"] = testing.test_w(dat_inst.isel(Time=slice(1,None)), thresh=0.015, **kw)
+                for test, f in failed_i.items():
+                    if f:
+                        failed[IDi].loc[test, var] = "F"
 
-                failed.loc[IDi, var] += ",".join([key for key, val in failed_i.items() if val])
+                failed_short.loc[IDi, var] = ",".join([test for test, f in failed[IDi].loc[:, var].iteritems() if f == "F"])
+                for test, e in err_i.items():
+                    err[IDi].loc[test, var] = e
 
-    if (failed != "").values.any():
-        message = "\n\n{}\nFailed tests:\n{}".format("#"*100,failed.to_string())
+    failed_short = failed_short.where(failed_short != "").dropna(how="all").dropna(axis=1, how="all")
+    err_short = err.where(failed=="F").dropna(how="all").dropna(axis=1,how="all")
+    if (failed_short != "").values.any():
+        message = "\n\n{}\nFailed tests:\n{}".format("#"*100,failed_short.to_string())
         if raise_error:
             raise RuntimeError(message)
         else:
             print(message)
 
-    return failed
+    return failed, failed_short, err, err_short
 
 
 #%% misc
@@ -311,5 +312,4 @@ def setup_test_init_module(conf, restore=False, random_msf=True):
 
 #%%main
 if __name__ == "__main__":
-    failed = test_budget_all()
-    #failed_bc = test_budget_bc()
+    failed, failed_short, err, err_short = test_budget_all()

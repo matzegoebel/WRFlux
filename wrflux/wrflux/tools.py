@@ -7,6 +7,7 @@ Created on Tue Jan 22 12:53:04 2019
 """
 import numpy as np
 import xarray as xr
+xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 import os
 import pandas as pd
@@ -344,6 +345,13 @@ def correct_dims_stag_list(l, dat):
     return l_out
 
 def loc_data(dat, loc=None, iloc=None, copy=True):
+
+    if type(dat) == xr.core.dataset.Dataset:
+        out = xr.Dataset()
+        for v in dat.data_vars:
+            out[v] = loc_data(dat[v], loc=loc, iloc=iloc, copy=copy)
+        return out
+
     if copy:
         dat = dat.copy()
     if iloc is not None:
@@ -716,10 +724,9 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
             mean_flux[d] = 0.
         else:
             vel_stag = stagger_like(vmean[d], ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
-            var_stag_d = var_stag[d]
             if (VAR == "W") and (d in XY):
                 vel_stag[{"bottom_top_stag" : 0}] = 0
-            mean_flux[d] = var_stag_d*vel_stag
+            mean_flux[d] = var_stag[d]*vel_stag
 
     #advective tendency from fluxes
     adv = {}
@@ -807,24 +814,26 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
         rhodm = avg_xy(rhodm, avg_dims)
 
     #mean part
-    for i, (d, v) in enumerate(zip(xy, ["U", "V"])):
+    kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
+    rho_stag =  stagger_like(rhodm, **kw)
+    for d, v in zip(xy, ["U", "V"]):
         #staggering
+        du = d.upper()
         if hor_avg and (d in avg_dims):
-            corr.loc["mean"][i] = 0
+            corr.loc["mean", du] = 0
             continue
-        kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
-        rho_stag =  stagger_like(rhodm, **kw)
+
         if dz_out:
-            corr_d = stagger_like(vmean[d.upper()], **kw)
+            corr_d = stagger_like(vmean[du], **kw)
         else:
             corr_d = stagger_like(grid["dzd{}_{}".format(d, v.lower())], **kw)
-        corr.loc["mean"][i] = corr_d*rho_stag*var_stag["Z"]
+        corr.loc["mean", du] = corr_d*rho_stag*var_stag["Z"]
 
+    dzdt = stagger_like(grid["dzdd"].loc["T"], **kw)
+    corr.loc["mean", "T"] = rho_stag*dzdt*var_stag["Z"]
 
     #resolved turbulent part
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
-
-    corr.loc[{"comp" : ["trb_r", "mean"], "dir" : "T"}] = 0.
 
     #correction flux to tendency
     if "W" in VAR:

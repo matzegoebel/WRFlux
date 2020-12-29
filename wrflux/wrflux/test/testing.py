@@ -7,129 +7,118 @@ Created on Thu Dec 17 09:35:43 2020
 """
 from wrflux import tools, plotting
 import xarray as xr
+xr.set_options(arithmetic_join="exact")
+xr.set_options(keep_attrs=True)
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
 
     failed = False
+    err = []
     for ID in ["native", "cartesian correct"]:
+
         ref = tend.sel(ID=ID, drop=True)
         dat = forcing.sel(ID=ID, drop=True)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-
-        e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
-        if e > thresh:
-            log = " tendency vs forcing for ID='{}': maximum error in forcing more than {}%: {:.3f}%".format(ID, thresh*100, e*100)
+        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+        err.append(e)
+        if e < thresh:
+            log = " tendency vs forcing for ID='{}': NSE less than {}%: {:.3f}%".format(ID, thresh*100, e*100)
             print(log)
             if plot:
                 # plotting.scatter_tend_forcing(dat, ref, var, **plot_kws)
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
-    return failed
+    return failed, min(err)
 
 
-def test_2nd(adv, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, thresh_sum=0.02, plot=True, **plot_kws):
+def test_2nd(adv, avg_dims_error=None, thresh=0.998, loc=None, iloc=None, plot=True, **plot_kws):
 
     base = "cartesian"
     failed = False
+    err = []
     for correct in [False, True]:
-        for sum_dir in [False, True]:
-            ID = base
-            if correct:
-                ID += " correct"
-            ID2 = ID + " 2nd"
-            for i in [ID, ID2]:
-                if i not in adv.ID:
-                    raise ValueError("Could not find output of budget method '{}'".format(i))
+        ID = base
+        if correct:
+            ID += " correct"
+        ID2 = ID + " 2nd"
+        for i in [ID, ID2]:
+            if i not in adv.ID:
+                raise ValueError("Could not find output of budget method '{}'".format(i))
 
-            data = adv
-            sum_s = ""
-            t = thresh
-            if sum_dir:
-                data = data.sel(dir="sum")
-                sum_s = "sum"
-                t = thresh_sum
-            ref = data.sel(ID=ID)
-            dat = data.sel(ID=ID2)
-            dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-            ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-            e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
-            if e > t:
-                log = "'{}' vs '{}': maximum error in adv {} more than {}%: {:.3f}%".format(ID, ID2, sum_s, thresh*100, e*100)
-                print(log)
-                if plot:
-                    #TODO: dat.name = ...
-                    plotting.scatter_hue(dat, ref, title=log, **plot_kws)
-                failed = True
-    return failed
+        data = adv
 
-def test_decomp_sumdir(adv, corr=None, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+        ref = data.sel(ID=ID)
+        dat = data.sel(ID=ID2)
+        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+        err.append(e)
+        if e < thresh:
+            log = "'{}' vs '{}': NSE less than {}%: {:.3f}%".format(ID, ID2, thresh*100, e*100)
+            print(log)
+            if plot:
+                #TODO: dat.name = ...
+                plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+            failed = True
+    return failed, min(err)
+
+def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
 #native sum vs. cartesian sum
 
     ID = "native"
     ID2 = "cartesian correct"
     data = adv.sel(dir="sum")
     ref = data.sel(ID=ID)
-    dat = data.sel(ID=ID2)
-    if corr is not None:
-        dat = dat + corr.sel(ID=ID2, dir="T")
+    dat = data.sel(ID=ID2) + corr.sel(ID=ID2, dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
+    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
     failed = False
-    if e > thresh:
-        log = " '{}' vs '{}': maximum error in adv sum more than {}%: {:.3f}%".format(ID, ID2, thresh*100, e*100)
+    if e < thresh:
+        log = " '{}' vs '{}': NSE less than {}%: {:.3f}%".format(ID, ID2, thresh*100, e*100)
         print(log)
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
-    return failed
+    return failed, e
 
-def test_dz_out(adv, avg_dims_error=None, loc=None, iloc=None, plot=True, **plot_kws):
+def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot=True, **plot_kws):
     failed = False
     ID = "cartesian correct"
-    if "bottom_top" in adv.dims:
-        eta = adv["bottom_top"][1].values
-    else:
-        eta = adv["bottom_top_stag"][2].values
+    ID2 = "cartesian correct dz_out corr_varz"
 
-    for corr_varz, threshs in zip([True, False],[[0.99, 0.99, 0.9999, 0.99], [0.92, 0.99, 0.9999, 0.99]]) :
-        ID2 = "cartesian correct dz_out"
-        if corr_varz:
-            ID2 = ID2 + " corr_varz"
-        for thresh, l in zip(threshs,#TODOm
-                       [{"dir" : ["X", "sum"]}, {"comp" : "mean"}, {"dir" : ["Y", "Z"]}, {"bottom_top" : slice(eta, None)}]):
+    ref = adv.sel(ID=ID)
+    dat = adv.sel(ID=ID2)
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    if e < thresh:
+        log = "'{}' vs '{}': NSE in adv less than {}%: {:.3f}%".format(ID, ID2, thresh*100, e*100)
+        print(log)
+        if plot:
+            plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+        failed = True
+    return failed, e
 
-            l = tools.correct_dims_stag(l, adv)
-            ref = adv.sel(ID=ID, **l)
-            dat = adv.sel(ID=ID2, **l)
-            dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-            ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-            e = tools.nse(dat, ref, dim=avg_dims_error).values.min()
-            if e < thresh:
-                log = "'{}' vs '{}' for loc={}: NSE in adv less than {}%: {:.3f}%".format(ID, ID2, l, thresh*100, e*100)
-                print(log)
-                if plot:
-                    plotting.scatter_hue(dat, ref, title=log, **plot_kws)
-                failed = True
-    return failed
-
-def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999, loc=None, iloc=None, plot=True, **plot_kws):
 #native sum vs. cartesian sum
     failed = False
-    for ID in adv.ID:
+    err = []
+    for ID in adv.ID.values:
         ref = adv.sel(ID=ID, comp="adv_r")
         dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
-        if e > thresh:
-            log = " 'mean + trb_r' vs 'adv_r': maximum error in adv sum more than {}%: {:.3f}%".format(thresh*100, e*100)
+        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+        err.append(e)
+        if e < thresh:
+            log = " 'mean + trb_r' vs 'adv_r': NSE less than {}%: {:.3f}%".format(thresh*100, e*100)
             print(log)
             if plot:
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
-    return failed
+    return failed, min(err)
 
 
 def test_nan(datout):
@@ -171,22 +160,22 @@ def test_nan(datout):
     #TODO: why is turbulent so strong on slope?
 
 
-def test_w(dat_inst, avg_dims_error=None, thresh=0.01, loc=None, iloc=None, plot=True, **plot_kws):
+def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
 
     dat = dat_inst["W"]
     ref = dat_inst["W_DIAG"]
     # dat = dat_mean["W_MEAN"]
     # ref = dat_mean["WD_MEAN"]
-    e = tools.max_error_scaled(dat, ref, dim=avg_dims_error)
+    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
     failed = False
-    if e > thresh:
-        log = " w vs wd: maximum difference more than {}%: {:.3f}%".format(thresh*100, e*100)
+    if e < thresh:
+        log = " w vs wd: NSE less than {}%: {:.3f}%".format(thresh*100, e*100)
         print(log)
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
-    return failed
+    return failed, e
 
 
 def check_bounds(dat_mean, attrs, var):

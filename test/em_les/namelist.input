@@ -59,6 +59,7 @@
  smooth_option                       = 0
  nproc_x                             = -1,
  nproc_y                             = -1,
+ hm                                  = 0
  /
 
  &physics

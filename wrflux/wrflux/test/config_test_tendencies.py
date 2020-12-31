@@ -72,6 +72,7 @@ params["radt_min"] = 1
 params["spec_hfx"] = None
 
 params["input_sounding"] = "unstable" #name of input sounding to use (final name is then created: input_sounding_$name)
+params["hm"] = 500 #mountain height (m)
 
 #other standard namelist parameters
 params["mp_physics"] = 0

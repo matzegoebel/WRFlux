@@ -954,7 +954,7 @@ CONTAINS
   xe=ide
   ys=jds
   ye=jde
-  mtn_ht = 500
+  mtn_ht = config_flags%hm
 #ifdef MTN
   DO j=max(ys,jds),min(ye,jde-1)
   DO i=max(xs,ids),min(xe,ide-1)

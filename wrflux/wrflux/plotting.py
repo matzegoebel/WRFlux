@@ -115,7 +115,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     pdat = xr.concat([dat, ref], "concat_dim")
 
-    if plot_diff:#TODOm: change label
+    if plot_diff:
         pdat[0] = dat - ref
 
     if ignore_missing_hue:
@@ -156,16 +156,19 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     kwargs.setdefault("s", 10)
     p = plt.scatter(pdat[1], pdat[0], c=color.values, **kwargs)
     labels = []
-    for d in [dat, ref]:
+    for d in [ref, dat]:
         label = ""
         if d.name is not None:
             label = d.name
         elif "description" in d.attrs:
             label = d.description
-        if label != "":
-            if "units" in d.attrs:
-                label += " ({})".format(d.units)
         labels.append(label)
+
+    if (labels[0] != "") and (labels[1] != "") and plot_diff:
+        labels[1] = "{} - {}".format(labels[1], labels[0])
+    for i, d in enumerate([ref, dat]):
+        if (labels[i] != "") and ("units" in d.attrs):
+            labels[i] += " ({})".format(d.units)
     plt.xlabel(labels[0])
     plt.ylabel(labels[1])
 

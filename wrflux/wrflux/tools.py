@@ -14,7 +14,6 @@ import pandas as pd
 from datetime import datetime
 from functools import partial
 import socket
-from wrflux import plotting
 
 print = partial(print, flush=True)
 
@@ -756,7 +755,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             corr["T"] = dat_mean[VAR + "_MEAN"]
             corr = rhod8z*stagger_like(corr, rhod8z, cyclic=cyclic, **grid[stagger_const])
             corr = corr.to_array("dir")
-  #%%
+
   #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in XYZ:
@@ -1111,8 +1110,6 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
                         d[D] = d[D].assign_coords({"zf{}".format(D.lower()) : z})
                 elif dn != "grid":
                     d = d.assign_coords(z=grid["Z_STAG"])
-                # if "ID" in d.dims:
-                #     d = d.sel(ID=IDcs)
                 if "rep" in d.dims:
                     d = d.isel(rep=0, drop=True)
                 d = d.assign_attrs(attrs)

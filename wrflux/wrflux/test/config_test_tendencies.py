@@ -34,7 +34,8 @@ param_names = {"th" : ["thd", "thm", "thdm"],
                "h_adv_order" : [2, 3],
                "v_adv_order" : [2, 3],
                "adv_order" : o,
-               "bc" : ["open"]}
+               "bc" : ["open"],
+               "timing" : ["short"]}
 
 #Set additional namelist parameters (only active if they are not present in param_grid)
 #any namelist parameters and some additional ones can be used
@@ -114,7 +115,7 @@ params["output_dry_theta_fluxes"] = True
 
 
 params["restart_interval_m"] = 30 #restart interval (min)
-
+params["iofields_filename"] = "IO_file.txt"
 registries = ["Registry.EM_COMMON", "registry.hyb_coord", "registry.les", "registry.io_boilerplate"] #registries to look for default namelist parameters
 
 # non-namelist parameters that will not be included in namelist file

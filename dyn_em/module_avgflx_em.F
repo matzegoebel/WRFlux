@@ -18,11 +18,11 @@ CONTAINS
        & its, ite, jts, jte, kts, kte,           &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1, &
        & config_flags,                                                                           &
-       & t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
-       & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
-       & u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
-       & v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
-       & ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
+       & t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
+       & q_mean,qx_mean,qy_mean,qz_mean,var_q,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
+       & u_mean,ux_mean,uy_mean,uz_mean,var_u,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
+       & v_mean,vx_mean,vy_mean,vz_mean,var_v,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
+       & ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,var_w,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
        & ftx_corr,fty_corr,corr_dtdt,                                                           &
        & fqx_corr,fqy_corr,corr_dqdt,                                                              &
        & fux_corr,fuy_corr,corr_dudt,                                                              &
@@ -64,11 +64,11 @@ CONTAINS
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::              &
-       t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
-       q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
-       u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
-       v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
-       ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
+       t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
+       q_mean,qx_mean,qy_mean,qz_mean,var_q,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
+       u_mean,ux_mean,uy_mean,uz_mean,var_u,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
+       v_mean,vx_mean,vy_mean,vz_mean,var_v,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
+       ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,var_w,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
        ftx_corr,fty_corr,corr_dtdt,                                                           &
        fqx_corr,fqy_corr,corr_dqdt,                                                              &
        fux_corr,fuy_corr,corr_dudt,                                                              &
@@ -144,7 +144,7 @@ CONTAINS
                         tx_mean(i,k,j) = 0.
                         ty_mean(i,k,j) = 0.
                         tz_mean(i,k,j) = 0.
-                        tt_mean(i,k,j) = 0.
+                        var_t(i,k,j) = 0.
                         ftx_adv_mean(i,k,j) = 0.
                         fty_adv_mean(i,k,j) = 0.
                         ftz_adv_mean(i,k,j) = 0.
@@ -181,7 +181,7 @@ CONTAINS
                         qx_mean(i,k,j) = 0.
                         qy_mean(i,k,j) = 0.
                         qz_mean(i,k,j) = 0.
-                        qq_mean(i,k,j) = 0.
+                        var_q(i,k,j) = 0.
                         fqx_adv_mean(i,k,j) = 0.
                         fqy_adv_mean(i,k,j) = 0.
                         fqz_adv_mean(i,k,j) = 0.
@@ -216,6 +216,7 @@ CONTAINS
                         ux_mean(i,k,j) = 0.
                         uy_mean(i,k,j) = 0.
                         uz_mean(i,k,j) = 0.
+                        var_u(i,k,j) = 0.
                         fux_adv_mean(i,k,j) = 0.
                         fuy_adv_mean(i,k,j) = 0.
                         fuz_adv_mean(i,k,j) = 0.
@@ -251,6 +252,7 @@ CONTAINS
                         vx_mean(i,k,j) = 0.
                         vy_mean(i,k,j) = 0.
                         vz_mean(i,k,j) = 0.
+                        var_v(i,k,j) = 0.
                         fvx_adv_mean(i,k,j) = 0.
                         fvy_adv_mean(i,k,j) = 0.
                         fvz_adv_mean(i,k,j) = 0.
@@ -288,6 +290,7 @@ CONTAINS
                         wx_mean(i,k,j) = 0.
                         wy_mean(i,k,j) = 0.
                         wz_mean(i,k,j) = 0.
+                        var_w(i,k,j) = 0.
                         fwx_adv_mean(i,k,j) = 0.
                         fwy_adv_mean(i,k,j) = 0.
                         fwz_adv_mean(i,k,j) = 0.
@@ -339,11 +342,11 @@ CONTAINS
        & cfu1,cfd1,dfu1,efu1,dfd1,efd1,          &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1,   &
        & config_flags,                                                              &
-       & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
-       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
-       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
-       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
-       & WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
+       & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,VAR_T,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
+       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,VAR_Q,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
+       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,VAR_U,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
+       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,VAR_V,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
+       & WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,VAR_W,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
        & FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                            &
        & FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                               &
        & FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                               &
@@ -407,11 +410,11 @@ CONTAINS
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
-       T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
-       Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
-       U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
-       V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
-       WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
+       T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,VAR_T,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
+       Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,VAR_Q,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
+       U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,VAR_U,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
+       V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,VAR_V,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
+       WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,VAR_W,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
        FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                                           &
        FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                                              &
        FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                              &
@@ -696,7 +699,7 @@ CONTAINS
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
-                TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
+                VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
                 IF (( config_flags%use_theta_m .EQ. 1 ) .and. ( config_flags%output_dry_theta_fluxes)) THEN
                     ftx_small(i,k,j) = ftx_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i-1,k,j)))
                     fty_small(i,k,j) = fty_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i,k,j-1)))
@@ -758,7 +761,7 @@ CONTAINS
                 QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean
                 QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/(local_count+1.)/rhoy_mean
                 QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/(local_count+1.)/rhoz_mean
-                QQ_MEAN(i,k,j) = (local_count*QQ_MEAN(i,k,j) + Q(i,k,j)*2 )/(local_count+1.)
+                VAR_Q(i,k,j) = (local_count*VAR_Q(i,k,j) + Q(i,k,j)*2 )/(local_count+1.)
                 FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/(local_count+1.)*fqx_dfac
                 FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/(local_count+1.)*fqy_dfac
                 FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + rw_diag_s*qz )/(local_count+1.)/rhoz_mean_flx
@@ -812,6 +815,7 @@ CONTAINS
                 UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
                 UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
                 UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
+                VAR_U(i,k,j) = (local_count*VAR_U(i,k,j) + U(i,k,j)*2 )/(local_count+1.)
                 FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)*fux_dfac
                 FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)*fuy_dfac
                 FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + rw_diag_s*uz )/(local_count+1.)/rhoxz_mean_flx
@@ -866,6 +870,7 @@ CONTAINS
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
                 VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/(local_count+1.)/rho_mean
                 VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
+                VAR_V(i,k,j) = (local_count*VAR_V(i,k,j) + V(i,k,j)*2 )/(local_count+1.)
                 FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)*fvx_dfac
                 FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)*fvy_dfac
                 FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + rw_diag_s*vz )/(local_count+1.)/rhoyz_mean_flx
@@ -921,6 +926,7 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
 
+                VAR_W(i,k,j) = (local_count*VAR_W(i,k,j) + W(i,k,j)*2 )/(local_count+1.)
                 IF (k .gt. kts) THEN
                     WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
                     WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean

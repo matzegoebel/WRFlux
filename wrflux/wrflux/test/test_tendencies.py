@@ -99,6 +99,8 @@ def test_budget_all():
     ### param_grids["dz_out"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     param_grids["dz_out"] = odict(hybrid_opt=[0])
     param_grids["hor_avg"] = odict(km_opt=[2])
+    param_grids["trb no_debug"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
+    param_grids["trb no_debug hor_avg"] = odict(timing=dict(end_time=["2018-06-20_12:10:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 5.] }]))
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
@@ -186,9 +188,12 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             if param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"] == 2:
                 adv_2nd = True
                 bm = bm + budget_methods_2nd
+            if "trb" in label:
+                t_avg = True
+                t_avg_interval = 300
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
-                                  skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, save_output=True)
+                                  skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval, save_output=True)
 
             print("\n\n\n{0}\nRun tests\n{0}\n".format("#"*50))
 

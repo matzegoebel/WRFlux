@@ -107,7 +107,7 @@ state   real    fwz_adv_mean_2nd        ikj    dyn_em       1               -   
 
 
 #other instantaneous variables
-state   real    w_diag               ikj      dyn_em         1               Z               h "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"
+state   real    w_diag               ikj      dyn_em         1               Z               - "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"
 state   real    dph_x                ikj      dyn_em         1               Z               - "DPH_X"             "instantaneous advective geopotential tendency in x-direction" "m2 s-3"
 state   real    dph_y                ikj      dyn_em         1               Z               - "DPH_Y"             "instantaneous advective geopotential tendency in y-direction" "m2 s-3"
 

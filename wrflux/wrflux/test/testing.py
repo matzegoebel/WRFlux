@@ -93,7 +93,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot
         failed = True
     return failed, e
 
-def test_2nd(adv, avg_dims_error=None, thresh=0.998, loc=None, iloc=None, plot=True, **plot_kws):
+def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
 
     base = "cartesian"
     failed = False

@@ -32,9 +32,10 @@ variables = ["q", "t", "u", "v", "w"]
 # variables = ["u"]
 
 raise_error = False
-skip_exist = True
-debug = [True,False]
-random_msf = False #change mapscale factors from 1 to random values
+restore_init_module = False#TODOm
+skip_exist = False
+debug = [True, False]
+random_msf = True  #change mapscale factors from 1 to random values
 
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0"]
 #TODO: go through with debugger to find hidden errors and add comments
@@ -78,11 +79,11 @@ def test_all():
     o = np.arange(2,7)
 
     ####param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    param_grids["trb no_debug msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
+    param_grids["trb no_debug hor_avg msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
     param_grids["hor_avg msf=1"] = odict(km_opt=[2])
     param_grids["hor_avg"] = odict(hybrid_opt=[0])
     param_grids["dz_out"] = odict(hybrid_opt=[0])
-    param_grids["trb no_debug"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
-    param_grids["trb no_debug hor_avg"] = odict(timing=dict(end_time=["2018-06-20_12:10:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 5.] }]))
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
@@ -187,7 +188,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 bm = bm + budget_methods_2nd
             if "trb " in label:
                 t_avg = True
-                t_avg_interval = 300
+                t_avg_interval = int(param_comb["output_streams"][0][1]*60/param_comb["dt_f"])
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
                                   skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval, save_output=True)
@@ -218,10 +219,10 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 adv = datout_v["adv"]
                 corr = datout_v["corr"]
                 if "decomp_sumdir" in tests:
-                    thresh = 0.992
-                    if (label == "open BC y hor_avg") and (var == "v"):#TODOm: why?
-                        #reduce threshold for explicit turbulent fluxes
-                        thresh = 0.99
+                    # thresh = 0.995
+                    # if (label == "open BC y hor_avg") and (var == "v"):#TODOm: why?
+                    #     #reduce threshold for explicit turbulent fluxes
+                    #     thresh = 0.99
                     failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, **kw)
                 if "decomp_sumcomp" in tests:
                     thresh = 0.9999999999

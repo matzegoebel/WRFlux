@@ -3,6 +3,10 @@
 """
 Created on Tue Jan 22 12:53:04 2019
 
+Part of WRFlux (https://github.com/matzegoebel/WRFlux)
+
+Functions to calculate time-averaged tendencies from fluxes
+
 @author: Matthias Göbel
 """
 import numpy as np
@@ -18,7 +22,8 @@ print = partial(print, flush=True)
 #directory for figures
 figloc = os.environ["figures"]
 
-#%%
+#%% constants
+
 dim_dict = dict(x="U",y="V",bottom_top="W",z="W")
 xy = ["x", "y"]
 XY = ["X", "Y"]
@@ -33,16 +38,57 @@ rvovrd = 461.6/287.04
 stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]
 
 outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
-# outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux"]
-#%% figloc
-host = socket.gethostname()
-basedir = "~/phd/"
-basedir = os.path.expanduser(basedir)
-figloc = basedir + "figures/"
 
 #%%open dataset
+
+def open_dataset(file, chunks=None, del_attrs=True, fix_c=True, **kwargs):
+    """
+    Load file as xarray dataset.
+
+    Parameters
+    ----------
+    file : str
+        location of file to load.
+    chunks : int, 'auto' or mapping, optional
+        if given, the dataset is converted to a dask array with the given
+        chunk sizes along each dimension, e.g., 5 or {"x": 5, "y": 5}.
+        Defaults to None (no chunking).
+    del_attrs : bool, optional
+        Delete global attributes. The default is True.
+    fix_c : bool, optional
+        Assign time and space coordinates to dataset. The default is True.
+    **kwargs :
+        keyword arguments for xr.open_dataset
+
+    Returns
+    -------
+    ds : xarray Dataset
+
+    """
+
+    try:
+        ds = xr.open_dataset(file, **kwargs)
+    except ValueError as e:
+        if "unable to decode time" in e.args[0]:
+            ds = xr.open_dataset(file, decode_times=False, **kwargs)
+        else:
+            raise e
+    if fix_c:
+        dx, dy = ds.DX, ds.DY
+        ds = fix_coords(ds, dx=dx, dy=dy)
+
+    if chunks is not None:
+        ds = ds.chunk(chunks)
+
+    if del_attrs:
+        ds.attrs = {}
+
+    ds.close()
+
+    return ds
+
 def fix_coords(data, dx, dy):
-    """Assign time and space coordinates"""
+    """Assign time and space coordinates to dataset/dataarray"""
 
     #assign time coordinate
     if ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
@@ -75,75 +121,111 @@ def fix_coords(data, dx, dy):
 
     return data
 
-def open_dataset(file, var=None, chunks=None, del_attrs=True, fix_c=True, **kwargs):
-    try:
-        ds = xr.open_dataset(file, **kwargs)
-    except ValueError as e:
-        if "unable to decode time" in e.args[0]:
-            ds = xr.open_dataset(file, decode_times=False, **kwargs)
-        else:
-            raise e
-    if fix_c:
-        dx, dy = ds.DX, ds.DY
-        ds = fix_coords(ds, dx=dx, dy=dy)
 
-    if var is not None:
-        var = make_list(var)
-        ds = ds[var]
-
-    if chunks is not None:
-        ds = chunk_data(ds, chunks)
-
-    if del_attrs:
-        ds.attrs = {}
-
-    return ds
-
-def chunk_data(data, chunks):
-    chunks = {d : c for d,c in chunks.items() if d in data.dims}
-    return data.chunk(chunks)
-
-#%%misc
-
-
+#%%misc functions
 
 def make_list(o):
+    """Convert object to list if it is not already a tuple, list, dictionary, or array"""
+
     if type(o) not in [tuple, list, dict, np.ndarray]:
         o = [o]
     return o
 
-def time_avg(dat_mean, cyclic, stagger_kw, avg_kwargs):
-    exclude = ["CORR", "TEND", "RHOD_MEAN", "MUT_MEAN", "WW_MEAN", "_VAR"]
+def coarsen_avg(data, dim, interval, rho=None, cyclic=None, stagger_kw=None, rho_weighted_vars=None, **avg_kwargs):
+    """
+    Coarsen and average dataset over the given dimension. If rho is given a density-weighted average is done.
+
+    Parameters
+    ----------
+    data : dataset
+        input dataset.
+    dim : str
+        dimension over which to apply the coarsening.
+    interval : int
+        averaging interval.
+    rho : dataarray, optional
+        If given, use to do density-weighted average. The default is None.
+    cyclic : dict of booleans for all dimensions or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        If rho is given and needs to be staggered, use periodic boundary conditions
+        to fill lateral boundary points. The default is None.
+    stagger_kw : dict
+        keyword arguments for staggering rho.
+    rho_weighted_vars : list, optional
+        List of variables to be density-weighted. Defaults to a prescribed list.
+
+    Returns
+    -------
+    out : dataset
+        coarsened dataset.
+
+    """
+
+    avg_kwargs = {dim : interval, "coord_func" : {"Time" : partial(select_ind, indeces=-1)}, "boundary" : "trim"}
+
+    if rho_weighted_vars is None:
+        #define variables for density-weighting
+        rho_weighted_vars = []
+        exclude = ["CORR", "TEND", "RHOD_MEAN", "MUT_MEAN", "WW_MEAN", "_VAR"]
+        for var in data.data_vars:
+            if ("_MEAN" in var) and (var != "Z_MEAN") and all([e not in var for e in exclude]):
+                rho_weighted_vars.append(var)
+
+    if stagger_kw is None:
+        stagger_kw = {}
+
     out = xr.Dataset()
-    rho = dat_mean["RHOD_MEAN"]
-    for var in dat_mean.data_vars:
-        if ("_MEAN" in var) and (var != "Z_MEAN") and all([e not in var for e in exclude]):
-            rho_s = stagger_like(rho, dat_mean[var], cyclic=cyclic, **stagger_kw)
+    for var in data.data_vars:
+        if (rho is not None) and (var in rho_weighted_vars):
+            rho_s = stagger_like(rho, data[var], cyclic=cyclic, **stagger_kw)
             rho_s_mean = rho_s.coarsen(**avg_kwargs).mean()
-            out[var] = (rho_s*dat_mean[var]).coarsen(**avg_kwargs).mean()/rho_s_mean
+            out[var] = (rho_s*data[var]).coarsen(**avg_kwargs).mean()/rho_s_mean
         else:
-            out[var] = dat_mean[var].coarsen(**avg_kwargs).mean()
+            out[var] = data[var].coarsen(**avg_kwargs).mean()
 
     return out
 
-def avg_xy(data, avg_dims, attrs=None, rho=None, cyclic=None, **stagger_const):
+def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
     """Average data over the given dimensions even
     if the actual present dimension has '_stag' added.
     If rho is given, do density-weighted averaging.
     Before averaging, cut right boundary points for periodic BC
-    and both boundary points for non-periodic BC."""
+    and both boundary points for non-periodic BC.
+
+    Parameters
+    ----------
+    data : dataarray or dataset
+        input data.
+    avg_dims : list-like
+        averaging dimensions.
+    rho : dataarray, optional
+        If given, use to do density-weighted average. The default is None.
+    cyclic : dict of booleans for all dimensions or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        If rho is given and needs to be staggered, use periodic boundary conditions
+        to fill lateral boundary points. The default is None.
+    **stagger_kw :
+        keyword arguments for staggering rho.
+
+    Returns
+    -------
+    dataarray or dataset
+        averaged data.
+
+    """
 
     if type(data) == xr.core.dataset.Dataset:
         out = xr.Dataset()
         for v in data.data_vars:
-            out[v] = avg_xy(data[v], avg_dims, attrs=attrs, rho=rho, cyclic=cyclic, **stagger_const)
+            out[v] = avg_xy(data[v], avg_dims, rho=rho, cyclic=cyclic, **stagger_const)
         return out
 
-    avg_dims_final = avg_dims.copy()
     if rho is not None:
         rho_s = stagger_like(rho, data, cyclic=cyclic, **stagger_const)
-        rho_s_mean = avg_xy(rho_s, avg_dims, attrs=attrs)
+        rho_s_mean = avg_xy(rho_s, avg_dims, cyclic=cyclic)
 
+    #fix dimensions
+    avg_dims_final = avg_dims.copy()
     for i,d in enumerate(avg_dims):
         ds = d +  "_stag"
         if ds in data.dims:
@@ -152,7 +234,7 @@ def avg_xy(data, avg_dims, attrs=None, rho=None, cyclic=None, **stagger_const):
             avg_dims_final.remove(d)
 
         #cut boundary points depending on lateral BC
-        if (attrs is not None) and (not attrs["PERIODIC_{}".format(d.upper())]):
+        if (cyclic is None) or (not cyclic[d]):
             data = loc_data(data,iloc={d : slice(1,-1)})
             if rho is not None:
                 rho_s = loc_data(rho_s,iloc={d : slice(1,-1)})
@@ -161,13 +243,14 @@ def avg_xy(data, avg_dims, attrs=None, rho=None, cyclic=None, **stagger_const):
             if rho is not None:
                 rho_s = rho_s[{ds : slice(0,-1)}]
 
+    #do (density-weighted) average
     if rho is None:
         return data.mean(avg_dims_final)
     else:
         return (rho_s*data).mean(avg_dims_final)/rho_s_mean
 
 def find_bad(dat, nan=True, inf=True):
-    """Drop all indeces of each dimension that do not contain NaNs or infs."""
+    """Drop all indeces of each dimension that do not contain any NaNs or infs."""
 
     nans = False
     infs = False
@@ -245,38 +328,9 @@ def max_error_scaled(dat, ref, dim=None):
         err = err.max()
     return float(err)
 
-def index_of_agreement(dat, ref, dim=None):
-    """
-    Index of agreement by Willmott (1981)
-
-    Parameters
-    ----------
-    dat : datarray
-        input data.
-    ref : datarray
-        reference data.
-    dim : str or list, optional
-        dimensions along which to calculate the index.
-        The default is None, which means all dimensions.
-
-    Returns
-    -------
-    datarray
-        index of agreement.
-
-    """
-
-    if dim is not None:
-        dim = correct_dims_stag_list(dim, ref)
-
-    mse = ((dat-ref)**2).mean(dim=dim)
-    ref_mean = ref.mean(dim=dim)
-    norm = ((abs(dat -ref_mean) + abs(ref -ref_mean))**2).mean(dim=dim)
-    return 1 - mse/norm
-
 def nse(dat, ref, dim=None):
     """
-    Nash–Sutcliffe model efficiency coefficient
+    Nash–Sutcliffe efficiency coefficient.
 
     Parameters
     ----------
@@ -303,7 +357,8 @@ def nse(dat, ref, dim=None):
     return 1 - mse/norm
 
 def warn_duplicate_dim(data, name=None):
-    """Warn if dataarray or dataset contains the staggered and unstaggered version of any dimension"""
+    """Warn if dataarray or dataset contains both, the staggered and unstaggered version of any dimension"""
+
     if type(data) == xr.core.dataset.Dataset:
         for v in data.data_vars:
             warn_duplicate_dim(data[v], name=v)
@@ -316,15 +371,41 @@ def warn_duplicate_dim(data, name=None):
             print("WARNING: datarray {0} contains both dimensions {1} and {1}_stag".format(name, d))
 
 def rolling_mean(ds, dim, window, periodic=True, center=True):
+    """
+    Rolling mean over given dimension.
+
+    Parameters
+    ----------
+    ds : dataarray or dataset
+        input data.
+    dim : str
+        dimension.
+    window : int
+        window size of rolling mean.
+    periodic : bool, optional
+       Fill values close to the boundaries using periodic boundary conditions. The default is True.
+    center : bool, optional
+       Set the labels at the center of the window. The default is True.
+
+    Returns
+    -------
+    ds : dataarray or dataset
+        averaged data.
+
+    """
+
     if periodic:
+        #create pad
         if center:
             pad = int(np.floor(window/2))
             pad = (pad, pad)
         else:
             pad = (window - 1, 0)
         ds = ds.pad({dim : pad}, mode='wrap')
+
     ds = ds.rolling({dim : window}, center=center).mean()
     if periodic:
+        #remove pad
         ds = ds.isel({dim : np.arange(pad[0], len(ds[dim]) - pad[1])})
     return ds
 
@@ -424,8 +505,9 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
         reference data.
     rename : boolean, optional
         add "_stag" to dimension name. The default is True.
-    cyclic : dict of all dims or None, optional
-        use periodic boundary conditions to fill lateral boundary points. The default is False.
+    cyclic : dict of booleans for all dimensions or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points. The default is None.
     ignore : list, optional
         dimensions to ignore
     **stagger_kw : dict
@@ -699,7 +781,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
     return sgs, sgsflux
 
 
-def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims=None,
+def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
              cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=False):
 
     print("Compute resolved tendencies")
@@ -726,9 +808,9 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
     vmean = xr.Dataset({"X" : dat_mean["U_MEAN"], "Y" : dat_mean["V_MEAN"], "Z" : w})
     if hor_avg:
-        var_stag = avg_xy(var_stag, avg_dims, attrs, rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, **grid[stagger_const])
+        var_stag = avg_xy(var_stag, avg_dims, rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, **grid[stagger_const])
         for k in vmean.keys():
-            vmean[k] = avg_xy(vmean[k], avg_dims, attrs, rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, **grid[stagger_const])
+            vmean[k] = avg_xy(vmean[k], avg_dims, rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, **grid[stagger_const])
 
     tot_flux = dat_mean[fluxnames]
     tot_flux = tot_flux.rename(dict(zip(fluxnames, XYZ)))
@@ -792,8 +874,8 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         mf = mapfac
         rhod8z_m = rhod8z
         if (comp in ["trb_r", "mean"]) and hor_avg:
-            mf = avg_xy(mapfac, avg_dims, attrs=attrs)
-            rhod8z_m = avg_xy(rhod8z, avg_dims, attrs=attrs)
+            mf = avg_xy(mapfac, avg_dims, cyclic=cyclic)
+            rhod8z_m = avg_xy(rhod8z, avg_dims, cyclic=cyclic)
         for d in xy:
             du = d.upper()
             cyc = cyclic[d]
@@ -814,8 +896,8 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             else:
                 fac = dat_mean["MUT_MEAN"]
             if (comp in ["trb_r", "mean"]) and hor_avg:#TODOm: correct?
-                mf_flx = avg_xy(mf_flx, avg_dims, attrs=attrs)
-                fac = avg_xy(fac, avg_dims, attrs=attrs)
+                mf_flx = avg_xy(mf_flx, avg_dims, cyclic=cyclic)
+                fac = avg_xy(fac, avg_dims, cyclic=cyclic)
             if not dz_out:
                 fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[du].dims)
             fac = stagger_like(fac, flux[du], cyclic=cyclic, **grid[stagger_const])
@@ -839,8 +921,8 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         adv[comp] = adv_i
 
     if hor_avg:
-        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims, attrs=attrs)
-        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims, attrs=attrs)
+        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims, cyclic=cyclic)
+        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims, cyclic=cyclic)
 
     keys = adv.keys()
     adv = xr.concat(adv.values(), "comp")
@@ -865,16 +947,15 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
     return flux, adv, vmean, var_stag, corr
 
-def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, mapfac, adv, tend,
-                          cyclic, attrs, dz_out=False, hor_avg=False, avg_dims=None):
-    #TODOm: why mapfac here?
+def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv, tend,
+                          cyclic, dz_out=False, hor_avg=False, avg_dims=None):
     print("Compute Cartesian corrections")
     #decompose cartesian corrections
     #total
     corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
     if hor_avg:
-        corr = avg_xy(corr, avg_dims, attrs=attrs)
-        rhodm = avg_xy(rhodm, avg_dims, attrs=attrs)
+        corr = avg_xy(corr, avg_dims, cyclic=cyclic)
+        rhodm = avg_xy(rhodm, avg_dims, cyclic=cyclic)
 
     #mean part
     kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
@@ -918,7 +999,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, map
 
     return adv, tend, dcorr_dz
 
-def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=None, **attrs):
+def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=None, cyclic=None, **attrs):
     #instantaneous variable
     if var == "t":
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
@@ -944,7 +1025,7 @@ def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=No
     total_tend = rvar.diff("Time")/dt
 
     if hor_avg:
-        total_tend = avg_xy(total_tend, avg_dims, attrs=attrs)
+        total_tend = avg_xy(total_tend, avg_dims, cyclic=cyclic)
 
     if dz_out:
         total_tend = total_tend/grid["RHOD_STAG_MEAN"]
@@ -961,9 +1042,9 @@ def load_postproc(outpath, var, avg=None):
     for f in outfiles:
         file = "{}/{}{}.nc".format(outpath, f, avg)
         if f in ["sgsflux","flux","grid"]:
-           datout[f] = xr.open_dataset(file)
+           datout[f] = xr.open_dataset(file, cache=False)
         else:
-           datout[f] = xr.open_dataarray(file)
+           datout[f] = xr.open_dataarray(file, cache=False)
     return datout
 
 def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct",
@@ -1042,9 +1123,9 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
                 raise ValueError("corr_varz can only be used together with dz_out!")
 
             #calculate total tendency
-            total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, **attrs)
+            total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic, **attrs)
 
-            dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims,
+            dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
                                   cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
                                   dz_out=c["dz_out"], corr_varz=c["corr_varz"])
             if dat is None:
@@ -1056,8 +1137,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
             if c["correct"] and c["cartesian"]:
                 datout_c["adv"], datout_c["tend"], datout_c["corr"] = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, dat_mean["RHOD_MEAN"],
-                                                            grid, mapfac, datout_c["adv"], total_tend, cyclic, attrs, dz_out=c["dz_out"],
-                                                            hor_avg=hor_avg, avg_dims=avg_dims)
+                                                            grid, datout_c["adv"], total_tend, cyclic, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims)
 
             #add all forcings
             datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
@@ -1143,8 +1223,8 @@ def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc
         mean_file = "meanout_d01_" + start_time
     fpath = outpath + "/"
 
-    dat_inst = open_dataset(fpath + inst_file, del_attrs=False)
-    dat_mean = open_dataset(fpath + mean_file)
+    dat_inst = open_dataset(fpath + inst_file, cache=False, del_attrs=False)
+    dat_mean = open_dataset(fpath + mean_file, cache=False)
 
     #select subset of data
     if pre_iloc is not None:
@@ -1220,15 +1300,14 @@ def prepare(dat_mean, dat_inst, variables=None, t_avg=False, t_avg_interval=None
     if t_avg:
         inst = dat_mean.copy()
         print("Average dat_mean over {} output steps".format(t_avg_interval))
-        avg_kwargs = dict(Time=t_avg_interval, coord_func={"Time" : partial(select_ind, indeces=-1)}, boundary="trim")
-        dat_mean = time_avg(dat_mean, cyclic=cyclic, stagger_kw=grid[stagger_const], avg_kwargs=avg_kwargs)
+        dat_mean = coarsen_avg(dat_mean, dim="Time", interval=t_avg_interval, rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, stagger_kw=grid[stagger_const])
 
         #compute resolved turbulent fluxes explicitly if output contains all timesteps
         dt_out = float(inst.Time[1] - inst.Time[0])/1e9
         if round(dt_out) == attrs["DT"]:
             print("Compute turbulent fluxes explicitly")
-            trb_fluxes(dat_mean, inst, variables, grid, cyclic, avg_kwargs, attrs,
-                       hor_avg=hor_avg, avg_dims=avg_dims)
+            trb_fluxes(dat_mean, inst, variables, grid, cyclic,
+                       t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims)
 
 
     #select start and end points of averaging intervals
@@ -1284,7 +1363,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
 
     ref = rhodm
     if hor_avg:
-        rhodm = avg_xy(rhodm, avg_dims, attrs=attrs)
+        rhodm = avg_xy(rhodm, avg_dims, cyclic=cyclic)
     grid["RHOD_STAG_MEAN"] = rhodm
 
     #derivative of z wrt x,y,t
@@ -1335,10 +1414,10 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac)
 
     if hor_avg:
-        sources = avg_xy(sources, avg_dims, attrs)
-        sgs = avg_xy(sgs, avg_dims, attrs)
-        sgsflux = avg_xy(sgsflux, avg_dims, attrs)
-        grid = avg_xy(grid, avg_dims, attrs)
+        sources = avg_xy(sources, avg_dims, cyclic=cyclic)
+        sgs = avg_xy(sgs, avg_dims, cyclic=cyclic)
+        sgsflux = avg_xy(sgsflux, avg_dims, cyclic=cyclic)
+        grid = avg_xy(grid, avg_dims, cyclic=cyclic)
 
     sources = sources.to_array("comp")
     sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)
@@ -1353,7 +1432,11 @@ def build_mu(mut, grid, full_levels=False):
         mu = grid["C1H"]*mut + grid["C2H"]
     return mu
 
-def trb_fluxes(dat_mean, inst, variables, grid, cyclic, avg_kwargs, attrs, hor_avg=False, avg_dims=None):
+def trb_fluxes(dat_mean, inst, variables, grid, cyclic, t_avg_interval, hor_avg=False, avg_dims=None):
+
+    avg_kwargs = {"Time" : t_avg_interval, "coord_func" : {"Time" : partial(select_ind, indeces=-1)}, "boundary" : "trim"}
+
+    #define all needed variables
     all_vars = ["RHOD_MEAN", "OMZN_MEAN"]
     for var in variables:
         for d,vel in zip(XYZ,uvw):
@@ -1363,7 +1446,7 @@ def trb_fluxes(dat_mean, inst, variables, grid, cyclic, avg_kwargs, attrs, hor_a
     #fill all time steps with block average
     means = dat_mean[all_vars].reindex(Time=inst.Time).bfill("Time")
     if hor_avg:
-        means = avg_xy(means, avg_dims, attrs, rho=means["RHOD_MEAN"], cyclic=cyclic,  **grid[stagger_const])
+        means = avg_xy(means, avg_dims, rho=means["RHOD_MEAN"], cyclic=cyclic,  **grid[stagger_const])
     for var in variables:
         var = var.upper()
         for d,vel in zip(["X","Y","Z", "Z"], ["U", "V", "W", "OMZN"]):
@@ -1377,5 +1460,5 @@ def trb_fluxes(dat_mean, inst, variables, grid, cyclic, avg_kwargs, attrs, hor_a
             flux = rho_stag*vel_pert*var_pert
             flux = flux.coarsen(**avg_kwargs).mean()/rho_stag_mean
             if hor_avg:
-                flux = avg_xy(flux, avg_dims, attrs)
+                flux = avg_xy(flux, avg_dims, cyclic=cyclic)
             dat_mean["F{}{}_TRB_MEAN".format(var, vel)] = flux

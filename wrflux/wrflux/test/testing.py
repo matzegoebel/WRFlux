@@ -127,7 +127,6 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.998, loc=None, iloc=None, plot=T
             failed = True
     return failed, min(err)
 
-#TODOm: w_diag always available? look for iofile
 def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
 
@@ -176,7 +175,7 @@ def test_y0(adv):
             failed = True
     return failed
 
-#TODO: still needed?
+#TODO: reimplement?
 # def check_bounds(dat_mean, attrs, var):
 #     for dim in ["x", "y"]:
 #         if not attrs["PERIODIC_{}".format(dim.upper())]:

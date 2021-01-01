@@ -75,26 +75,29 @@ def test_all():
     param_grids = {}
     th={"use_theta_m" : [0,1,1],  "output_dry_theta_fluxes" : [False,False,True]}
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
+    o = np.arange(2,7)
+
     ####param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    param_grids["hor_avg msf=1"] = odict(km_opt=[2])
+    param_grids["hor_avg"] = odict(hybrid_opt=[0])
     param_grids["dz_out"] = odict(hybrid_opt=[0])
-    param_grids["hor_avg"] = odict(km_opt=[2])
     param_grids["trb no_debug"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
     param_grids["trb no_debug hor_avg"] = odict(timing=dict(end_time=["2018-06-20_12:10:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 5.] }]))
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
-    o = np.arange(2,7)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th=th2)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
-    param_grids["open BC x"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False], hm=[0], spec_hfx=[0.2], input_sounding="free")
-    param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], hm=[0], spec_hfx=[0.2], input_sounding=["free"])
-    param_grids["open BC y hor_avg"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], hm=[0], spec_hfx=[0.2], input_sounding=["free"])
-    param_grids["symmetric BC x"] = odict(symmetric_xs=[True],symmetric_xe=[True],periodic_x=[False], hm=[0], spec_hfx=[0.2], input_sounding=["free"])
-    param_grids["symmetric BC y"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], hm=[0], spec_hfx=[0.2], input_sounding=["free"])
-    param_grids["symmetric BC y hor_avg"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], hm=[0], spec_hfx=[0.2], input_sounding=["free"])
+    hm = 0
+    param_grids["open BC x"] = odict(open_xs=[True],open_xe=[True],periodic_x=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
+    param_grids["open BC y"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
+    param_grids["open BC y hor_avg"] = odict(open_ys=[True],open_ye=[True],periodic_y=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
+    param_grids["symmetric BC x"] = odict(symmetric_xs=[True],symmetric_xe=[True],periodic_x=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
+    param_grids["symmetric BC y"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
+    param_grids["symmetric BC y hor_avg"] = odict(symmetric_ys=[True],symmetric_ye=[True],periodic_y=[False], hm=hm, spec_hfx=[0.2], input_sounding="free")
 
     failed, failed_short, err, err_short = run_and_check_budget(param_grids, hor_avg=hor_avg, avg_dims=avg_dims)
 
@@ -113,7 +116,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
     err = pd.DataFrame(index=index)
 
     for label, param_grid in param_grids.items():
-        print("\n\n\nTest " + label)
+        print("\n\n\n{0}\nRun test simulations: {1}\n{0}\n".format("#"*50, label))
         #initialize and run simulations
         debugs = debug
         if "no_debug" in label:
@@ -123,7 +126,10 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             if deb:
                 cfile = cfile + "_debug"
             conf = importlib.import_module(cfile)
-            setup_test_init_module(conf, debug=deb, random_msf=random_msf)
+            rmsf = random_msf
+            if "msf=1" in label:
+                rmsf = False
+            setup_test_init_module(conf, debug=deb, random_msf=rmsf)
 
             param_combs = grid_combinations(param_grid, conf.params, param_names=conf.param_names, runID=conf.runID)
             combs, output = capture_submit(init=True, exist=exist, debug=deb, config_file=cfile, param_combs=param_combs)
@@ -157,7 +163,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 continue
             IDi = param_comb["fname"]
             ind = label + ": " + IDi
-            print("\n\n\n{0}\nPostprocess simulation: {1}\n{0}\n".format("#"*50, cname))
+            print("\n\n\n{0}\nPostprocess simulation: {1}, {2}\n{0}\n".format("#"*50, label, cname))
 
             failed[ind] = ""
             err[ind] = ""
@@ -179,7 +185,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             if param_comb["h_sca_adv_order"] == param_comb["v_sca_adv_order"] == param_comb["h_mom_adv_order"] == param_comb["v_mom_adv_order"] == 2:
                 adv_2nd = True
                 bm = bm + budget_methods_2nd
-            if "trb" in label:
+            if "trb " in label:
                 t_avg = True
                 t_avg_interval = 300
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
@@ -235,7 +241,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                     dat = dat_inst.isel(Time=slice(1,None), **iloc)
                     failed_i["w"], err_i["w"] = testing.test_w(dat, **kw)
                 failed_i["NaN"] = testing.test_nan(datout_v)
-                if hor_avg_i and ("Y=0" in tests) and attrs["PERIODIC_Y"]:
+                if hor_avg_i and ("Y=0" in tests) and attrs["PERIODIC_Y"] and (not rmsf):
                     failed_i["Y=0"] = testing.test_y0(adv)
 
                 for test, f in failed_i.items():
@@ -284,7 +290,7 @@ def run_around_tests(request):
 
 
 def delete_test_data():
-    for d in [os.environ["wrf_res"] + "/test/pytest", os.environ["wrf_runs"] + "/pytest"]:
+    for d in [os.environ["wrf_res"] + "/test/pytest", os.environ["wrf_runs"] + "/test/pytest"]:
         if os.path.isdir(d):
             shutil.rmtree(d)
 

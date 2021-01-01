@@ -13,10 +13,12 @@ import os
 import pandas as pd
 from datetime import datetime
 from functools import partial
-import socket
-
 print = partial(print, flush=True)
 
+#directory for figures
+figloc = os.environ["figures"]
+
+#%%
 dim_dict = dict(x="U",y="V",bottom_top="W",z="W")
 xy = ["x", "y"]
 XY = ["X", "Y"]
@@ -789,9 +791,9 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         adv_i = xr.Dataset()
         mf = mapfac
         rhod8z_m = rhod8z
-        if (comp in ["trb_r", "mean"]) and hor_avg: #need trb_r?
-            mf = avg_xy(mapfac, avg_dims)
-            rhod8z_m = avg_xy(rhod8z, avg_dims)
+        if (comp in ["trb_r", "mean"]) and hor_avg:
+            mf = avg_xy(mapfac, avg_dims, attrs=attrs)
+            rhod8z_m = avg_xy(rhod8z, avg_dims, attrs=attrs)
         for d in xy:
             du = d.upper()
             cyc = cyclic[d]
@@ -812,8 +814,8 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             else:
                 fac = dat_mean["MUT_MEAN"]
             if (comp in ["trb_r", "mean"]) and hor_avg:#TODOm: correct?
-                mf_flx = avg_xy(mf_flx, avg_dims)
-                fac = avg_xy(fac, avg_dims)
+                mf_flx = avg_xy(mf_flx, avg_dims, attrs=attrs)
+                fac = avg_xy(fac, avg_dims, attrs=attrs)
             if not dz_out:
                 fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[du].dims)
             fac = stagger_like(fac, flux[du], cyclic=cyclic, **grid[stagger_const])
@@ -837,8 +839,8 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         adv[comp] = adv_i
 
     if hor_avg:
-        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims, attrs)
-        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims, attrs)
+        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims, attrs=attrs)
+        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims, attrs=attrs)
 
     keys = adv.keys()
     adv = xr.concat(adv.values(), "comp")
@@ -865,14 +867,14 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
 def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, mapfac, adv, tend,
                           cyclic, attrs, dz_out=False, hor_avg=False, avg_dims=None):
-
+    #TODOm: why mapfac here?
     print("Compute Cartesian corrections")
     #decompose cartesian corrections
     #total
     corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
     if hor_avg:
-        corr = avg_xy(corr, avg_dims, attrs)
-        rhodm = avg_xy(rhodm, avg_dims)
+        corr = avg_xy(corr, avg_dims, attrs=attrs)
+        rhodm = avg_xy(rhodm, avg_dims, attrs=attrs)
 
     #mean part
     kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
@@ -942,7 +944,7 @@ def total_tendency(dat_inst, var, grid, dz_out=False, hor_avg=False, avg_dims=No
     total_tend = rvar.diff("Time")/dt
 
     if hor_avg:
-        total_tend = avg_xy(total_tend, avg_dims)
+        total_tend = avg_xy(total_tend, avg_dims, attrs=attrs)
 
     if dz_out:
         total_tend = total_tend/grid["RHOD_STAG_MEAN"]
@@ -1282,7 +1284,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
 
     ref = rhodm
     if hor_avg:
-        rhodm = avg_xy(rhodm, avg_dims, attrs)
+        rhodm = avg_xy(rhodm, avg_dims, attrs=attrs)
     grid["RHOD_STAG_MEAN"] = rhodm
 
     #derivative of z wrt x,y,t

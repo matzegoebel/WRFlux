@@ -806,10 +806,10 @@ CONTAINS
 
                 rho_s = 0.5*(rho8w(i,k,j) + rho8w(i-1,k,j))
                 !for cartesian corrections
-                rzxu = rho_s*0.5*(zxu(i-1,k,j)+zxu(i,k,j))
-                rzyv = rho_s*0.5*(zyv(i-1,k,j)+zyv(i,k,j))
-                rdzdt = rho_s*0.5*(dzdt(i-1,k,j)+dzdt(i,k,j))
-                rw_diag_s = 0.5*(rw_diag(i,k,j) + rw_diag(i-1,k,j))
+                rzxu = rho_s*0.5*(zxu(i,k,j)/msfty(i,j) + zxu(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
+                rzyv = rho_s*0.5*(zyv(i,k,j)/msfty(i,j) + zyv(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
+                rdzdt = rho_s*0.5*(dzdt(i,k,j)/msfty(i,j) + dzdt(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
+                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
 
                 !build averages
                 UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
@@ -861,10 +861,10 @@ CONTAINS
 
                 rho_s = 0.5*(rho8w(i,k,j-1) + rho8w(i,k,j))
                 !for cartesian corrections
-                rzxu = rho_s*0.5*(zxu(i,k,j-1)+zxu(i,k,j))
-                rzyv = rho_s*0.5*(zyv(i,k,j-1)+zyv(i,k,j))
-                rdzdt = rho_s*0.5*(dzdt(i,k,j-1)+dzdt(i,k,j))
-                rw_diag_s = 0.5*(rw_diag(i,k,j) + rw_diag(i,k,j-1))
+                rzxu = rho_s*0.5*(zxu(i,k,j)/msfty(i,j) + zxu(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
+                rzyv = rho_s*0.5*(zyv(i,k,j)/msfty(i,j) + zyv(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
+                rdzdt = rho_s*0.5*(dzdt(i,k,j)/msfty(i,j) + dzdt(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
+                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
 
                 !build averages
                 VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean

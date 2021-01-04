@@ -380,7 +380,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & U, u_save, V, v_save, W, w_save, ru, rv, ww, thm, Q,                                                            &
+       & U, u_save, V, v_save, W, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,               &
        & ph_1, ph_2, phb, zx, zy, dph_x, dph_y,                                                  &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -447,7 +447,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
-         thm, Q, ph_1, ph_2, phb, zx, zy,  &
+         t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy,  &
          ftx_adv, fty_adv, ftz_adv,     &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -475,8 +475,8 @@ CONTAINS
     LOGICAL, OPTIONAL, INTENT(IN) :: last_timestep
 
 
-    REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d, th
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    thd, dzdt, u8w, v8w, rho8w, rw_diag, zxu, zyv
+    REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w, rw_diag, zxu, zyv
 
     INTEGER :: i,j,k
     REAL :: local_count, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                      &
@@ -513,19 +513,6 @@ CONTAINS
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
       rho_d(i,k,j) = -mu/dphidn
       RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/(local_count+1.)
-      IF (config_flags%output_tres_fluxes) THEN
-          IF ( config_flags%use_theta_m .EQ. 1 ) THEN
-            thd(i,k,j) = (thm(i,k,j) + t0)/(1 + rvovrd*Q(i,k,j)) - t0
-            IF ( config_flags%output_dry_theta_fluxes) THEN
-              th(i,k,j) = thd(i,k,j)
-            ELSE
-              th(i,k,j) = thm(i,k,j)
-            ENDIF
-          ELSE
-            thd(i,k,j) = thm(i,k,j)
-            th(i,k,j) = thm(i,k,j)
-          ENDIF
-      ENDIF
     ENDDO
     ENDDO
     ENDDO
@@ -536,10 +523,6 @@ CONTAINS
       !set upper boundary to prevent errors
       rho_d(i,k,j) = rho_d(i,k-1,j)
       RHOD_MEAN(i,k,j) = RHOD_MEAN(i,k-1,j)
-      IF (config_flags%output_tres_fluxes) THEN
-        thd(i,k,j) = thd(i,k-1,j)
-        th(i,k,j) = th(i,k-1,j)
-      ENDIF
     ENDDO
     ENDDO
 
@@ -681,13 +664,23 @@ CONTAINS
             rho_s = rho8w(i,k,j)
             !determine staggered variables from total fluxes
             IF (config_flags%output_tres_fluxes) THEN
-                call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
-                                               ftx_adv, fty_adv, ftz_adv,&
-                                               ru(i,k,j), rv(i,k,j), ww(i,k,j), th, &
-                                               cf1, cf2, cf3, cfn, cfn1, .false.,   &
-                                               i, j, k,                             &
-                                               ids, ide, jds, jde, kds, kde,        &
-                                               ims, ime, jms, jme, kms, kme         )
+                IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
+                    call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
+                                                   ftx_adv, fty_adv, ftz_adv,&
+                                                   ru(i,k,j), rv(i,k,j), ww(i,k,j), thd_save, &
+                                                   cf1, cf2, cf3, cfn, cfn1, .false.,   &
+                                                   i, j, k,                             &
+                                                   ids, ide, jds, jde, kds, kde,        &
+                                                   ims, ime, jms, jme, kms, kme         )
+                ELSE
+                    call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
+                                                   ftx_adv, fty_adv, ftz_adv,&
+                                                   ru(i,k,j), rv(i,k,j), ww(i,k,j), t_save, &
+                                                   cf1, cf2, cf3, cfn, cfn1, .false.,   &
+                                                   i, j, k,                             &
+                                                   ids, ide, jds, jde, kds, kde,        &
+                                                   ims, ime, jms, jme, kms, kme         )
+                ENDIF
 
                 !for cartesian corrections
                 rzxu = rho_s*zxu(i,k,j)
@@ -695,20 +688,14 @@ CONTAINS
                 rdzdt = rho_s*dzdt(i,k,j)
 
                 !build averages
-                T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + thd(i,k,j)*rhom )/(local_count+1.)/rho_mean
+                T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_phy(i,k,j)*rhom )/(local_count+1.)/rho_mean
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
-                VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + thd(i,k,j)**2 )/(local_count+1.)
-                IF (( config_flags%use_theta_m .EQ. 1 ) .and. ( config_flags%output_dry_theta_fluxes)) THEN
-                    ftx_small(i,k,j) = ftx_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i-1,k,j)))
-                    fty_small(i,k,j) = fty_small(i,k,j)/(1 + rvovrd*0.5*(Q(i,k,j) + Q(i,k,j-1)))
-                    call stagger_z(q_stag, Q(i,:,j), cf1, cf2, cf3, cfn, cfn1, fnm, fnp, k, kms, kme, kde   )
-                    ftz_small(i,k,j) = ftz_small(i,k,j)/(1 + rvovrd*q_stag)
-                ENDIF
+                VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/(local_count+1.)
                 FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)*fqx_dfac
                 FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)*fqy_dfac
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac !TODOm: how to account for small in mean fluxes?
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac
                 FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/(local_count+1.)
                 FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/(local_count+1.)
                 CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/(local_count+1.)
@@ -720,12 +707,22 @@ CONTAINS
 
                 IF (config_flags%output_t_fluxes_add == 1) THEN
                     !2nd order fluxes
-                    thetax2 = 0.5*(th(i-1,k,j) + th(i,k,j))
-                    thetay2 = 0.5*(th(i,k,j-1) + th(i,k,j))
-                    IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                      thetaz2 = (fnp(k)* th(i,k-1,j) + fnm(k)* th(i,k,j))
+                    IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
+                        thetax2 = 0.5*(thd_save(i-1,k,j) + thd_save(i,k,j))
+                        thetay2 = 0.5*(thd_save(i,k,j-1) + thd_save(i,k,j))
+                        IF (( k .gt. kts) .and. (k .lt. kte)) THEN
+                          thetaz2 = (fnp(k)* thd_save(i,k-1,j) + fnm(k)* thd_save(i,k,j))
+                        ELSE
+                          thetaz2 = thetaz
+                        ENDIF
                     ELSE
-                      thetaz2 = thetaz
+                        thetax2 = 0.5*(t_save(i-1,k,j) + t_save(i,k,j))
+                        thetay2 = 0.5*(t_save(i,k,j-1) + t_save(i,k,j))
+                        IF (( k .gt. kts) .and. (k .lt. kte)) THEN
+                          thetaz2 = (fnp(k)* t_save(i,k-1,j) + fnm(k)* t_save(i,k,j))
+                        ELSE
+                          thetaz2 = thetaz
+                        ENDIF
                     ENDIF
                     ru8z = rho_s*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                     rv8z = rho_s*0.5*(v8w(i,k,j) + v8w(i,k,j+1))

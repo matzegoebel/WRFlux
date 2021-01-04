@@ -3077,23 +3077,6 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
 
     IF ( config_flags%output_dry_theta_fluxes .and. ( config_flags%use_theta_m .EQ. 1 ) .and. &
          config_flags%output_tsgs_fluxes) THEN
-        !set boundary values for dry theta
-        DO k=kts,min(kte,kde-1)
-        DO i=its,min(ite,ide-1)
-          j = min(jte,jde-1) + 1
-          theta(i,k,j) = (thp(i,k,j)+t0)/(1.+R_v/R_d*moist(i,k,j,P_QV))
-          j = jts-1
-          theta(i,k,j) = (thp(i,k,j)+t0)/(1.+R_v/R_d*moist(i,k,j,P_QV))
-        ENDDO
-        ENDDO
-        DO j=jts,min(jte,jde-1)
-        DO k=kts,min(kte,kde-1)
-          i = min(ite,ide-1) + 1
-          theta(i,k,j) = (thp(i,k,j)+t0)/(1.+R_v/R_d*moist(i,k,j,P_QV))
-          i = its-1
-          theta(i,k,j) = (thp(i,k,j)+t0)/(1.+R_v/R_d*moist(i,k,j,P_QV))
-        ENDDO
-        ENDDO
         !output dry instead of moist theta flux, don't save tendency
         CALL horizontal_diffusion_s  ( dummy_tend, H1, H2, config_flags, theta - t0, &
                                        msftx, msfty, msfux, msfuy,             &

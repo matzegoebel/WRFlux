@@ -2583,7 +2583,7 @@ CONTAINS
 
         subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, config_flags, &
                                & rublten, rvblten, rqvblten, rthblten,                &
-                               & dnw, qv, thdry,                                      &
+                               & dnw, qv, th_phy,                                     &
                                & ids, ide, jds, jde, kds, kde,                        &
                                & ims, ime, jms, jme, kms, kme,                        &
                                & i_start,i_end,j_start,j_end                          )
@@ -2600,7 +2600,7 @@ CONTAINS
         TYPE ( grid_config_rec_type ), INTENT(IN) :: config_flags
 
         REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
-             rublten, rvblten, rqvblten, rthblten, qv, thdry
+             rublten, rvblten, rqvblten, rthblten, qv, th_phy
 
         REAL,     DIMENSION( kms:kme ) , INTENT(IN) :: dnw
 
@@ -2635,7 +2635,7 @@ CONTAINS
                    IF   (config_flags%output_tsgs_fluxes) THEN
                       IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
                          !convert tendency from dry to moist theta
-                         rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*thdry(i,k,j)*rqvblten(i,k,j)
+                         rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*th_phy(i,k,j)*rqvblten(i,k,j)
                       ELSE
                          rthblten_corr = rthblten(i,k,j)
                       ENDIF

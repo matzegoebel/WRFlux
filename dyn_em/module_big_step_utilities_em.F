@@ -5000,17 +5000,17 @@ END SUBROUTINE pole_point_bc
 !  compute thermodynamics and velocities at pressure points (or half levels)
 
     IF ( ( config_flags%use_theta_m .EQ. 1 ) .AND. (P_Qv .GE. PARAM_FIRST_SCALAR) ) THEN
-       do j = j_start,j_end
+       do j = jms, jme
        do k = k_start, k_end
-       do i = i_start, i_end
+       do i = ims, ime
          th_phy(i,k,j) = (t(i,k,j)+t0)/(1.+R_v/R_d*moist(i,k,j,P_QV))
        enddo
        enddo
        enddo
     ELSE
-       do j = j_start,j_end
+       do j = jms, jme
        do k = k_start, k_end
-       do i = i_start, i_end
+       do i = ims, ime
          th_phy(i,k,j) =  t(i,k,j)+t0
        enddo
        enddo

@@ -189,7 +189,7 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
-                         dph_x, dph_y,                                    &
+                         thd_save, dph_x, dph_y,                          &
                          u_tend_pg,u_tend_cor_curv,                       &
                          v_tend_pg,v_tend_cor_curv,                       &
                          w_tend_pg,w_tend_cor_curv,                       &
@@ -275,6 +275,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                           w_save, &
                                                          ph_save, &
                                                           t_save, &
+                                                        thd_save, &
                                        u_tend_pg,u_tend_cor_curv, &
                                        v_tend_pg,v_tend_cor_curv, &
                                        w_tend_pg,w_tend_cor_curv, &
@@ -347,7 +348,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL, INTENT( OUT ) :: max_horiz_cfl
    REAL, INTENT( OUT ) :: max_vert_cfl
 
-   REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy, thdry, &
+   REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy,        &
                                                       ru_tend_old,         &
                                                       rv_tend_old,         &
                                                       rw_tend_old
@@ -553,12 +554,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
         output_fluxes = .false.
       ENDIF
 
-      IF ((output_fluxes) .and. config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
+      IF (output_fluxes .and. config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
           advect_thdry = .true.
+          !update dry theta
           DO j = jms,jme
           DO k = kms,kme
           DO i = ims,ime
-            thdry(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
+            thd_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
             t_tend_dummy(i,k,j) = 0
           ENDDO
           ENDDO
@@ -576,7 +578,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                        )  .and. (rk_step == 3) ) THEN
       !output dry theta fluxes if desired
         IF (advect_thdry) THEN
-        CALL advect_scalar_weno ( thdry, thdry, t_tend_dummy,   &
+        CALL advect_scalar_weno ( thd_save, thd_save, t_tend_dummy, &
                                  ftx, fty, ftz, output_fluxes,  &
                                  ru, rv, ww,                    &
                                  c1h, c2h, mut, time_step,      &
@@ -605,7 +607,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
 
      IF (advect_thdry) THEN
-        CALL advect_scalar ( thdry, thdry, t_tend_dummy,   &
+        CALL advect_scalar ( thd_save, thd_save, t_tend_dummy, &
                              ftx, fty, ftz, output_fluxes, &
                              ru, rv, ww,                   &
                              c1h, c2h,                     &

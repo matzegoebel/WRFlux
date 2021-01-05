@@ -484,20 +484,20 @@ CONTAINS
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
             rhoxz_mean_flx, rhoyz_mean_flx, &
-            mu_mean, mux_mean, muy_mean, muz_mean, muxy_mean, muxz_mean, muyz_mean,        &
+            mu_mean, mux_mean, muy_mean, muxy_mean, muxz_mean, muyz_mean,        &
             fqx_dfac, fqy_dfac, fqz_dfac, &
             fux_dfac, fuy_dfac, &
             fvx_dfac, fvy_dfac, &
             fwx_dfac, fwy_dfac, &
-            thetax, thetay, thetaz, qx, qy, qz, q_stag, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
+            thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             rzxu, rzyv, ru8z, rv8z, rdzdt, &
             mu, dphidn
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
-            ux2, uy2, uz2, rhoxz_flx,                  &
-            vx2, vy2, vz2, rhoyz_flx,                  &
+            ux2, uy2, uz2,                             &
+            vx2, vy2, vz2,                             &
             wx2, wy2, wz2,                             &
             rw_diag_s, w_s
 
@@ -678,7 +678,8 @@ CONTAINS
                     call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
                                                    ftx_adv, fty_adv, ftz_adv,&
                                                    ru(i,k,j), rv(i,k,j), ww(i,k,j), thd_save, &
-                                                   cf1, cf2, cf3, cfn, cfn1, .false.,   &
+                                                   cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
+                                                   .false., .false., .false.,                &
                                                    i, j, k,                             &
                                                    ids, ide, jds, jde, kds, kde,        &
                                                    ims, ime, jms, jme, kms, kme         )
@@ -686,7 +687,8 @@ CONTAINS
                     call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
                                                    ftx_adv, fty_adv, ftz_adv,&
                                                    ru(i,k,j), rv(i,k,j), ww(i,k,j), t_save, &
-                                                   cf1, cf2, cf3, cfn, cfn1, .false.,   &
+                                                   cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                                                  .false., .false., .false.,                &
                                                    i, j, k,                             &
                                                    ids, ide, jds, jde, kds, kde,        &
                                                    ims, ime, jms, jme, kms, kme         )
@@ -752,7 +754,8 @@ CONTAINS
                 call get_staggered_from_fluxes(qx, qy, qz,                 &
                                                fqx_adv, fqy_adv, fqz_adv,  &
                                                ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
-                                                cf1, cf2, cf3, cfn, cfn1, .false.,       &
+                                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
+                                               .false., .false., .false.,                &
                                                i, j, k,                                  &
                                                ids, ide, jds, jde, kds, kde,             &
                                                ims, ime, jms, jme, kms, kme              )
@@ -806,7 +809,8 @@ CONTAINS
                 call get_staggered_from_fluxes(ux, uy, uz,                 &
                                                fux_adv, fuy_adv, fuz_adv,  &
                                                ru_d, rv_d, ww_d, u_save,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .false., &
+                                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
+                                               .true., .false., .false.,          &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
@@ -860,7 +864,8 @@ CONTAINS
                 call get_staggered_from_fluxes(vx, vy, vz,                 &
                                                fvx_adv, fvy_adv, fvz_adv,  &
                                                ru_d, rv_d, ww_d, v_save,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .false., &
+                                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
+                                               .false., .true., .false.,          &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
@@ -926,7 +931,8 @@ CONTAINS
                 call get_staggered_from_fluxes(wx, wy, wz,                 &
                                                fwx_adv, fwy_adv, fwz_adv,  &
                                                ru_d, rv_d, ww_d, w_save,        &
-                                               cf1, cf2, cf3, cfn, cfn1, .true.,  &
+                                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
+                                               .false., .false., .true.,          &
                                                i, j, k,                           &
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
@@ -1134,41 +1140,64 @@ CONTAINS
 
   end subroutine stagger_z
 
-  subroutine get_staggered_from_fluxes(varx, vary, varz,                &
-                                       ruvar_tot, rvvar_tot, wwvar_tot, &
-                                       ru, rv, ww, var,                 &
-                                       cf1, cf2, cf3, cfn, cfn1, do_w,  &
-                                       i, j, k,                         &
-                                       ids, ide, jds, jde, kds, kde,    &
-                                       ims, ime, jms, jme, kms, kme     )
+  subroutine get_staggered_from_fluxes(varx, vary, varz,                    &
+                                       ruvar_tot, rvvar_tot, wwvar_tot,     &
+                                       ru, rv, ww, var,                     &
+                                       cf1, cf2, cf3, cfn, cfn1, fnm, fnp,  &
+                                       x_stag, y_stag, do_w,                &
+                                       i, j, k,                             &
+                                       ids, ide, jds, jde, kds, kde,        &
+                                       ims, ime, jms, jme, kms, kme         )
 
     IMPLICIT NONE
 
     REAL, INTENT(OUT) :: varx, vary, varz
     REAL, INTENT(IN) :: ru, rv, ww, cf1, cf2, cf3, cfn, cfn1
-    LOGICAL, INTENT(IN) :: do_w
+    LOGICAL, INTENT(IN) :: x_stag, y_stag, do_w
     INTEGER, INTENT(IN) ::  i, j, k,                       &
                             ids, ide, jds, jde, kds, kde,  &
                             ims, ime, jms, jme, kms, kme
     REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
                         ruvar_tot, rvvar_tot, wwvar_tot, var
+    REAL, DIMENSION(kms:kme) , INTENT(IN) :: fnm, fnp
+
 
     if ((k .lt. kde) .or. (do_w)) then
-      varx = ruvar_tot(i,k,j)/ru
-      vary = rvvar_tot(i,k,j)/rv
+      if (ru .eq. 0) then
+        !cannot reconstruct correctly staggered variable -> use 2nd order = (de)staggering
+        if (x_stag) then
+          varx = 0.5*(var(i+1,k,j) + var(i,k,j))
+        else
+          varx = 0.5*(var(i-1,k,j) + var(i,k,j))
+        endif
+      else
+        varx = ruvar_tot(i,k,j)/ru
+      endif
+
+      if (rv .eq. 0) then
+        !cannot reconstruct correctly staggered variable -> use 2nd order = (de)staggering
+        if (y_stag) then
+          vary = 0.5*(var(i,k,j+1) + var(i,k,j))
+        else
+          vary = 0.5*(var(i,k,j-1) + var(i,k,j))
+        endif
+      else
+        vary = rvvar_tot(i,k,j)/rv
+      endif
     endif
 
     if (ww .ne. 0) then
       varz = wwvar_tot(i,k,j)/ww
-    elseif (k .eq. kde) then
-      varz = cfn*var(i,kde-1,j)+cfn1*var(i,kde-2,j)
-    elseif (k .eq. 1) then
-      varz = cf1*var(i,1,j)+cf2*var(i,2,j)+cf3*var(i,3,j)
+
+    !cannot reconstruct correctly staggered variable -> use 2nd order = (de)staggering
+    elseif (.not. do_w) then
+      call stagger_z(varz, var(i,:,j),                   &
+                     cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                     k, kms, kme, kde                    )
     else
-      varz = var(i,k,j)
-      CALL wrf_debug ( 0 , ' Found zero ww when getting staggered variable from flux! Using var(i,k,j)...' )
-      CALL wrf_debug ( 0 , "i,j,k:",i,",",j,",",k )
+      varz = 0.5*(var(i,k+1,j) + var(i,k,j))
     endif
+
   end subroutine get_staggered_from_fluxes
 
 end MODULE module_avgflx_em

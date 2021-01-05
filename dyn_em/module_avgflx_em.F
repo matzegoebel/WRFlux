@@ -489,6 +489,7 @@ CONTAINS
             fux_dfac, fuy_dfac, &
             fvx_dfac, fvy_dfac, &
             fwx_dfac, fwy_dfac, &
+            ftx, fty, ftz,      &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             rzxu, rzyv, ru8z, rv8z, rdzdt, &
@@ -705,9 +706,18 @@ CONTAINS
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
                 VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/(local_count+1.)
-                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) + ftx_small(i,k,j) )/(local_count+1.)*fqx_dfac
-                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) + fty_small(i,k,j) )/(local_count+1.)*fqy_dfac
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) + ftz_small(i,k,j) )/(local_count+1.)*fqz_dfac
+
+                ftx = ftx_adv(i,k,j)
+                fty = fty_adv(i,k,j)
+                ftz = ftz_adv(i,k,j)
+                IF (config_flags%output_t_fluxes_small) THEN
+                    ftx = ftx + ftx_small(i,k,j)
+                    fty = fty + fty_small(i,k,j)
+                    ftz = ftz + ftz_small(i,k,j)
+                ENDIF
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx )/(local_count+1.)*fqx_dfac
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty )/(local_count+1.)*fqy_dfac
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz )/(local_count+1.)*fqz_dfac
                 FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/(local_count+1.)
                 FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/(local_count+1.)
                 CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/(local_count+1.)

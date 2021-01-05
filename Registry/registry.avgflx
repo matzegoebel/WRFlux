@@ -264,6 +264,7 @@ rconfig  integer  output_q_fluxes          namelist,dynamics    1         0     
 rconfig  integer  output_u_fluxes          namelist,dynamics    1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_v_fluxes          namelist,dynamics    1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_w_fluxes          namelist,dynamics    1         0                    - "output_w_fluxes"   "Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_t_fluxes_small    namelist,dynamics    1         0                    - "output_t_fluxes_small" "Take into account theta-fluxes from acoustic time-step"
 rconfig  integer  output_t_fluxes_add      namelist,dynamics    1         0                    - "output_t_fluxes_add"   "Output additional theta-fluxes using 2nd order advection and different correction form"
 rconfig  integer  output_q_fluxes_add      namelist,dynamics    1         0                    - "output_q_fluxes_add"   "Output additional moisture fluxes using 2nd order advection and different correction form"
 rconfig  integer  output_u_fluxes_add      namelist,dynamics    1         0                    - "output_u_fluxes_add"   "Output additional u-fluxes advection using 2nd order and different correction form"
@@ -290,10 +291,11 @@ rconfig  logical  output_wres_fluxes   derived    1  .false.  -   "output_wres_f
 
 #packages
 
-package  mean_th_1      output_t_fluxes==1       -  state:thd_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp
-package  mean_th_2      output_t_fluxes==2       -  state:thd_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv,fty_adv,ftz_adv,ftx_small,fty_small,ftz_small,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt
-package  mean_th_3      output_t_fluxes==3       -  state:rhod_mean,mut_mean,z_mean,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean
-package  mean_th_add    output_t_fluxes_add==1   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftx_corr_dzout,fty_corr_dzout,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd
+package  mean_t_1      output_t_fluxes==1       -  state:thd_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv,fty_adv,ftz_adv,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp
+package  mean_t_2      output_t_fluxes==2       -  state:thd_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,var_t,ftx_adv,fty_adv,ftz_adv,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt
+package  mean_t_3      output_t_fluxes==3       -  state:rhod_mean,mut_mean,z_mean,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean
+package  mean_t_small  output_t_fluxes_small==1 -  state:ftx_small,fty_small,ftz_small
+package  mean_t_add    output_t_fluxes_add==1   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftx_corr_dzout,fty_corr_dzout,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd
 
 package  mean_q_1       output_q_fluxes==1        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,var_q,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,q_tend_mp_mean
 package  mean_q_2       output_q_fluxes==2        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,var_q,fqx_adv,fqy_adv,fqz_adv,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt

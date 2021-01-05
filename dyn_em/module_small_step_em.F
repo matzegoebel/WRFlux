@@ -1181,7 +1181,12 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      ENDDO
      ENDDO
    ENDDO
-   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_tres_fluxes)) THEN
+   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_tres_fluxes) .and. (config_flags%output_t_fluxes_small)) THEN
+     IF (step == 1) THEN
+       ftx_small(:,:,:) = 0
+       fty_small(:,:,:) = 0
+       ftz_small(:,:,:) = 0
+     ENDIF
      IF (( config_flags%use_theta_m .EQ. 1 ) .and. ( config_flags%output_dry_theta_fluxes)) THEN
        DO j=j_start, j_end+1
        DO k=1,k_end
@@ -1204,27 +1209,22 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
        ENDDO
        ENDDO
      ENDIF
-     IF (step == 1) THEN
-       DO j=j_start, j_end+1
-       DO k=1,kde
-       DO i=i_start, i_end+1
-         ftx_small(i,k,j) = ftx(i,k,j)*dts/config_flags%dt
-         fty_small(i,k,j) = fty(i,k,j)*dts/config_flags%dt
-         ftz_small(i,k,j) = wdtn(i,k,j)*dts/config_flags%dt
-       ENDDO
-       ENDDO
-       ENDDO
-     ELSE
-       DO j=j_start, j_end+1
-       DO k=1,kde
-       DO i=i_start, i_end+1
-         ftx_small(i,k,j) = ftx_small(i,k,j) + ftx(i,k,j)*dts/config_flags%dt
-         fty_small(i,k,j) = fty_small(i,k,j) + fty(i,k,j)*dts/config_flags%dt
-         ftz_small(i,k,j) = ftz_small(i,k,j) + wdtn(i,k,j)*dts/config_flags%dt
-       ENDDO
-       ENDDO
-       ENDDO
-     ENDIF
+
+     DO j=j_start, j_end+1
+     DO k=1,k_end
+     DO i=i_start, i_end+1
+       ftx_small(i,k,j) = ftx_small(i,k,j) + ftx(i,k,j)*dts/config_flags%dt
+       fty_small(i,k,j) = fty_small(i,k,j) + fty(i,k,j)*dts/config_flags%dt
+     ENDDO
+     ENDDO
+     ENDDO
+     DO j=j_start, j_end
+     DO k=1,kde
+     DO i=i_start, i_end
+       ftz_small(i,k,j) = ftz_small(i,k,j) + wdtn(i,k,j)*dts/config_flags%dt
+     ENDDO
+     ENDDO
+     ENDDO
    ENDIF
 
 END SUBROUTINE advance_mu_t

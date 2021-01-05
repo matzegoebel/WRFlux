@@ -3102,6 +3102,11 @@
 
       if (model_config_rec%output_tres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
        model_config_rec%output_dry_theta_fluxes) then
+         if (model_config_rec%output_t_fluxes_small==1) then
+            CALL wrf_debug ( 0, 'WARNING: Output of small-step fluxes for dry theta'// &
+                                '(output_dry_theta_fluxes=1 and output_t_fluxes_small=1)'// &
+                                'together with use_theta_m=1 is not recommended!')
+         endif
          DO i = 1, model_config_rec % max_dom
             if ((model_config_rec%scalar_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%scalar_adv_opt(i) == WENOPD_SCALAR) .or. &
                (model_config_rec%moist_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%moist_adv_opt(i) == WENOPD_SCALAR)) then

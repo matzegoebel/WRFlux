@@ -2581,12 +2581,12 @@ CONTAINS
 ! ===6=8===============================================================72
 
 
-        subroutine fluxes_from_bl_tend(sgs_wth, sgs_wq, sgs_wu, sgs_wv, config_flags, &
+        subroutine fluxes_from_bl_tend(ftz_sgs, fqz_sgs, fuz_sgs, fvz_sgs, config_flags, &
                                & rublten, rvblten, rqvblten, rthblten,                &
                                & dnw, qv, th_phy,                                     &
                                & ids, ide, jds, jde, kds, kde,                        &
                                & ims, ime, jms, jme, kms, kme,                        &
-                               & i_start,i_end,j_start,j_end                          )
+                               & its, ite, jts, jte                                   )
 
         USE module_state_description
         USE module_model_constants
@@ -2596,7 +2596,7 @@ CONTAINS
 
         INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
                                        ims, ime, jms, jme, kms, kme,  &
-                                       i_start,i_end,j_start,j_end
+                                       its, ite, jts, jte
         TYPE ( grid_config_rec_type ), INTENT(IN) :: config_flags
 
         REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) :: & 
@@ -2604,57 +2604,69 @@ CONTAINS
 
         REAL,     DIMENSION( kms:kme ) , INTENT(IN) :: dnw
 
-        REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: sgs_wth, sgs_wq, sgs_wu, sgs_wv
+        REAL    ,DIMENSION(ims:ime,kms:kme,jms:jme), INTENT(INOUT) :: ftz_sgs, fqz_sgs, fuz_sgs, fvz_sgs
 
-        REAL :: fac, rthblten_corr
+        REAL :: rthblten_corr
         INTEGER :: i,j,k, ij
 
         ! Extract vertical SGS fluxes from PBL scheme tendencies by integrating from the top down
         ! assuming zero flux at the top F(kte) = 0
-        ! Cartesian tendency equation for A: d(rho(k)*A(k))/dt ~ rho(k) * A_tend(k) = - (F(k+1) - F(k))/dzw(k)
-        ! -> Flux: F(k) = F(k+1) + d(rho(k)*A(k))/dt*dzw(k) ~ F(k+1) +  d(mu(k)*A(k))/dt*dnw(k)/(-g)
+        ! tendency equation for A: d(rho(k)*A(k))/dt ~ rho(k) * A_tend(k) = - (F(k+1) - F(k))/dzw(k)
+        ! -> Flux: F(k) = F(k+1) + d(rho(k)*A(k))/dt*dzw(k) ~ F(k+1) -  d(mu(k)*A(k))/dt*dnw(k)/g
 
-          DO j=j_start,j_end
-            DO k=kde,kds,-1
-              DO i=i_start,i_end
-                IF (k==kde) THEN
-                   IF (config_flags%output_tsgs_fluxes) THEN
-                     sgs_wth(i,k,j) = 0
-                   ENDIF
-                   IF (config_flags%output_qsgs_fluxes) THEN
-                     sgs_wq(i,k,j) = 0
-                   ENDIF
-                   IF (config_flags%output_usgs_fluxes) THEN
-                     sgs_wu(i,k,j) = 0
-                   ENDIF
-                   IF (config_flags%output_vsgs_fluxes) THEN
-                     sgs_wv(i,k,j) = 0
-                   ENDIF
-                ELSE
-                   fac = -dnw(k)/g
-                   IF   (config_flags%output_tsgs_fluxes) THEN
-                      IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
-                         !convert tendency from dry to moist theta
-                         rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*th_phy(i,k,j)*rqvblten(i,k,j)
-                      ELSE
-                         rthblten_corr = rthblten(i,k,j)
-                      ENDIF
-                      sgs_wth(i,k,j) = sgs_wth(i,k+1,j) + rthblten_corr*fac
-                   ENDIF
-                   IF (config_flags%output_qsgs_fluxes) THEN
-                     sgs_wq(i,k,j) = sgs_wq(i,k+1,j) + rqvblten(i,k,j)*fac
-                   ENDIF
-                   IF (config_flags%output_usgs_fluxes) THEN
-                     sgs_wu(i,k,j) = sgs_wu(i,k+1,j) + 0.5*(rublten(i,k,j) + rublten(i-1,k,j))*fac
-                   ENDIF
-                   IF (config_flags%output_vsgs_fluxes) THEN
-                     sgs_wv(i,k,j) = sgs_wv(i,k+1,j) + 0.5*(rvblten(i,k,j) + rvblten(i,k,j-1))*fac
-                   ENDIF
-                ENDIF
 
-              END DO
+
+          IF (config_flags%output_tsgs_fluxes) THEN
+            ftz_sgs(its:ite, kde, jts:jte) = 0
+            DO j=jts,jte
+            DO k=kde-1,kds,-1
+            DO i=its,ite
+              IF ((config_flags%use_theta_m .eq. 1) .and. (.not. config_flags%output_dry_theta_fluxes)) THEN
+                 !convert tendency from dry to moist theta
+                 rthblten_corr = (1. + rvovrd*qv(i,k,j))*rthblten(i,k,j) + rvovrd*th_phy(i,k,j)*rqvblten(i,k,j)
+              ELSE
+                 rthblten_corr = rthblten(i,k,j)
+              ENDIF
+              ftz_sgs(i,k,j) = ftz_sgs(i,k+1,j) - rthblten_corr*dnw(k)/g
             END DO
-          END DO
+            END DO
+            END DO
+          ENDIF
+
+          IF (config_flags%output_qsgs_fluxes) THEN
+            fqz_sgs(its:ite, kde, jts:jte) = 0
+            DO j=jts,jte
+            DO k=kde-1,kds,-1
+            DO i=its,ite
+              fqz_sgs(i,k,j) = fqz_sgs(i,k+1,j) - rqvblten(i,k,j)*dnw(k)/g
+            END DO
+            END DO
+            END DO
+          ENDIF
+
+          IF (config_flags%output_usgs_fluxes) THEN
+            fuz_sgs(its:ite, kde, jts:jte) = 0
+            DO j=jts,jte
+            DO k=kde-1,kds,-1
+            DO i=its,ite
+              !stagger tendency in x-direction
+              fuz_sgs(i,k,j) = fuz_sgs(i,k+1,j) - 0.5*(rublten(i,k,j) + rublten(i-1,k,j))*dnw(k)/g
+            END DO
+            END DO
+            END DO
+          ENDIF
+
+          IF (config_flags%output_vsgs_fluxes) THEN
+            fvz_sgs(its:ite, kde, jts:jte) = 0
+            DO j=jts,jte
+            DO k=kde-1,kds,-1
+            DO i=its,ite
+              !stagger tendency in y-direction
+              fvz_sgs(i,k,j) = fvz_sgs(i,k+1,j) - 0.5*(rvblten(i,k,j) + rvblten(i,k,j-1))*dnw(k)/g
+            END DO
+            END DO
+            END DO
+          ENDIF
 
         end subroutine fluxes_from_bl_tend
 

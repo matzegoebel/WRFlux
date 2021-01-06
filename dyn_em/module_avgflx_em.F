@@ -480,7 +480,7 @@ CONTAINS
     REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    dzdt, u8w, v8w, rho8w, rw_diag, zxu, zyv
 
     INTEGER :: i,j,k
-    REAL :: local_count, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,                      &
+    REAL :: local_count, count_p1, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,            &
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
             rhoxz_mean_flx, rhoyz_mean_flx, &
@@ -504,6 +504,7 @@ CONTAINS
 
 
     local_count = real(avgflx_count)
+    count_p1 = local_count + 1.
 
     if (present(dt) .and. config_flags%output_avgfluxes) then
 
@@ -514,7 +515,7 @@ CONTAINS
       mu = c1h(k)*mut(i,j)+c2h(k)
       dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
       rho_d(i,k,j) = -mu/dphidn
-      RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/(local_count+1.)
+      RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/count_p1
     ENDDO
     ENDDO
     ENDDO
@@ -530,7 +531,7 @@ CONTAINS
 
     DO j=jts-1,jte
     DO i=its-1  ,ite
-        MUT_MEAN(i,j) = (local_count*MUT_MEAN(i,j) + mut(i,j))/(local_count+1.)
+        MUT_MEAN(i,j) = (local_count*MUT_MEAN(i,j) + mut(i,j))/count_p1
     ENDDO
     ENDDO
 
@@ -605,7 +606,7 @@ CONTAINS
     DO j=jts,jte
       DO k=kts,kte
         DO i=its,ite
-          Z_MEAN(i,k,j) = (local_count*Z_MEAN(i,k,j)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/(local_count+1.)
+          Z_MEAN(i,k,j) = (local_count*Z_MEAN(i,k,j)  + (phb(i,k,j)+ph_2(i,k,j))/g  )/count_p1
           IF (last_timestep) THEN
               !mean staggered densities to normalize fluxes
               rho_mean_flx = RHOD_MEAN(i,k,j)
@@ -701,11 +702,11 @@ CONTAINS
                 rdzdt = rhoz*dzdt(i,k,j)
 
                 !build averages
-                T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_phy(i,k,j)*rhom )/(local_count+1.)/rho_mean
-                TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/(local_count+1.)/rhox_mean
-                TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/(local_count+1.)/rhoy_mean
-                TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/(local_count+1.)/rhoz_mean
-                VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/(local_count+1.)
+                T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_phy(i,k,j)*rhom )/count_p1/rho_mean
+                TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/count_p1/rhox_mean
+                TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/count_p1/rhoy_mean
+                TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/count_p1/rhoz_mean
+                VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/count_p1
 
                 ftx = ftx_adv(i,k,j)
                 fty = fty_adv(i,k,j)
@@ -715,12 +716,12 @@ CONTAINS
                     fty = fty + fty_small(i,k,j)
                     ftz = ftz + ftz_small(i,k,j)
                 ENDIF
-                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx )/(local_count+1.)*fqx_dfac
-                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty )/(local_count+1.)*fqy_dfac
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz )/(local_count+1.)*fqz_dfac
-                FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/(local_count+1.)
-                FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/(local_count+1.)
-                CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/(local_count+1.)
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx )/count_p1*fqx_dfac
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty )/count_p1*fqy_dfac
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz )/count_p1*fqz_dfac
+                FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/count_p1
+                FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/count_p1
+                CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/count_p1
                 IF (last_timestep) THEN
                   !add corrections to vertical flux
                   FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
@@ -748,14 +749,14 @@ CONTAINS
                     ENDIF
                     ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                     rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-                    FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j) + ( ru(i,k,j)*thetax2 ) )/(local_count+1.)*fqx_dfac
-                    FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j) + ( rv(i,k,j)*thetay2 ) )/(local_count+1.)*fqy_dfac
-                    FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j) + ( rw_diag(i,k,j)*thetaz2 ) )/(local_count+1.)/rhoz_mean_flx
-                    FTX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTX_CORR_MEAN_DZOUT(i,k,j) + ru8z*thetaz )/(local_count+1.)
-                    FTY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTY_CORR_MEAN_DZOUT(i,k,j) + rv8z*thetaz )/(local_count+1.)
-                    FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu*thetaz2 )/(local_count+1.)
-                    FTY_CORR_MEAN_2ND(i,k,j) = (local_count*FTY_CORR_MEAN_2ND(i,k,j) + rzyv*thetaz2 )/(local_count+1.)
-                    CORR_DTDT_MEAN_2ND(i,k,j) = (local_count*CORR_DTDT_MEAN_2ND(i,k,j) + rdzdt*thetaz2 )/(local_count+1.)
+                    FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j) + ( ru(i,k,j)*thetax2 ) )/count_p1*fqx_dfac
+                    FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j) + ( rv(i,k,j)*thetay2 ) )/count_p1*fqy_dfac
+                    FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j) + ( rw_diag(i,k,j)*thetaz2 ) )/count_p1/rhoz_mean_flx
+                    FTX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTX_CORR_MEAN_DZOUT(i,k,j) + ru8z*thetaz )/count_p1
+                    FTY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTY_CORR_MEAN_DZOUT(i,k,j) + rv8z*thetaz )/count_p1
+                    FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu*thetaz2 )/count_p1
+                    FTY_CORR_MEAN_2ND(i,k,j) = (local_count*FTY_CORR_MEAN_2ND(i,k,j) + rzyv*thetaz2 )/count_p1
+                    CORR_DTDT_MEAN_2ND(i,k,j) = (local_count*CORR_DTDT_MEAN_2ND(i,k,j) + rdzdt*thetaz2 )/count_p1
                 ENDIF
             ENDIF
 
@@ -777,17 +778,17 @@ CONTAINS
                 !use ww_m instead of ww
                 rw_diag_s = rhoz*(dzdt(i,k,j) + zxu(i,k,j) + zyv(i,k,j)) + ww_m(i,k,j)*msfty(i,j)/(-g)
                 !build averages
-                Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/(local_count+1.)/rho_mean
-                QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/(local_count+1.)/rhox_mean
-                QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/(local_count+1.)/rhoy_mean
-                QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/(local_count+1.)/rhoz_mean
-                VAR_Q(i,k,j) = (local_count*VAR_Q(i,k,j) + Q(i,k,j)*2 )/(local_count+1.)
-                FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/(local_count+1.)*fqx_dfac
-                FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/(local_count+1.)*fqy_dfac
-                FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + rw_diag_s*qz )/(local_count+1.)/rhoz_mean_flx
-                FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + rzxu*qz )/(local_count+1.)
-                FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + rzyv*qz )/(local_count+1.)
-                CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + rdzdt*qz )/(local_count+1.)
+                Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/count_p1/rho_mean
+                QX_MEAN(i,k,j) = (local_count*QX_MEAN(i,k,j) + qx*rhox )/count_p1/rhox_mean
+                QY_MEAN(i,k,j) = (local_count*QY_MEAN(i,k,j) + qy*rhoy )/count_p1/rhoy_mean
+                QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/count_p1/rhoz_mean
+                VAR_Q(i,k,j) = (local_count*VAR_Q(i,k,j) + Q(i,k,j)*2 )/count_p1
+                FQX_ADV_MEAN(i,k,j)  = (local_count*FQX_ADV_MEAN(i,k,j) + fqx_adv(i,k,j) )/count_p1*fqx_dfac
+                FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/count_p1*fqy_dfac
+                FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + rw_diag_s*qz )/count_p1/rhoz_mean_flx
+                FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + rzxu*qz )/count_p1
+                FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + rzyv*qz )/count_p1
+                CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + rdzdt*qz )/count_p1
 
                 IF (config_flags%output_q_fluxes_add == 1) THEN
                     !2nd order fluxes
@@ -800,14 +801,14 @@ CONTAINS
                     ENDIF
                     ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                     rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-                    FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/(local_count+1.)*fqx_dfac
-                    FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/(local_count+1.)*fqy_dfac
-                    FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/(local_count+1.)/rhoz_mean_flx
-                    FQX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQX_CORR_MEAN_DZOUT(i,k,j) + ru8z*qz )/(local_count+1.)
-                    FQY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQY_CORR_MEAN_DZOUT(i,k,j) + rv8z*qz )/(local_count+1.)
-                    FQX_CORR_MEAN_2ND(i,k,j) = (local_count*FQX_CORR_MEAN_2ND(i,k,j) + rzxu*qz2 )/(local_count+1.)
-                    FQY_CORR_MEAN_2ND(i,k,j) = (local_count*FQY_CORR_MEAN_2ND(i,k,j) + rzyv*qz2 )/(local_count+1.)
-                    CORR_DQDT_MEAN_2ND(i,k,j) = (local_count*CORR_DQDT_MEAN_2ND(i,k,j) + rdzdt*qz2 )/(local_count+1.)
+                    FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/count_p1*fqx_dfac
+                    FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/count_p1*fqy_dfac
+                    FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/count_p1/rhoz_mean_flx
+                    FQX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQX_CORR_MEAN_DZOUT(i,k,j) + ru8z*qz )/count_p1
+                    FQY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQY_CORR_MEAN_DZOUT(i,k,j) + rv8z*qz )/count_p1
+                    FQX_CORR_MEAN_2ND(i,k,j) = (local_count*FQX_CORR_MEAN_2ND(i,k,j) + rzxu*qz2 )/count_p1
+                    FQY_CORR_MEAN_2ND(i,k,j) = (local_count*FQY_CORR_MEAN_2ND(i,k,j) + rzyv*qz2 )/count_p1
+                    CORR_DQDT_MEAN_2ND(i,k,j) = (local_count*CORR_DQDT_MEAN_2ND(i,k,j) + rdzdt*qz2 )/count_p1
                 ENDIF
             ENDIF
 
@@ -832,16 +833,16 @@ CONTAINS
                 rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
 
                 !build averages
-                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/(local_count+1.)/rho_mean
-                UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/(local_count+1.)/rhoxy_mean
-                UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/(local_count+1.)/rhoxz_mean
-                VAR_U(i,k,j) = (local_count*VAR_U(i,k,j) + U(i,k,j)*2 )/(local_count+1.)
-                FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/(local_count+1.)*fux_dfac
-                FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/(local_count+1.)*fuy_dfac
-                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + rw_diag_s*uz )/(local_count+1.)/rhoxz_mean_flx
-                FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + rzxu*uz )/(local_count+1.)
-                FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv*uz )/(local_count+1.)
-                CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt*uz )/(local_count+1.)
+                UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/count_p1/rho_mean
+                UY_MEAN(i,k,j) = (local_count*UY_MEAN(i,k,j) + uy*rhoxy )/count_p1/rhoxy_mean
+                UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/count_p1/rhoxz_mean
+                VAR_U(i,k,j) = (local_count*VAR_U(i,k,j) + U(i,k,j)*2 )/count_p1
+                FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/count_p1*fux_dfac
+                FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/count_p1*fuy_dfac
+                FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + rw_diag_s*uz )/count_p1/rhoxz_mean_flx
+                FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + rzxu*uz )/count_p1
+                FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv*uz )/count_p1
+                CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt*uz )/count_p1
 
                 IF (config_flags%output_u_fluxes_add == 1) THEN
                     !2nd order fluxes
@@ -855,14 +856,14 @@ CONTAINS
                     w_s = 0.5*(w_save(i-1,k,j)+w_save(i,k,j))
                     ru8z = rhoxz*u8w(i,k,j)
                     rv8z = rhoxz*0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
-                    FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/(local_count+1.)*fux_dfac
-                    FUY_ADV_MEAN_2ND(i,k,j) = (local_count*FUY_ADV_MEAN_2ND(i,k,j) + rv_d*uy2 )/(local_count+1.)*fuy_dfac
-                    FUZ_ADV_MEAN_2ND(i,k,j) = (local_count*FUZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*uz2 )/(local_count+1.)/rhoxz_mean_flx
-                    FUX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUX_CORR_MEAN_DZOUT(i,k,j) + ru8z*uz )/(local_count+1.)
-                    FUY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUY_CORR_MEAN_DZOUT(i,k,j) + rv8z*uz )/(local_count+1.)
-                    FUX_CORR_MEAN_2ND(i,k,j) = (local_count*FUX_CORR_MEAN_2ND(i,k,j) + rzxu*uz2 )/(local_count+1.)
-                    FUY_CORR_MEAN_2ND(i,k,j) = (local_count*FUY_CORR_MEAN_2ND(i,k,j) + rzyv*uz2 )/(local_count+1.)
-                    CORR_DUDT_MEAN_2ND(i,k,j) = (local_count*CORR_DUDT_MEAN_2ND(i,k,j) + rdzdt*uz2 )/(local_count+1.)
+                    FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/count_p1*fux_dfac
+                    FUY_ADV_MEAN_2ND(i,k,j) = (local_count*FUY_ADV_MEAN_2ND(i,k,j) + rv_d*uy2 )/count_p1*fuy_dfac
+                    FUZ_ADV_MEAN_2ND(i,k,j) = (local_count*FUZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*uz2 )/count_p1/rhoxz_mean_flx
+                    FUX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUX_CORR_MEAN_DZOUT(i,k,j) + ru8z*uz )/count_p1
+                    FUY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUY_CORR_MEAN_DZOUT(i,k,j) + rv8z*uz )/count_p1
+                    FUX_CORR_MEAN_2ND(i,k,j) = (local_count*FUX_CORR_MEAN_2ND(i,k,j) + rzxu*uz2 )/count_p1
+                    FUY_CORR_MEAN_2ND(i,k,j) = (local_count*FUY_CORR_MEAN_2ND(i,k,j) + rzyv*uz2 )/count_p1
+                    CORR_DUDT_MEAN_2ND(i,k,j) = (local_count*CORR_DUDT_MEAN_2ND(i,k,j) + rdzdt*uz2 )/count_p1
                 ENDIF
             ENDIF
 
@@ -887,16 +888,16 @@ CONTAINS
                 rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
 
                 !build averages
-                VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/(local_count+1.)/rhoxy_mean
-                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/(local_count+1.)/rho_mean
-                VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/(local_count+1.)/rhoyz_mean
-                VAR_V(i,k,j) = (local_count*VAR_V(i,k,j) + V(i,k,j)*2 )/(local_count+1.)
-                FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/(local_count+1.)*fvx_dfac
-                FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/(local_count+1.)*fvy_dfac
-                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + rw_diag_s*vz )/(local_count+1.)/rhoyz_mean_flx
-                FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + rzxu*vz )/(local_count+1.)
-                FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv*vz )/(local_count+1.)
-                CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt*vz )/(local_count+1.)
+                VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/count_p1/rhoxy_mean
+                VY_MEAN(i,k,j) = (local_count*VY_MEAN(i,k,j) + vy*rhom  )/count_p1/rho_mean
+                VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/count_p1/rhoyz_mean
+                VAR_V(i,k,j) = (local_count*VAR_V(i,k,j) + V(i,k,j)*2 )/count_p1
+                FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/count_p1*fvx_dfac
+                FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/count_p1*fvy_dfac
+                FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + rw_diag_s*vz )/count_p1/rhoyz_mean_flx
+                FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + rzxu*vz )/count_p1
+                FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv*vz )/count_p1
+                CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt*vz )/count_p1
 
                 IF (config_flags%output_v_fluxes_add == 1) THEN
                     !2nd order fluxes
@@ -910,14 +911,14 @@ CONTAINS
                     w_s = 0.5*(w_save(i,k,j-1)+w_save(i,k,j))
                     ru8z = rhoyz*0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
                     rv8z = rhoyz*v8w(i,k,j)
-                    FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/(local_count+1.)*fvx_dfac
-                    FVY_ADV_MEAN_2ND(i,k,j) = (local_count*FVY_ADV_MEAN_2ND(i,k,j) + ( rv_d*vy2 ) )/(local_count+1.)*fvy_dfac
-                    FVZ_ADV_MEAN_2ND(i,k,j) = (local_count*FVZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*vz2 )/(local_count+1.)/rhoyz_mean_flx
-                    FVX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVX_CORR_MEAN_DZOUT(i,k,j) + ru8z*vz )/(local_count+1.)
-                    FVY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVY_CORR_MEAN_DZOUT(i,k,j) + rv8z*vz )/(local_count+1.)
-                    FVX_CORR_MEAN_2ND(i,k,j) = (local_count*FVX_CORR_MEAN_2ND(i,k,j) + rzxu*vz2 )/(local_count+1.)
-                    FVY_CORR_MEAN_2ND(i,k,j) = (local_count*FVY_CORR_MEAN_2ND(i,k,j) + rzyv*vz2 )/(local_count+1.)
-                    CORR_DVDT_MEAN_2ND(i,k,j) = (local_count*CORR_DVDT_MEAN_2ND(i,k,j) + rdzdt*vz2 )/(local_count+1.)
+                    FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/count_p1*fvx_dfac
+                    FVY_ADV_MEAN_2ND(i,k,j) = (local_count*FVY_ADV_MEAN_2ND(i,k,j) + ( rv_d*vy2 ) )/count_p1*fvy_dfac
+                    FVZ_ADV_MEAN_2ND(i,k,j) = (local_count*FVZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*vz2 )/count_p1/rhoyz_mean_flx
+                    FVX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVX_CORR_MEAN_DZOUT(i,k,j) + ru8z*vz )/count_p1
+                    FVY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVY_CORR_MEAN_DZOUT(i,k,j) + rv8z*vz )/count_p1
+                    FVX_CORR_MEAN_2ND(i,k,j) = (local_count*FVX_CORR_MEAN_2ND(i,k,j) + rzxu*vz2 )/count_p1
+                    FVY_CORR_MEAN_2ND(i,k,j) = (local_count*FVY_CORR_MEAN_2ND(i,k,j) + rzyv*vz2 )/count_p1
+                    CORR_DVDT_MEAN_2ND(i,k,j) = (local_count*CORR_DVDT_MEAN_2ND(i,k,j) + rdzdt*vz2 )/count_p1
                 ENDIF
             ENDIF
 
@@ -947,12 +948,12 @@ CONTAINS
                                                ids, ide, jds, jde, kds, kde,      &
                                                ims, ime, jms, jme, kms, kme       )
 
-                VAR_W(i,k,j) = (local_count*VAR_W(i,k,j) + W(i,k,j)*2 )/(local_count+1.)
+                VAR_W(i,k,j) = (local_count*VAR_W(i,k,j) + W(i,k,j)*2 )/count_p1
                 IF (k .gt. kts) THEN
-                    WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/(local_count+1.)/rhoxz_mean
-                    WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/(local_count+1.)/rhoyz_mean
-                    FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/(local_count+1.)*fwx_dfac
-                    FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/(local_count+1.)*fwy_dfac
+                    WX_MEAN(i,k,j) = (local_count*WX_MEAN(i,k,j) + wx*rhoxz )/count_p1/rhoxz_mean
+                    WY_MEAN(i,k,j) = (local_count*WY_MEAN(i,k,j) + wy*rhoyz )/count_p1/rhoyz_mean
+                    FWX_ADV_MEAN(i,k,j)  = (local_count*FWX_ADV_MEAN(i,k,j) + fwx_adv(i,k,j) )/count_p1*fwx_dfac
+                    FWY_ADV_MEAN(i,k,j)  = (local_count*FWY_ADV_MEAN(i,k,j) + fwy_adv(i,k,j) )/count_p1*fwy_dfac
                 ENDIF
                 IF (k .lt. kte) THEN
                     !destagger in z direction
@@ -960,11 +961,11 @@ CONTAINS
                     rzyv = rhom*0.5*(zyv(i,k+1,j)+zyv(i,k,j))
                     rdzdt = rhom*0.5*(dzdt(i,k+1,j)+dzdt(i,k,j))
                     rw_diag_s = 0.5*(rw_diag(i,k+1,j) + rw_diag(i,k,j))
-                    WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/(local_count+1.)/rho_mean
-                    FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + rw_diag_s*wz )/(local_count+1.)/rho_mean_flx
-                    FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + rzxu*wz )/(local_count+1.)
-                    FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + rzyv*wz )/(local_count+1.)
-                    CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt*wz )/(local_count+1.)
+                    WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/count_p1/rho_mean
+                    FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + rw_diag_s*wz )/count_p1/rho_mean_flx
+                    FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + rzxu*wz )/count_p1
+                    FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + rzyv*wz )/count_p1
+                    CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt*wz )/count_p1
                 ENDIF
 
                 IF (config_flags%output_w_fluxes_add == 1) THEN
@@ -972,8 +973,8 @@ CONTAINS
                     IF (k .gt. kts) THEN
                         wx2 = 0.5*(w_save(i-1,k,j) + w_save(i,k,j))
                         wy2 = 0.5*(w_save(i,k,j-1) + w_save(i,k,j))
-                        FWX_ADV_MEAN_2ND(i,k,j) = (local_count*FWX_ADV_MEAN_2ND(i,k,j) + ru_d*wx2 )/(local_count+1.)*fwx_dfac
-                        FWY_ADV_MEAN_2ND(i,k,j) = (local_count*FWY_ADV_MEAN_2ND(i,k,j) + rv_d*wy2 )/(local_count+1.)*fwy_dfac
+                        FWX_ADV_MEAN_2ND(i,k,j) = (local_count*FWX_ADV_MEAN_2ND(i,k,j) + ru_d*wx2 )/count_p1*fwx_dfac
+                        FWY_ADV_MEAN_2ND(i,k,j) = (local_count*FWY_ADV_MEAN_2ND(i,k,j) + rv_d*wy2 )/count_p1*fwy_dfac
                     ENDIF
                     IF (k .lt. kte) THEN
                         IF (k .lt. kte) THEN
@@ -984,53 +985,53 @@ CONTAINS
                         w_s = 0.5*(w_save(i,k+1,j)+w_save(i,k,j))
                         ru8z = rhom*0.5*(u_save(i,k,j) + u_save(i+1,k,j))
                         rv8z = rhom*0.5*(v_save(i,k,j) + v_save(i,k,j+1))
-                        FWX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWX_CORR_MEAN_DZOUT(i,k,j) + ru8z*wz )/(local_count+1.)
-                        FWY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWY_CORR_MEAN_DZOUT(i,k,j) + rv8z*wz )/(local_count+1.)
-                        FWZ_ADV_MEAN_2ND(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*wz2 )/(local_count+1.)/rho_mean_flx
-                        FWX_CORR_MEAN_2ND(i,k,j) = (local_count*FWX_CORR_MEAN_2ND(i,k,j) + rzxu*wz2 )/(local_count+1.)
-                        FWY_CORR_MEAN_2ND(i,k,j) = (local_count*FWY_CORR_MEAN_2ND(i,k,j) + rzyv*wz2 )/(local_count+1.)
-                        CORR_DWDT_MEAN_2ND(i,k,j) = (local_count*CORR_DWDT_MEAN_2ND(i,k,j) + rdzdt*wz2 )/(local_count+1.)
+                        FWX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWX_CORR_MEAN_DZOUT(i,k,j) + ru8z*wz )/count_p1
+                        FWY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWY_CORR_MEAN_DZOUT(i,k,j) + rv8z*wz )/count_p1
+                        FWZ_ADV_MEAN_2ND(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*wz2 )/count_p1/rho_mean_flx
+                        FWX_CORR_MEAN_2ND(i,k,j) = (local_count*FWX_CORR_MEAN_2ND(i,k,j) + rzxu*wz2 )/count_p1
+                        FWY_CORR_MEAN_2ND(i,k,j) = (local_count*FWY_CORR_MEAN_2ND(i,k,j) + rzyv*wz2 )/count_p1
+                        CORR_DWDT_MEAN_2ND(i,k,j) = (local_count*CORR_DWDT_MEAN_2ND(i,k,j) + rdzdt*wz2 )/count_p1
                     ENDIF
                 ENDIF
             ENDIF
 
             !average wind speed
             !TODOm: use mu for hesselberg averaging?
-            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/(local_count+1.)/rhox_mean
-            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/(local_count+1.)/rhoy_mean
-            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/(local_count+1.)/rhoz_mean
-            WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j)*msfty(i,j))/(local_count+1.)
-            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
-            DPH_X_MEAN(i,k,j) = (local_count*DPH_X_MEAN(i,k,j) + dph_x(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
-            DPH_Y_MEAN(i,k,j) = (local_count*DPH_Y_MEAN(i,k,j) + dph_y(i,k,j)*rhoz )/(local_count+1.)/rhoz_mean
+            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/count_p1/rhox_mean
+            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/count_p1/rhoy_mean
+            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/count_p1/rhoz_mean
+            WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j)*msfty(i,j))/count_p1
+            WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/count_p1/rhoz_mean
+            DPH_X_MEAN(i,k,j) = (local_count*DPH_X_MEAN(i,k,j) + dph_x(i,k,j)*rhoz )/count_p1/rhoz_mean
+            DPH_Y_MEAN(i,k,j) = (local_count*DPH_Y_MEAN(i,k,j) + dph_y(i,k,j)*rhoz )/count_p1/rhoz_mean
           ENDIF
 
           IF (config_flags%output_sgs_fluxes) THEN
             IF (config_flags%output_tsgs_fluxes) THEN
-                FTX_SGS_MEAN(i,k,j) = (local_count*FTX_SGS_MEAN(i,k,j) + ftx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean_flx
-                FTY_SGS_MEAN(i,k,j) = (local_count*FTY_SGS_MEAN(i,k,j) + fty_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean_flx
-                FTZ_SGS_MEAN(i,k,j) = (local_count*FTZ_SGS_MEAN(i,k,j) + ftz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean_flx
+                FTX_SGS_MEAN(i,k,j) = (local_count*FTX_SGS_MEAN(i,k,j) + ftx_sgs(i,k,j) ) / count_p1 / rhox_mean_flx
+                FTY_SGS_MEAN(i,k,j) = (local_count*FTY_SGS_MEAN(i,k,j) + fty_sgs(i,k,j) ) / count_p1 / rhoy_mean_flx
+                FTZ_SGS_MEAN(i,k,j) = (local_count*FTZ_SGS_MEAN(i,k,j) + ftz_sgs(i,k,j) ) / count_p1 / rhoz_mean_flx
             ENDIF
             IF (config_flags%output_qsgs_fluxes) THEN
-                FQX_SGS_MEAN(i,k,j) = (local_count*FQX_SGS_MEAN(i,k,j) + fqx_sgs(i,k,j) ) / (local_count+1.) / rhox_mean_flx
-                FQY_SGS_MEAN(i,k,j) = (local_count*FQY_SGS_MEAN(i,k,j) + fqy_sgs(i,k,j) ) / (local_count+1.) / rhoy_mean_flx
-                FQZ_SGS_MEAN(i,k,j) = (local_count*FQZ_SGS_MEAN(i,k,j) + fqz_sgs(i,k,j) ) / (local_count+1.) / rhoz_mean_flx
+                FQX_SGS_MEAN(i,k,j) = (local_count*FQX_SGS_MEAN(i,k,j) + fqx_sgs(i,k,j) ) / count_p1 / rhox_mean_flx
+                FQY_SGS_MEAN(i,k,j) = (local_count*FQY_SGS_MEAN(i,k,j) + fqy_sgs(i,k,j) ) / count_p1 / rhoy_mean_flx
+                FQZ_SGS_MEAN(i,k,j) = (local_count*FQZ_SGS_MEAN(i,k,j) + fqz_sgs(i,k,j) ) / count_p1 / rhoz_mean_flx
             ENDIF
             IF (config_flags%output_usgs_fluxes) THEN
-                FUX_SGS_MEAN(i,k,j)  = (local_count*FUX_SGS_MEAN(i,k,j)  + fux_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
-                FUZ_SGS_MEAN(i,k,j)  = (local_count*FUZ_SGS_MEAN(i,k,j)  + fuz_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean_flx
+                FUX_SGS_MEAN(i,k,j)  = (local_count*FUX_SGS_MEAN(i,k,j)  + fux_sgs(i,k,j) )  / count_p1 / rho_mean_flx
+                FUZ_SGS_MEAN(i,k,j)  = (local_count*FUZ_SGS_MEAN(i,k,j)  + fuz_sgs(i,k,j) )  / count_p1 / rhoxz_mean_flx
             ENDIF
             IF (config_flags%output_vsgs_fluxes) THEN
-                FVY_SGS_MEAN(i,k,j)  = (local_count*FVY_SGS_MEAN(i,k,j)  + fvy_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
-                FVZ_SGS_MEAN(i,k,j)  = (local_count*FVZ_SGS_MEAN(i,k,j)  + fvz_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean_flx
+                FVY_SGS_MEAN(i,k,j)  = (local_count*FVY_SGS_MEAN(i,k,j)  + fvy_sgs(i,k,j) )  / count_p1 / rho_mean_flx
+                FVZ_SGS_MEAN(i,k,j)  = (local_count*FVZ_SGS_MEAN(i,k,j)  + fvz_sgs(i,k,j) )  / count_p1 / rhoyz_mean_flx
             ENDIF
             IF (config_flags%output_usgs_fluxes .or. config_flags%output_vsgs_fluxes) THEN
-                FVX_SGS_MEAN(i,k,j)  = (local_count*FVX_SGS_MEAN(i,k,j)  + fvx_sgs(i,k,j) )  / (local_count+1.) / rhoxy_mean_flx
+                FVX_SGS_MEAN(i,k,j)  = (local_count*FVX_SGS_MEAN(i,k,j)  + fvx_sgs(i,k,j) )  / count_p1 / rhoxy_mean_flx
             ENDIF
             IF (config_flags%output_wsgs_fluxes) THEN
-                FWX_SGS_MEAN(i,k,j)  = (local_count*FWX_SGS_MEAN(i,k,j)  + fwx_sgs(i,k,j) )  / (local_count+1.) / rhoxz_mean_flx
-                FWY_SGS_MEAN(i,k,j)  = (local_count*FWY_SGS_MEAN(i,k,j)  + fwy_sgs(i,k,j) )  / (local_count+1.) / rhoyz_mean_flx
-                FWZ_SGS_MEAN(i,k,j)  = (local_count*FWZ_SGS_MEAN(i,k,j)  + fwz_sgs(i,k,j) )  / (local_count+1.) / rho_mean_flx
+                FWX_SGS_MEAN(i,k,j)  = (local_count*FWX_SGS_MEAN(i,k,j)  + fwx_sgs(i,k,j) )  / count_p1 / rhoxz_mean_flx
+                FWY_SGS_MEAN(i,k,j)  = (local_count*FWY_SGS_MEAN(i,k,j)  + fwy_sgs(i,k,j) )  / count_p1 / rhoyz_mean_flx
+                FWZ_SGS_MEAN(i,k,j)  = (local_count*FWZ_SGS_MEAN(i,k,j)  + fwz_sgs(i,k,j) )  / count_p1 / rho_mean_flx
             ENDIF
           ENDIF
 
@@ -1042,9 +1043,9 @@ CONTAINS
       DO j=jts,jte
       DO k=kts,kte
       DO i=its,ite
-        T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/(local_count+1.)
-        T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/(local_count+1.)
-        T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/(local_count+1.)
+        T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/count_p1
+        T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/count_p1
+        T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO
@@ -1053,7 +1054,7 @@ CONTAINS
       DO j=jts,jte
       DO k=kts,kte
       DO i=its,ite
-        Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/(local_count+1.)
+        Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO
@@ -1062,8 +1063,8 @@ CONTAINS
       DO j=jts,jte
       DO k=kts,kte
       DO i=its,ite
-        U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/(local_count+1.)
-        U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/(local_count+1.)
+        U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/count_p1
+        U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO
@@ -1072,8 +1073,8 @@ CONTAINS
       DO j=jts,jte
       DO k=kts,kte
       DO i=its,ite
-        V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/(local_count+1.)
-        V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/(local_count+1.)
+        V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/count_p1
+        V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO
@@ -1082,8 +1083,8 @@ CONTAINS
       DO j=jts,jte
       DO k=kts,kte
       DO i=its,ite
-        W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/(local_count+1.)
-        W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/(local_count+1.)
+        W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/count_p1
+        W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO

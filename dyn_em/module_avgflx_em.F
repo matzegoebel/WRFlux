@@ -1010,9 +1010,9 @@ CONTAINS
 
     !average additional tendencies
     IF (config_flags%output_t_fluxes .eq. 1) THEN
-      DO j=jts,jte
-      DO k=kts,kte
-      DO i=its,ite
+      DO j=jts,min(jte, jde-1)
+      DO k=kts,min(kte, kde-1)
+      DO i=its,min(ite, ide-1)
         T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/count_p1
         T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/count_p1
         T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
@@ -1021,17 +1021,17 @@ CONTAINS
       ENDDO
     ENDIF
     IF (config_flags%output_q_fluxes .eq. 1) THEN
-      DO j=jts,jte
-      DO k=kts,kte
-      DO i=its,ite
+      DO j=jts,min(jte, jde-1)
+      DO k=kts,min(kte, kde-1)
+      DO i=its,min(ite, ide-1)
         Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/count_p1
       ENDDO
       ENDDO
       ENDDO
     ENDIF
     IF (config_flags%output_u_fluxes .eq. 1) THEN
-      DO j=jts,jte
-      DO k=kts,kte
+      DO j=jts,min(jte, jde-1)
+      DO k=kts,min(kte, kde-1)
       DO i=its,ite
         U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/count_p1
         U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/count_p1
@@ -1041,8 +1041,8 @@ CONTAINS
     ENDIF
     IF (config_flags%output_v_fluxes .eq. 1) THEN
       DO j=jts,jte
-      DO k=kts,kte
-      DO i=its,ite
+      DO k=kts,min(kte, kde-1)
+      DO i=its,min(ite, ide-1)
         V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/count_p1
         V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/count_p1
       ENDDO
@@ -1050,9 +1050,9 @@ CONTAINS
       ENDDO
     ENDIF
     IF (config_flags%output_w_fluxes .eq. 1) THEN
-      DO j=jts,jte
+      DO j=jts,min(jte, jde-1)
       DO k=kts,kte
-      DO i=its,ite
+      DO i=its,min(ite, ide-1)
         W_TEND_PG_MEAN(i,k,j)  = (local_count*W_TEND_PG_MEAN(i,k,j) + w_tend_pg(i,k,j) )/count_p1
         W_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*W_TEND_COR_CURV_MEAN(i,k,j) + w_tend_cor_curv(i,k,j) )/count_p1
       ENDDO

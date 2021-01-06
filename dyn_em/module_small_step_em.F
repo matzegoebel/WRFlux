@@ -1037,7 +1037,8 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
   REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f, &
                                               c3h, c4h, c3f, c4f
 !  Local arrays from the stack (note tile size)
-  REAL, DIMENSION (its:ite+1, kts:kte, jts:jte+1) :: ftx, fty, wdtn
+  REAL, DIMENSION (its:ite+1, kts:kte, jts:jte+1) :: ftx, fty
+  REAL, DIMENSION (its:ite, kts:kte, jts:jte) :: wdtn
   REAL, DIMENSION (its:ite, kts:kte) :: dvdxi
   REAL, DIMENSION (its:ite) :: dmdt
   INTEGER :: i, j, k, kk, i_start, i_end, j_start, j_end, k_start, k_end
@@ -1182,20 +1183,26 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      ENDDO
    ENDDO
    IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_tres_fluxes) .and. (config_flags%output_t_fluxes_small)) THEN
+     !save fluxes
      IF (step == 1) THEN
        ftx_small(:,:,:) = 0
        fty_small(:,:,:) = 0
        ftz_small(:,:,:) = 0
      ENDIF
      IF (( config_flags%use_theta_m .EQ. 1 ) .and. ( config_flags%output_dry_theta_fluxes)) THEN
+       !save dry theta fluxes
        DO j=j_start, j_end+1
        DO k=1,k_end
        DO i=i_start, i_end+1
          ftx(i,k,j) = u(i,k,j)*0.5*(th_phy(i,k,j) - t0 + th_phy(i-1,k,j) - t0 )
          fty(i,k,j) = v(i,k,j)*0.5*(th_phy(i,k,j) - t0 + th_phy(i,k,j-1) - t0 )
-         IF (k .gt. 1) THEN
-           wdtn(i,k,j) = ww(i,k,j)*(fnm(k)*th_phy(i,k  ,j) + fnp(k)*th_phy(i,k-1,j) - t0)
-         ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       DO j=j_start, j_end
+       DO k=2,k_end
+       DO i=i_start, i_end
+         wdtn(i,k,j) = ww(i,k,j)*(fnm(k)*th_phy(i,k  ,j) + fnp(k)*th_phy(i,k-1,j) - t0)
        ENDDO
        ENDDO
        ENDDO
@@ -2044,7 +2051,7 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
       ! avoid including tendencies from damp_opt=3.
 
       IF (config_flags%output_u_fluxes .eq. 1) THEN
-        DO j = jts,jte
+        DO j = jts,min(jte,jde-1)
         DO k = kts,min(kte,kde-1)
         DO i = its,ite
           u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + (u_2(i,k,j) - u_1(i,k,j))/config_flags%dt &
@@ -2057,7 +2064,7 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
       IF (config_flags%output_v_fluxes .eq. 1) THEN
         DO j = jts,jte
         DO k = kts,min(kte,kde-1)
-        DO i = its,ite
+        DO i = its,min(ite,ide-1)
           v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + (v_2(i,k,j) - v_1(i,k,j))/config_flags%dt &
                              - rv_tend(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))
         ENDDO
@@ -2067,8 +2074,8 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
 
       IF (config_flags%output_w_fluxes .eq. 1) THEN
         k = kts
-        DO j = jts,jte
-        DO i = its,ite
+        DO j = jts,min(jte,jde-1)
+        DO i = its,min(ite,ide-1)
           w_tend_pg(i,k,j) = w_tend_pg(i,k,j) + (w_2(i,k,j) - w_1(i,k,j))/config_flags%dt &
                              - rw_tend(i,k,j)*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
         ENDDO

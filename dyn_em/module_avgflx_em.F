@@ -686,7 +686,7 @@ CONTAINS
                 ENDIF
 
                 ftz_adv(i,k,j) = rw_diag(i,k,j)*thetaz
-                IF (config_flags%output_t_fluxes_small) THEN
+                IF (config_flags%output_t_fluxes_small == 1) THEN
                     ftx_adv(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
                     fty_adv(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
                     ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)

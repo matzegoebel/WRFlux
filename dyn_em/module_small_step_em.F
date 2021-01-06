@@ -1182,7 +1182,8 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
      ENDDO
      ENDDO
    ENDDO
-   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_tres_fluxes) .and. (config_flags%output_t_fluxes_small)) THEN
+   IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_tres_fluxes) .and. &
+       (config_flags%output_t_fluxes_small == 1)) THEN
      !save fluxes
      IF (step == 1) THEN
        ftx_small(:,:,:) = 0

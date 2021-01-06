@@ -3049,76 +3049,89 @@
 
       !determine which flux variables to output
 
-      if ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==2)) THEN
+      IF ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==2)) THEN
          model_config_rec%output_tres_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
-      endif
-      if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==2)) THEN
+      ELSEIF (model_config_rec%output_t_fluxes_add==1) THEN
+         wrf_err_message = '--- ERROR: output_t_fluxes_add requires output_t_fluxes=1,2!'
+         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+      ENDIF
+      IF ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==2)) THEN
          model_config_rec%output_qres_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
-      endif
-      if ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==2)) THEN
+      ELSEIF (model_config_rec%output_q_fluxes_add==1) THEN
+         wrf_err_message = '--- ERROR: output_q_fluxes_add requires output_q_fluxes=1,2!'
+         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+      ENDIF
+      IF ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==2)) THEN
          model_config_rec%output_ures_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
-      endif
-      if ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==2)) THEN
+      ELSEIF (model_config_rec%output_u_fluxes_add==1) THEN
+         wrf_err_message = '--- ERROR: output_u_fluxes_add requires output_u_fluxes=1,2!'
+         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+      ENDIF
+      IF ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==2)) THEN
          model_config_rec%output_vres_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
-      endif
-      if ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==2)) THEN
+      ELSEIF (model_config_rec%output_v_fluxes_add==1) THEN
+         wrf_err_message = '--- ERROR: output_v_fluxes_add requires output_v_fluxes=1,2!'
+         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+      ENDIF
+      IF ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==2)) THEN
          model_config_rec%output_wres_fluxes = .true.
          model_config_rec%output_res_fluxes = .true.
-      endif
+      ELSEIF (model_config_rec%output_w_fluxes_add==1) THEN
+         wrf_err_message = '--- ERROR: output_w_fluxes_add requires output_w_fluxes=1,2!'
+         CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+      ENDIF
 
-
-
-      if ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==3)) THEN
+      IF ((model_config_rec%output_t_fluxes==1) .or. (model_config_rec%output_t_fluxes==3)) THEN
          model_config_rec%output_tsgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
-      endif
-      if ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==3)) THEN
+      ENDIF
+      IF ((model_config_rec%output_q_fluxes==1) .or. (model_config_rec%output_q_fluxes==3)) THEN
          model_config_rec%output_qsgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
-      endif
-      if ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==3)) THEN
+      ENDIF
+      IF ((model_config_rec%output_u_fluxes==1) .or. (model_config_rec%output_u_fluxes==3)) THEN
          model_config_rec%output_usgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
          model_config_rec%m_opt = 1
-      endif
-      if ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==3)) THEN
+      ENDIF
+      IF ((model_config_rec%output_v_fluxes==1) .or. (model_config_rec%output_v_fluxes==3)) THEN
          model_config_rec%output_vsgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
          model_config_rec%m_opt = 1
-      endif
-      if ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==3)) THEN
+      ENDIF
+      IF ((model_config_rec%output_w_fluxes==1) .or. (model_config_rec%output_w_fluxes==3)) THEN
          model_config_rec%output_wsgs_fluxes = .true.
          model_config_rec%output_sgs_fluxes = .true.
          model_config_rec%m_opt = 1
-      endif
+      ENDIF
 
-      if (model_config_rec%output_sgs_fluxes .or. model_config_rec%output_res_fluxes) THEN
+      IF (model_config_rec%output_sgs_fluxes .or. model_config_rec%output_res_fluxes) THEN
          model_config_rec%output_avgfluxes = .true.
-      endif
+      ENDIF
 
-      if (model_config_rec%output_tres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
-       model_config_rec%output_dry_theta_fluxes) then
-         if (model_config_rec%output_t_fluxes_small==1) then
+      IF (model_config_rec%output_tres_fluxes .and. (model_config_rec%use_theta_m == 1)  .and. &
+       model_config_rec%output_dry_theta_fluxes) THEN
+         IF (model_config_rec%output_t_fluxes_small==1) THEN
             CALL wrf_debug ( 0, 'WARNING: Output of small-step fluxes for dry theta'// &
                                 '(output_dry_theta_fluxes=1 and output_t_fluxes_small=1)'// &
                                 'together with use_theta_m=1 is not recommended!')
-         endif
+         ENDIF
          DO i = 1, model_config_rec % max_dom
-            if ((model_config_rec%scalar_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%scalar_adv_opt(i) == WENOPD_SCALAR) .or. &
-               (model_config_rec%moist_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%moist_adv_opt(i) == WENOPD_SCALAR)) then
+            IF ((model_config_rec%scalar_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%scalar_adv_opt(i) == WENOPD_SCALAR) .or. &
+               (model_config_rec%moist_adv_opt(i) == WENO_SCALAR) .or. (model_config_rec%moist_adv_opt(i) == WENOPD_SCALAR)) THEN
                CALL wrf_debug ( 0, 'WARNING: trying to output resolved fluxes for dry theta although use_theta_m=1.'// &
                                    'This leads to an unbalanced dry theta budget if using WENO advection for theta!')
-            endif
-            if (model_config_rec%scalar_adv_opt(i) == MONOTONIC) then
+            ENDIF
+            IF (model_config_rec%scalar_adv_opt(i) == MONOTONIC) THEN
                CALL wrf_debug ( 0, 'WARNING: trying to output resolved fluxes for dry theta although use_theta_m=1.'// &
                                    'This leads to an unbalanced dry theta budget if using monotonic advection for water vapor!')
-            endif
+            ENDIF
          ENDDO
-      endif
+      ENDIF
 
    END SUBROUTINE set_physics_rconfigs
 

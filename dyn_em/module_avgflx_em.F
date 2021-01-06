@@ -449,7 +449,7 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
          t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy,  &
-         ftx_adv, fty_adv, ftz_adv,     &
+         ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
          fvx_adv, fvy_adv, fvz_adv,        &
@@ -461,7 +461,7 @@ CONTAINS
          ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
-    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_small, fty_small, ftz_small, &
+    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_adv, fty_adv, ftz_adv,  &
                                                                             dph_x, dph_y
 
     REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
@@ -489,7 +489,6 @@ CONTAINS
             fux_dfac, fuy_dfac, &
             fvx_dfac, fvy_dfac, &
             fwx_dfac, fwy_dfac, &
-            ftx, fty, ftz,      &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
             rzxu, rzyv, ru8z, rv8z, rdzdt, &
@@ -708,25 +707,18 @@ CONTAINS
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/count_p1/rhoz_mean
                 VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/count_p1
 
-                ftx = ftx_adv(i,k,j)
-                fty = fty_adv(i,k,j)
-                ftz = ftz_adv(i,k,j)
+                ftz_adv(i,k,j) = rw_diag(i,k,j)*thetaz
                 IF (config_flags%output_t_fluxes_small) THEN
-                    ftx = ftx + ftx_small(i,k,j)
-                    fty = fty + fty_small(i,k,j)
-                    ftz = ftz + ftz_small(i,k,j)
+                    ftx_adv(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
+                    fty_adv(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
+                    ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
                 ENDIF
-                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx )/count_p1*fqx_dfac
-                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty )/count_p1*fqy_dfac
-                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz )/count_p1*fqz_dfac
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) )/count_p1*fqx_dfac
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) )/count_p1*fqy_dfac
+                FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) )/count_p1/rhoz_mean_flx
                 FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu*thetaz )/count_p1
                 FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv*thetaz )/count_p1
                 CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt*thetaz )/count_p1
-                IF (last_timestep) THEN
-                  !add corrections to vertical flux
-                  FTZ_ADV_MEAN(i,k,j) = (FTZ_ADV_MEAN(i,k,j) + FTX_CORR_MEAN(i,k,j) + FTY_CORR_MEAN(i,k,j) + &
-                                         CORR_DTDT_MEAN(i,k,j) )/rhoz_mean_flx
-                ENDIF
 
                 IF (config_flags%output_t_fluxes_add == 1) THEN
                     !2nd order fluxes

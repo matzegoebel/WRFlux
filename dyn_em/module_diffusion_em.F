@@ -2905,8 +2905,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                                                  ru_tendf,&
                                                                  rv_tendf,&
                                                                  rw_tendf,&
-                                                                tke_tendf,&
-                                                                    theta
+                                                                tke_tendf
   
    REAL , DIMENSION( ims:ime, kms:kme, jms:jme, n_moist),                 &
           INTENT(INOUT) ::                                    moist_tendf
@@ -2943,6 +2942,7 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
                                                                     xkhh, &
                                                                       zx, &
                                                                       zy, &
+                                                                   theta, &
                                                                      thp, &
                                                                      tke, &
                                                                      rdz, &
@@ -3029,12 +3029,11 @@ SUBROUTINE horizontal_diffusion_2 ( rt_tendf, ru_tendf, rv_tendf, rw_tendf,    &
             DO k=kts,kte
             DO i=its,ite
                 fvx_sgs(i,k,j) = nba_mij(i,k,j,P_m12)* .25 * ( rho(i-1,k,j  ) + rho(i,k,j  )  +  &
-                                                              rho(i-1,k,j-1) + rho(i,k,j-1) )
+                                                               rho(i-1,k,j-1) + rho(i,k,j-1) )
             ENDDO
             ENDDO
             ENDDO
         ENDIF
-        !horizontal fluxes of w (not redundant if pbl scheme is used)
         IF (config_flags%output_wsgs_fluxes) THEN
             DO j=jts,jte
             DO k=kts+1,kte
@@ -4472,7 +4471,7 @@ SUBROUTINE vertical_diffusion_2   ( ru_tendf, rv_tendf, rw_tendf, rt_tendf,   &
        IF (config_flags%output_tsgs_fluxes) THEN
         ftz_sgs(i,kts,j) = heat_flux*rho(i,kts,j)
        ENDIF
-       
+
        if(config_flags%use_theta_m == 1)THEN
          rt_tendf(i,kts,j)=rt_tendf(i,kts,j)  &
              -g*heat_flux*(1.+rvovrd*moist(i,kts,j,P_QV))*rho(i,kts,j)/dnw(kts) &

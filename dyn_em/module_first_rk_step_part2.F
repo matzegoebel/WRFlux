@@ -756,8 +756,7 @@ BENCH_START(update_phy_ten_tim)
 
          if (config_flags%output_sgs_fluxes .and.  ( config_flags%bl_pbl_physics .gt. 0 )) then
             !get turbulent fluxes from PBL scheme tendencies
-            call fluxes_from_bl_tend(grid%ftz_sgs, grid%fqz_sgs,                           &
-                             & grid%fuz_sgs, grid%fvz_sgs, config_flags,                    &
+            call fluxes_from_bl_tend(grid%ftz_sgs, grid%fqz_sgs, grid%fuz_sgs, grid%fvz_sgs, config_flags, &
                              & grid%rublten, grid%rvblten, grid%rqvblten, grid%rthblten,  &
                              & grid%dnw, grid%moist(:,:,:,P_QV), th_phy,                  &
                              & ids, ide, jds, jde, kds, kde,                              &

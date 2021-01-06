@@ -555,6 +555,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
       ENDIF
 
       IF (output_fluxes .and. config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
+          !output dry theta fluxes if desired:
+          !repeat advection routines with dry theta without saving the tendency
+
           advect_thdry = .true.
           !update dry theta
           DO j = jms,jme
@@ -576,20 +579,20 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                  .or. config_flags%moist_adv_opt == WENO_SCALAR       &
                  .or. config_flags%moist_adv_opt == WENOPD_SCALAR     &
                        )  .and. (rk_step == 3) ) THEN
-      !output dry theta fluxes if desired
+
         IF (advect_thdry) THEN
-        CALL advect_scalar_weno ( thd_save, thd_save, t_tend_dummy, &
-                                 ftx, fty, ftz, output_fluxes,  &
-                                 ru, rv, ww,                    &
-                                 c1h, c2h, mut, time_step,      &
-                                 config_flags,                  &
-                                 msfux, msfuy, msfvx, msfvy,    &
-                                 msftx, msfty, fnm, fnp,        &
-                                 rdx, rdy, rdnw,                &
-                                 ids, ide, jds, jde, kds, kde,  &
-                                 ims, ime, jms, jme, kms, kme,  &
-                                 its, ite, jts, jte, kts, kte  )
-        output_fluxes = .false.
+           CALL advect_scalar_weno ( thd_save, thd_save, t_tend_dummy, &
+                                    ftx, fty, ftz, output_fluxes,  &
+                                    ru, rv, ww,                    &
+                                    c1h, c2h, mut, time_step,      &
+                                    config_flags,                  &
+                                    msfux, msfuy, msfvx, msfvy,    &
+                                    msftx, msfty, fnm, fnp,        &
+                                    rdx, rdy, rdnw,                &
+                                    ids, ide, jds, jde, kds, kde,  &
+                                    ims, ime, jms, jme, kms, kme,  &
+                                    its, ite, jts, jte, kts, kte  )
+           output_fluxes = .false.
         ENDIF
 ! also use weno for monotonic scalar option so that the h_ and z_tendency arrays are not needed
 

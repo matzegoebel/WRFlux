@@ -7958,7 +7958,6 @@ END SUBROUTINE phy_bc
    REAL, DIMENSION( its-1:ite+1, kts:kte, jts-1:jte+1 ):: rdz_u, rdz_v
    REAL, DIMENSION(kts:kte) :: a, b, c, d
    REAL, DIMENSION(kts:kte-1) :: a1, b1, c1, d1
-   REAL, DIMENSION(kms:kme) :: th_dry
  
    INTEGER :: im, i,j,k,ktf,nz
    INTEGER :: i_start, i_end, j_start, j_end
@@ -8351,7 +8350,7 @@ END SUBROUTINE phy_bc
     CALL wrf_error_fatal( 'isfflx value invalid for diff_opt=2' )
   END SELECT hflux
 
-    IF((config_flags%use_theta_m == 1  ) .and. config_flags%output_dry_theta_fluxes) THEN
+    IF ((config_flags%output_tsgs_fluxes) .and. (config_flags%use_theta_m == 1  ) .and. config_flags%output_dry_theta_fluxes) THEN
       output_dry = .true.
     ELSE
       output_dry = .false.
@@ -8359,12 +8358,6 @@ END SUBROUTINE phy_bc
     DO  j = j_start, j_end
     DO  i = i_start, i_end
             cpm = cp * (1. + 0.8 * moist(i,kts,j,P_QV))
-            IF(output_dry) THEN
-              th_dry = (thp(i,:,j) + t0)/(1 + rvovrd*moist(i,:,j,P_QV)) - t0
-            ELSE
-              th_dry = var_mix(i,:,j)
-            ENDIF
-
             k = kts
             rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))
             a(k) = 0.
@@ -8381,7 +8374,7 @@ END SUBROUTINE phy_bc
                   - dt*rdz_w*nlflux_rho(i,k+1,j)*qfac   &
                   + dt*rdz_w*(qfac*hfx(i,j)/cpm+1.61*theta(i,kts,j)*qfx(i,j))
              IF (output_dry) THEN
-                  d1(k) = th_dry(kts)                       &
+                  d1(k) = theta(i,kts,j)                   &
                         - dt*rdz_w*nlflux_rho(i,k+1,j)      &
                         + dt*rdz_w*hfx(i,j)/cpm
              ENDIF
@@ -8399,7 +8392,7 @@ END SUBROUTINE phy_bc
             c(k)  = -rdz_w*rdz(i,k+1,j)*xkxavg(i,k+1,j)*dt
             d(k)  = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*qfac*dt + var_mix(i,k,j)
             IF (output_dry) THEN
-              d1(k) = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + th_dry(k)
+              d1(k) = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + theta(i,k,j)
             ENDIF
           ENDDO
  
@@ -8408,7 +8401,7 @@ END SUBROUTINE phy_bc
             c(ktf) = 0.
             d(ktf) = var_mix(i,ktf,j)
             IF (output_dry) THEN
-              d1(ktf) = th_dry(ktf)
+              d1(ktf) = theta(i,ktf,j)
             ENDIF
  
           CALL tridiag(nz,a,b,c,d)
@@ -8425,8 +8418,13 @@ END SUBROUTINE phy_bc
             ENDIF
             ftz_sgs(i,kde,j) = 0.
             DO k=ktf,kts,-1
+                  !reconstruct flux from tendency
                   rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))!includes rho
-                  temp = d1(k) - th_dry(k)
+                  IF (output_dry) THEN
+                    temp = d1(k) - theta(i,k,j)
+                  ELSE
+                    temp = d1(k) - var_mix(i,k,j)
+                  ENDIF
                   temp = temp/(dt*rdz_w)
                   ftz_sgs(i,k,j) = temp + ftz_sgs(i,k+1,j)
             ENDDO
@@ -8564,6 +8562,7 @@ END SUBROUTINE phy_bc
            IF (config_flags%output_qsgs_fluxes) THEN
            fqz_sgs(i,kde,j) = 0.
            DO k=ktf,kts,-1
+               !reconstruct flux from tendency
                rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j)+c2h(k))!includes rho
                temp = (d(k) - var_mix(i,k,j))/(dt*rdz_w)
                fqz_sgs(i,k,j) = temp + fqz_sgs(i,k+1,j)

@@ -688,6 +688,13 @@ CONTAINS
                                                    ims, ime, jms, jme, kms, kme         )
                 ENDIF
 
+                ftz_adv(i,k,j) = rw_diag(i,k,j)*thetaz
+                IF (config_flags%output_t_fluxes_small) THEN
+                    ftx_adv(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
+                    fty_adv(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
+                    ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
+                ENDIF
+
                 !build averages
                 T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_phy(i,k,j)*rhom )/count_p1/rho_mean
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/count_p1/rhox_mean
@@ -695,12 +702,6 @@ CONTAINS
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/count_p1/rhoz_mean
                 VAR_T(i,k,j) = (local_count*VAR_T(i,k,j) + th_phy(i,k,j)**2 )/count_p1
 
-                ftz_adv(i,k,j) = rw_diag(i,k,j)*thetaz
-                IF (config_flags%output_t_fluxes_small) THEN
-                    ftx_adv(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
-                    fty_adv(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
-                    ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
-                ENDIF
                 FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) )/count_p1*fqx_dfac
                 FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) )/count_p1*fqy_dfac
                 FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz_adv(i,k,j) )/count_p1/rhoz_mean_flx
@@ -729,9 +730,9 @@ CONTAINS
                     ENDIF
                     ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                     rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-                    FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j) + ( ru(i,k,j)*thetax2 ) )/count_p1*fqx_dfac
-                    FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j) + ( rv(i,k,j)*thetay2 ) )/count_p1*fqy_dfac
-                    FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j) + ( rw_diag(i,k,j)*thetaz2 ) )/count_p1/rhoz_mean_flx
+                    FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j)+ (ru(i,k,j)*thetax2 ) )/count_p1*fqx_dfac
+                    FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j)+ (rv(i,k,j)*thetay2 ) )/count_p1*fqy_dfac
+                    FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j)+ (rw_diag(i,k,j)*thetaz2))/count_p1/rhoz_mean_flx
                     FTX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTX_CORR_MEAN_DZOUT(i,k,j) + ru8z*thetaz )/count_p1
                     FTY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTY_CORR_MEAN_DZOUT(i,k,j) + rv8z*thetaz )/count_p1
                     FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu(i,k,j)*thetaz2 )/count_p1
@@ -1014,6 +1015,7 @@ CONTAINS
       end DO
     end DO
 
+    !average additional tendencies
     IF (config_flags%output_t_fluxes .eq. 1) THEN
       DO j=jts,jte
       DO k=kts,kte

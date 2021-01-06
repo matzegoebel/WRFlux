@@ -4651,16 +4651,16 @@ BENCH_END(bc_2d_tim)
                  &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
                  &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
                  &   config_flags,                                                                          &
-                 &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%var_t,                         &
-                 &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                                 &
-                 &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%var_q,                         &
+                 &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                 &
+                 &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                              &
+                 &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
                  &   grid%fqx_adv_mean,grid%fqy_adv_mean,grid%fqz_adv_mean,                                 &
-                 &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,grid%var_u,                         &
+                 &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
                  &   grid%fux_adv_mean,grid%fuy_adv_mean,grid%fuz_adv_mean,                                 &
-                 &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,grid%var_v,                         &
+                 &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
                  &   grid%fvx_adv_mean,grid%fvy_adv_mean,grid%fvz_adv_mean,                                 &
                  &   grid%ww_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,grid%wy_mean,grid%wz_mean,      &
-                 &   grid%var_w,grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                      &
+                 &   grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                                 &
                  &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                           &
                  &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                              &
                  &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                              &
@@ -4718,16 +4718,16 @@ BENCH_END(bc_2d_tim)
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
               &   config_flags,                                                                          &
-              &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%var_t,                         &
-              &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                                 &
-              &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%var_q,                         &
+              &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                 &
+              &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                              &
+              &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
               &   grid%fqx_adv_mean,grid%fqy_adv_mean,grid%fqz_adv_mean,                                 &
-              &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,grid%var_u,                         &
+              &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
               &   grid%fux_adv_mean,grid%fuy_adv_mean,grid%fuz_adv_mean,                                 &
-              &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,grid%var_v,                         &
+              &   grid%v_mean,grid%vx_mean,grid%vy_mean,grid%vz_mean,                                    &
               &   grid%fvx_adv_mean,grid%fvy_adv_mean,grid%fvz_adv_mean,                                 &
               &   grid%ww_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,grid%wy_mean,grid%wz_mean,      &
-              &   grid%var_w,grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                      &
+              &   grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                                 &
               &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                           &
               &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                              &
               &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                              &

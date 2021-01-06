@@ -252,6 +252,11 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
 def find_bad(dat, nan=True, inf=True):
     """Drop all indeces of each dimension that do not contain any NaNs or infs."""
 
+    #set coordinates for all dims
+    for d in dat.dims:
+        if d not in dat.coords:
+            dat = dat.assign_coords({d : dat[d]})
+
     nans = False
     infs = False
     if nan:
@@ -261,8 +266,10 @@ def find_bad(dat, nan=True, inf=True):
     invalid = nans | infs
     invalid = invalid.where(invalid)
     invalid = dropna_dims(invalid)
-    dat = dat.loc[invalid.indexes]
-
+    if invalid.size > 0:
+        dat = dat.loc[invalid.indexes]
+    else:
+        dat = None
     return dat
 
 
@@ -1081,6 +1088,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
          if return_model_output:
              out = [out, dat_inst, dat_mean]
          return out
+
 
     dat_mean, dat_inst, grid, cyclic, attrs = prepare(dat_mean, dat_inst, variables=variables,
                                                       t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims)

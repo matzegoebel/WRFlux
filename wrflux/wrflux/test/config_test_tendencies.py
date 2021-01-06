@@ -11,8 +11,6 @@ Test settings for automated tests.
 """
 import os
 import numpy as np
-from collections import OrderedDict as odict
-from run_wrf import misc_tools
 
 #%%
 '''Simulations settings'''
@@ -105,6 +103,7 @@ params["output_q_fluxes"] = 1
 params["output_u_fluxes"] = 1
 params["output_v_fluxes"] = 1
 params["output_w_fluxes"] = 1
+params["output_t_fluxes_small"] = 1
 params["output_t_fluxes_add"] = 1
 params["output_q_fluxes_add"] = 1
 params["output_u_fluxes_add"] = 1

@@ -78,15 +78,16 @@ def test_all():
     th2={"use_theta_m" : [0,1],  "output_dry_theta_fluxes" : [False,False]}
     o = np.arange(2,7)
 
-    ####param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    ### param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    param_grids["dz_out msf=1"] = odict(hybrid_opt=[0])
     param_grids["trb no_debug msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
     param_grids["trb no_debug hor_avg msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
     param_grids["hor_avg msf=1"] = odict(km_opt=[2])
     param_grids["hor_avg"] = odict(hybrid_opt=[0])
-    param_grids["dz_out"] = odict(hybrid_opt=[0])
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
+    param_grids["no small fluxes"] = odict(th=th, output_t_fluxes_small=[0])
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
@@ -164,6 +165,8 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 continue
             IDi = param_comb["fname"]
             ind = label + ": " + IDi
+            if (failed.loc[["RUN","INIT"], ind] == "F").any():
+                continue
             print("\n\n\n{0}\nPostprocess simulation: {1}, {2}\n{0}\n".format("#"*50, label, cname))
 
             failed[ind] = ""

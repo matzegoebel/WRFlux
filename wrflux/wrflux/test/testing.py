@@ -64,7 +64,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999, loc=None,
         e = tools.nse(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. NSE less than {}: {:.5f}".format(dat.description, ID, thresh, e)
+            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. NSE less than {}: {:.11f}".format(dat.description, ID, thresh, e)
             print(log)
             if plot:
                 ref = ref.assign_attrs(description="adv_r")
@@ -157,7 +157,7 @@ def test_nan(datout):
             else:
                 v = "{}/{}".format(f, dv)
             dnan = tools.find_bad(d[dv])
-            if sum(dnan.shape) != 0:
+            if (dnan is not None) and (sum(dnan.shape) != 0):
                 print("\nWARNING: found NaNs in {} :\n{}".format(v, dnan.coords))
                 failed = True
 

@@ -1251,9 +1251,6 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                       its, ite, jts, jte, kts, kte )
 
      CALL nl_get_time_step ( 1, time_step )
-     IF (rk_step /= 3) THEN
-       output_fluxes = .false.
-     ENDIF
 
       IF( (rk_step == 3) .and. (adv_opt == POSITIVEDEF) ) THEN
 

@@ -89,6 +89,7 @@ def test_all():
     param_grids["km_opt"] = odict(km_opt=[2,5], spec_hfx=[0.2, None], th=th)
     param_grids["no small fluxes"] = odict(th=th, output_t_fluxes_small=[0])
     param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
+    param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0,1], h_sca_adv_order=2, v_sca_adv_order=2, h_mom_adv_order=2, v_mom_adv_order=2)
     param_grids["simple and positive-definite advection"] = odict(moist_adv_opt=[0,1], adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(moist_adv_opt=[0,3,4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3,5], th=th2)
@@ -251,8 +252,6 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 for test, f in failed_i.items():
                     if f:
                         failed[ind].loc[test, var] = "F"
-                failed_tests = ",".join([test for test, f in failed[ind].loc[:, var].iteritems() if f == "F"])
-                failed_short.loc[ind, var] = failed_tests
                 for test, e in err_i.items():
                     err[ind].loc[test, var] = e
 
@@ -263,6 +262,11 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 cfile = cfile + "_debug"
             conf = importlib.import_module(cfile)
             setup_test_init_module(conf, debug=deb, restore=True)
+
+    for ind in failed.keys():
+        for var in variables:
+            failed_tests = ",".join([test for test, f in failed[ind].loc[:, var].iteritems() if f == "F"])
+            failed_short.loc[ind, var] = failed_tests
 
     failed_short = failed_short.where(failed_short != "").dropna(how="all").dropna(axis=1, how="all")
     failed_short = failed_short.where(~failed_short.isnull(), "")

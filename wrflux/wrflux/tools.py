@@ -417,10 +417,10 @@ def rolling_mean(ds, dim, window, periodic=True, center=True):
     return ds
 
 def correct_dims_stag(loc, dat):
-    """
-    Add "_stag" to every key in dictionary loc, for which the unmodified key
-    is not a dimension of dat but the modified key is. Delete keys that are
-    not dimensions of dat. Returns a copy.
+    """Correct keys of dictionary loc to fit to dimensions of dat.
+    Add "_stag" (for staggered dimension) to every key in dictionary loc,
+    for which the unmodified key is not a dimension of dat but the modified key is.
+    Delete keys that are not dimensions of dat. Returns a copy of loc.
 
     Parameters
     ----------
@@ -445,7 +445,7 @@ def correct_dims_stag(loc, dat):
     return loc_out
 
 def correct_dims_stag_list(l, dat):
-    """
+    """Correct items of l to fit to dimensions of dat.
     Add "_stag" to every item in iterable l, for which the unmodified item
     is not a dimension of dat but the modified item is. Delete items that are
     not dimensions of dat. Returns a copy.
@@ -788,7 +788,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
     return sgs, sgsflux
 
 
-def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
+def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims=None,
              cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=False):
 
     print("Compute resolved tendencies")
@@ -800,6 +800,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=False, avg_dims=None,
         fluxnames = [fn + "_2ND" for fn in fluxnames]
         for d, f in zip(XYZ, fluxnames):
             var_stag[d] = stagger_like(dat_mean["{}_MEAN".format(VAR)], dat_mean[f], cyclic=cyclic, **grid[stagger_const])
+        if VAR == "T":
+            var_stag = var_stag - 300
+            if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
+                raise ValueError("Averaged moist potential temperature not available to build mean 2nd-order fluxes! (use_theta_m=1 and output_dry_theta_fluxes=0)")
     else:
         for d in XYZ:
             var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
@@ -1133,7 +1137,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             #calculate total tendency
             total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"], hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic, **attrs)
 
-            dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, hor_avg=hor_avg, avg_dims=avg_dims,
+            dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=hor_avg, avg_dims=avg_dims,
                                   cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
                                   dz_out=c["dz_out"], corr_varz=c["corr_varz"])
             if dat is None:
@@ -1411,7 +1415,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
             #convert sources from dry to moist theta
             sources = sources*(1 + rvovrd*dat_mean["Q_MEAN"])
             #add mp tendency
-            sources["mp"] = sources["mp"] + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*(dat_mean["T_MEAN"] + 300)
+            sources["mp"] = sources["mp"] + dat_mean["Q_TEND_MP_MEAN"]*rvovrd*dat_mean["T_MEAN"]
     elif var == "q":
         sources["mp"] = dat_mean["Q_TEND_MP_MEAN"]
     else:

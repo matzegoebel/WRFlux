@@ -4770,11 +4770,11 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg,grid%u_tend_cor_curv,                                              &
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
-              &   grid%u_2, grid%u_save, grid%v_2, grid%v_save, grid%w_2, w_save, grid%ru, grid%rv, ww1,                              &
+              &   grid%u_2, grid%u_save, grid%v_2, grid%v_save, grid%w_2, w_save, grid%ru, grid%rv, ww1, &
               &   grid%t_save, grid%thd_save, th_phy, moist(:,:,:,P_QV),                            &
-              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy,                                 &
+              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                       &
               &   grid%dph_x, grid%dph_y,                                                           &
-              &   grid%dnw, grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                       &
+              &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                 &
               &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,            &
               &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                       &
               &   last_timestep, grid%dt                                                            )

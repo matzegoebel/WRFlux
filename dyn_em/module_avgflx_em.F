@@ -379,8 +379,8 @@ CONTAINS
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,         &
-       & ph_1, ph_2, phb, zx, zy, dph_x, dph_y,                                                  &
-       & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
+       & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
+       & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
 
@@ -445,7 +445,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww,  &
-         t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy,  &
+         t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy, alt,  &
          ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -461,7 +461,7 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_adv, fty_adv, ftz_adv,  &
                                                                             dph_x, dph_y
 
-    REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: dnw, fnm, fnp, c1h, c2h, c1f, c2f
+    REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: fnm, fnp, c1h, c2h, c1f, c2f
     REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
     REAL, OPTIONAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) :: msfuy,  &
@@ -488,8 +488,7 @@ CONTAINS
             fwx_dfac, fwy_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, &
-            mu, dphidn
+            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
@@ -508,9 +507,7 @@ CONTAINS
       DO k=kts,min(kte,kde-1)
       DO i=its-1,ite
         !calculate dry density
-        mu = c1h(k)*mut(i,j)+c2h(k)
-        dphidn = ((phb(i,k+1,j)+ph_2(i,k+1,j)) - (phb(i,k,j)+ph_2(i,k,j)))/dnw(k)
-        rho_d(i,k,j) = -mu/dphidn
+        rho_d(i,k,j) = 1./alt(i,k,j)
         RHOD_MEAN(i,k,j) = (local_count*RHOD_MEAN(i,k,j)  + rho_d(i,k,j)  )/count_p1
       ENDDO
       ENDDO

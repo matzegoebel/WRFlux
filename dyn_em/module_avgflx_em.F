@@ -482,7 +482,7 @@ CONTAINS
             rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
             rhoxz_mean_flx, rhoyz_mean_flx, &
             mu_mean, mux_mean, muy_mean, muxy_mean, muxz_mean, muyz_mean,        &
-            fqx_dfac, fqy_dfac, fqz_dfac, &
+            fqx_dfac, fqy_dfac, &
             fux_dfac, fuy_dfac, &
             fvx_dfac, fvy_dfac, &
             fwx_dfac, fwy_dfac, &
@@ -592,7 +592,6 @@ CONTAINS
 
     fqx_dfac = 1.
     fqy_dfac = 1.
-    fqz_dfac = 1.
     fux_dfac = 1.
     fuy_dfac = 1.
     fvx_dfac = 1.
@@ -625,7 +624,6 @@ CONTAINS
               muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
               fwx_dfac  = msfuy(i,j)/muxz_mean
               fwy_dfac  = msfvx(i,j)/muyz_mean
-              fqz_dfac  = msfty(i,j)/(-g)
               IF (k .lt. kde) THEN
                   !k=kde only relevant for vertically staggered variables
                   mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
@@ -689,7 +687,7 @@ CONTAINS
                 IF (config_flags%output_t_fluxes_small == 1) THEN
                     ftx_adv(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
                     fty_adv(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
-                    ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
+                    ftz_adv(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)*msfty(i,j)/(-g)
                 ENDIF
 
                 !build averages

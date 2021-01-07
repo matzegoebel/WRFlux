@@ -697,7 +697,7 @@ CONTAINS
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/count_p1/rhox_mean
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/count_p1/rhoy_mean
                 TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/count_p1/rhoz_mean
-                TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + th_phy(i,k,j)**2 )/count_p1
+                TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + (th_phy(i,k,j) - t0)**2 )/count_p1
 
                 FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) )/count_p1*fqx_dfac
                 FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) )/count_p1*fqy_dfac

@@ -41,7 +41,7 @@ state   real    ww_mean            ikj    dyn_em            1               Z   
 state   real    wd_mean            ikj    dyn_em            1               Z               h{24} "WD_MEAN"             "time-averaged diagnosed z-wind component"   "m s-1"
 state   real    zwind_mean         ikj    dyn_em            1               Z               h{24} "ZWIND_MEAN"          "time-averaged prognosed z-wind component"   "m s-1"
 
-state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry potential temperature perturbation (from T0=300 K)" "K"
+state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry potential temperature" "K"
 state   real    tx_mean            ikj    dyn_em            1               X               h{24} "TX_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in x-direction depending on advection order" "K"
 state   real    ty_mean            ikj    dyn_em            1               Y               h{24} "TY_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in y-direction depending on advection order" "K"
 state   real    tz_mean            ikj    dyn_em            1               Z               h{24} "TZ_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in z-direction depending on advection order" "K"
@@ -114,7 +114,7 @@ state   real    thd_save             ikj      dyn_em         1               -  
 
 #variances
 
-state   real    tt_mean              ikj      dyn_em         1               -           h{24} "TT_MEAN"           "second moment of dry potential temperature"  "K2"
+state   real    tt_mean              ikj      dyn_em         1               -           h{24} "TT_MEAN"           "second moment of dry potential temperature perturbation (from T0=300 K)"  "K2"
 state   real    qq_mean              ikj      dyn_em         1               -           h{24} "QQ_MEAN"           "second moment of water vapor mixing ratio"  ""
 
 #instantaneous resolved fluxes

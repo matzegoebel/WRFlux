@@ -378,7 +378,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & U, u_save, V, v_save, W, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,               &
+       & u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,         &
        & ph_1, ph_2, phb, zx, zy, dph_x, dph_y,                                                  &
        & dnw, fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -444,7 +444,7 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
-         U, u_save, V, v_save, W, w_save, ru, rv, ww,  &
+         u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww,  &
          t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy,  &
          ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
@@ -496,7 +496,7 @@ CONTAINS
             ux2, uy2, uz2,                             &
             vx2, vy2, vz2,                             &
             wx2, wy2, wz2,                             &
-            rw_diag_s, w_s
+            rw_diag_s
 
 
     local_count = real(avgflx_count)
@@ -825,7 +825,6 @@ CONTAINS
                     ELSE
                       uz2 = uz
                     ENDIF
-                    w_s = 0.5*(w_save(i-1,k,j)+w_save(i,k,j))
                     ru8z = rhoxz*u8w(i,k,j)
                     rv8z = rhoxz*0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
                     FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/count_p1*fux_dfac
@@ -879,7 +878,6 @@ CONTAINS
                     ELSE
                       vz2 = vz
                     ENDIF
-                    w_s = 0.5*(w_save(i,k,j-1)+w_save(i,k,j))
                     ru8z = rhoyz*0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
                     rv8z = rhoyz*v8w(i,k,j)
                     FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/count_p1*fvx_dfac
@@ -952,7 +950,6 @@ CONTAINS
                         ELSE
                             wz2 = wz
                         ENDIF
-                        w_s = 0.5*(w_save(i,k+1,j)+w_save(i,k,j))
                         ru8z = rhom*0.5*(u_save(i,k,j) + u_save(i+1,k,j))
                         rv8z = rhom*0.5*(v_save(i,k,j) + v_save(i,k,j+1))
                         FWX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWX_CORR_MEAN_DZOUT(i,k,j) + ru8z*wz )/count_p1
@@ -966,9 +963,9 @@ CONTAINS
             ENDIF
 
             !average wind speed
-            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + U(i,k,j)*rhox  )/count_p1/rhox_mean
-            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + V(i,k,j)*rhoy  )/count_p1/rhoy_mean
-            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + W(i,k,j)*rhoz  )/count_p1/rhoz_mean
+            U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + u_2(i,k,j)*rhox  )/count_p1/rhox_mean
+            V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + v_2(i,k,j)*rhoy  )/count_p1/rhoy_mean
+            ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + w_2(i,k,j)*rhoz  )/count_p1/rhoz_mean
             WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j)*msfty(i,j))/count_p1
             WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/count_p1/rhoz_mean
             DPH_X_MEAN(i,k,j) = (local_count*DPH_X_MEAN(i,k,j) + dph_x(i,k,j)*rhoz )/count_p1/rhoz_mean

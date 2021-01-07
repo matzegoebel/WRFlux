@@ -710,19 +710,15 @@ CONTAINS
               IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
                 thetax2 = 0.5*(thd_save(i-1,k,j) + thd_save(i,k,j))
                 thetay2 = 0.5*(thd_save(i,k,j-1) + thd_save(i,k,j))
-                IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                  thetaz2 = (fnp(k)* thd_save(i,k-1,j) + fnm(k)* thd_save(i,k,j))
-                ELSE
-                  thetaz2 = thetaz
-                ENDIF
+                call stagger_z(thetaz2, thd_save(i,:,j),           &
+                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                               k, kms, kme, kde                   )
               ELSE
                 thetax2 = 0.5*(t_save(i-1,k,j) + t_save(i,k,j))
                 thetay2 = 0.5*(t_save(i,k,j-1) + t_save(i,k,j))
-                IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                  thetaz2 = (fnp(k)* t_save(i,k-1,j) + fnm(k)* t_save(i,k,j))
-                ELSE
-                  thetaz2 = thetaz
-                ENDIF
+                call stagger_z(thetaz2, t_save(i,:,j),             &
+                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                               k, kms, kme, kde                   )
               ENDIF
               ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
               rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))

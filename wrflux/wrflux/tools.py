@@ -1094,8 +1094,8 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         if skip_exist:
             #check if postprocessed output already exists
             skip = True
-            for c in outfiles:
-                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, c, avg)
+            for outfile in outfiles:
+                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, outfile, avg)
                 if not os.path.isfile(fpath):
                     skip = False
             if skip:
@@ -1210,9 +1210,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
 #%%prepare
 
-def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc=None, pre_loc=None):
-    dat_inst = []
-    dat_mean = []
+def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_loc=None, pre_iloc=None, **kw):
     print("Load files")
     if inst_file is None:
         if start_time is None:
@@ -1224,8 +1222,8 @@ def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc
         mean_file = "meanout_d01_" + start_time
     fpath = outpath + "/"
 
-    dat_inst = open_dataset(fpath + inst_file, cache=False, del_attrs=False)
-    dat_mean = open_dataset(fpath + mean_file, cache=False)
+    dat_inst = open_dataset(fpath + inst_file, cache=False, del_attrs=False, **kw)
+    dat_mean = open_dataset(fpath + mean_file, cache=False, **kw)
 
     #select subset of data
     if pre_iloc is not None:
@@ -1239,11 +1237,7 @@ def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_iloc
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
 
-    if len(dat_inst) * len(dat_mean) == 0:
-        print("Inst or mean file not available at {}!".format(fpath))
-        return
-
-    dims = ["Time", "bottom_top", "bottom_top_stag", "soil_layers_stag", "y", "y_stag", "x", "x_stag", "seed_dim_stag", "rep"]
+    dims = ["Time", "bottom_top", "bottom_top_stag", "soil_layers_stag", "y", "y_stag", "x", "x_stag", "seed_dim_stag"]
     dat_mean = dat_mean.transpose(*[d for d in dims if d in dat_mean.dims])
     dat_inst = dat_inst.transpose(*[d for d in dims if d in dat_inst.dims])
 

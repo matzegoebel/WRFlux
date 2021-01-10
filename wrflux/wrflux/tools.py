@@ -41,7 +41,7 @@ outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
 
 #%%open dataset
 
-def open_dataset(file, chunks=None, del_attrs=True, fix_c=True, **kwargs):
+def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     """
     Load file as xarray dataset.
 
@@ -49,10 +49,6 @@ def open_dataset(file, chunks=None, del_attrs=True, fix_c=True, **kwargs):
     ----------
     file : str
         location of file to load.
-    chunks : int, 'auto' or mapping, optional
-        if given, the dataset is converted to a dask array with the given
-        chunk sizes along each dimension, e.g., 5 or {"x": 5, "y": 5}.
-        Defaults to None (no chunking).
     del_attrs : bool, optional
         Delete global attributes. The default is True.
     fix_c : bool, optional
@@ -76,9 +72,6 @@ def open_dataset(file, chunks=None, del_attrs=True, fix_c=True, **kwargs):
     if fix_c:
         dx, dy = ds.DX, ds.DY
         ds = fix_coords(ds, dx=dx, dy=dy)
-
-    if chunks is not None:
-        ds = ds.chunk(chunks)
 
     if del_attrs:
         ds.attrs = {}
@@ -108,11 +101,12 @@ def fix_coords(data, dx, dy):
                 dim_old = dim_old + "_stag"
                 dim_new = dim_new + "_stag"
             if dim_old in data.dims:
-                data[dim_old] = np.arange(data.sizes[dim_old]) * res
-                data[dim_old] = data[dim_old] - (data[dim_old][-1] + res)/2
-                data[dim_old] = data[dim_old].assign_attrs({"units" : "m"})
+                coord = np.arange(data.sizes[dim_old]) * res
+                coord = coord - (coord[-1] + res)/2
+                coord = data[dim_old].assign_coords({dim_old : coord})[dim_old]
+                coord = coord.assign_attrs({"units" : "m"})
+                data = data.assign_coords({dim_old : coord})
                 data = data.rename({dim_old : dim_new})
-
     #assign vertical coordinate
     if ("ZNW" in data) and ("bottom_top_stag" in data.dims):
         data = data.assign_coords(bottom_top_stag=data["ZNW"].isel(Time=0,drop=True))

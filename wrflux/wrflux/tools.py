@@ -412,8 +412,8 @@ def rolling_mean(ds, dim, window, periodic=True, center=True):
 
 def correct_dims_stag(loc, dat):
     """Correct keys of dictionary loc to fit to dimensions of dat.
-    Add "_stag" (for staggered dimension) to every key in dictionary loc,
-    for which the unmodified key is not a dimension of dat but the modified key is.
+    Add loc[key + "_stag"] = loc[key] (for staggered dimension) for every key in dictionary loc
+    if that modified key is a dimension of dat and not already present in loc.
     Delete keys that are not dimensions of dat. Returns a copy of loc.
 
     Parameters
@@ -432,9 +432,10 @@ def correct_dims_stag(loc, dat):
 
     loc_out = loc.copy()
     for d, val in loc.items():
+        ds = d + "_stag"
+        if (ds in dat.dims) and (ds not in loc):
+            loc_out[ds] = val
         if d not in dat.dims:
-            if d + "_stag" in dat.dims:
-                loc_out[d + "_stag"] = val
             del loc_out[d]
     return loc_out
 
@@ -469,20 +470,14 @@ def correct_dims_stag_list(l, dat):
 
 def loc_data(dat, loc=None, iloc=None, copy=True):
 
-    if type(dat) == xr.core.dataset.Dataset:
-        out = xr.Dataset()
-        for v in dat.data_vars:
-            out[v] = loc_data(dat[v], loc=loc, iloc=iloc, copy=copy)
-        return out
-
-    if copy:
-        dat = dat.copy()
     if iloc is not None:
         iloc = correct_dims_stag(iloc, dat)
         dat = dat[iloc]
     if loc is not None:
         loc = correct_dims_stag(loc, dat)
         dat = dat.loc[loc]
+    if copy:
+        dat = dat.copy()
 
     return dat
 

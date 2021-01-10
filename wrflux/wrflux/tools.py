@@ -17,6 +17,9 @@ import os
 import pandas as pd
 from datetime import datetime
 from functools import partial
+import itertools
+from jug import TaskGenerator
+import jug
 print = partial(print, flush=True)
 
 #directory for figures
@@ -1049,7 +1052,7 @@ def load_postproc(outpath, var, avg=None):
 
 def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct",
                     pre_iloc=None, pre_loc=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, skip_exist=True,
-                    save_output=True, return_model_output=True):
+                    chunks=None, save_output=True, return_model_output=True, **load_kw):
 
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
@@ -1060,31 +1063,110 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
     if skip_exist:
         #check if postprocessed output already exists
         skip = True
-        for c in outfiles:
+        for outfile in outfiles:
             for var in variables:
-                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), c, avg)
+                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
                 if not os.path.isfile(fpath):
                     skip = False
 
-    if return_model_output or (not skip):
-        budget_methods = make_list(budget_methods)
-        dat = load_data(outpath, inst_file=inst_file, mean_file=mean_file, start_time=start_time,
-                        pre_iloc=pre_iloc, pre_loc=pre_loc)
-        if dat is None:
-            return
-        else:
-            dat_mean, dat_inst = dat
+    load_kw = dict(inst_file=inst_file, mean_file=mean_file, start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc, **load_kw)
+    kwargs = dict(budget_methods=budget_methods, t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims,
+                  skip_exist=skip_exist, save_output=save_output, return_model_output=return_model_output, **load_kw)
 
     if skip:
          print("Postprocessed output already available!")
          out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
          if return_model_output:
+             dat_mean, dat_inst = load_data(outpath, **load_kw)
              out = [out, dat_inst, dat_mean]
          return out
 
 
-    dat_mean, dat_inst, grid, cyclic, attrs = prepare(dat_mean, dat_inst, variables=variables,
-                                                      t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims)
+    if chunks is not None:
+        if not jug.is_jug_running():
+            raise RuntimeError("Jug is not running! Use 'jug execute file.py' to enable chunking!")
+
+        if any([c not in xy for c in chunks.keys()]):
+            raise ValueError("Chunking is only allowed in the x and y-directions! Given chunks: {}".format(chunks))
+        if hor_avg:
+            if any([d in avg_dims for d in chunks.keys()]):
+                raise ValueError("Averaging dimensions cannot be used for chunking!")
+        kwargs["return_model_output"] = False #makes no sense for this?? TODOm
+        kwargs["save_output"] = False
+        tiles = create_tasks(outpath, chunks=chunks, **load_kw)
+        jug.barrier()
+        tiles = jug.value(tiles)
+        out = []
+        for i, tile in enumerate(tiles):
+            tiles[i] = {k: v for d in tile for k, v in d.items()}
+            out.append(calc_tendencies_task(variables, outpath, tile=tiles[i], **kwargs))
+        jug.barrier()
+        out = merge_tiles(out, variables, tiles, chunks, save_output=save_output, outpath=outpath, avg=avg)
+        jug.barrier()
+        out = jug.value(out)
+
+    else:
+        out = calc_tendencies_core(variables, outpath, **kwargs)
+
+    return out
+
+
+def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
+                         tile=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
+                         skip_exist=True, save_output=True, return_model_output=True, **load_kw):
+
+    dat_mean, dat_inst = load_data(outpath, **load_kw)
+
+    #check if periodic bc can be used in staggering operations
+    cyclic = {d : bool(dat_inst.attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
+    cyclic["bottom_top"] = False
+
+    #select tile
+    if tile is not None:
+        print("\n\n{0}\nProcess tile: {1}\n".format("#"*30, tile))
+        coord_tile = dat_mean[tile].isel(Time=0, drop=True).coords
+        coord_tile_new = {}
+        cyclic_new = cyclic.copy()
+        tile_new = tile.copy()
+        for d, l in tile.items():
+            if cyclic[d[0]]:
+                #add boundary extensions for periodic BC
+                dx = dat_inst.attrs["D{}".format(d[0].upper())]
+                coord_tile_d = coord_tile[d].values
+                if l.start is None:
+                    if "stag" in d:
+                        ext = -2
+                    else:
+                        ext = -1
+                    #add last point (or second to last for staggered dim) at start
+                    tile_new[d] = [ext, *np.arange(0, l.stop)]
+                    coord_tile_new[d] = [coord_tile_d[0] - dx, *coord_tile_d]
+                elif l.stop is None:
+                    if "stag" in d:
+                        ext = 1
+                    else:
+                        ext = 0
+                    #add first point (or second for staggered dim) at end
+                    tile_new[d] = [*np.arange(l.start, len(dat_mean[d])), ext]
+                    coord_tile_new[d] = [*coord_tile_d, coord_tile_d[-1] + dx]
+                else:
+                    continue
+                cyclic_new[d[0]] = False
+
+        cyclic = cyclic_new
+        dat_mean = dat_mean[tile_new].assign_coords(coord_tile_new)
+        dat_inst = dat_inst[tile_new].assign_coords(coord_tile_new)
+
+    if np.prod(list(dat_mean.sizes.values())) == 0:
+        raise ValueError("At least one dimension is empy after indexing!")
+
+    if hor_avg:
+        avg = "_avg_" + "".join(avg_dims)
+    else:
+        avg = ""
+
+    dat_mean, dat_inst, grid, attrs = prepare(dat_mean, dat_inst, variables=variables, cyclic=cyclic,
+                                              t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims)
     datout_all = {}
     #prepare variable tendencies
     for var in variables:
@@ -1111,7 +1193,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         short_names = {"2nd" : "force_2nd_adv", "corr" : "correct"} #abbreviations for settings
 
         IDcs = []
-
+        budget_methods = make_list(budget_methods)
         for comb in budget_methods:
             datout_c = {}
             c, comb, IDc = get_comb(comb.copy(), keys, short_names)
@@ -1177,35 +1259,126 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         grid["Z_STAG"] = grid["Z_STAG"].assign_attrs(description="time-averaged geopotential height" + desc)
         datout["grid"] = grid
 
-        for dn, d in datout.items():
-            warn_duplicate_dim(d, name=dn)
-
-
-        #save data
-        print("\nSave data")
         if save_output:
-            for dn, d in datout.items():
-                #add height as coordinate
-                if "flux" in dn:
-                    for D in XYZ:
-                        z = stagger_like(grid["ZW"], d[D], cyclic=cyclic, **grid[stagger_const])
-                        z = z.assign_attrs(description=z.description +  " staggered to {}-flux grid".format(D))
-                        d[D] = d[D].assign_coords({"zf{}".format(D.lower()) : z})
-                elif dn != "grid":
-                    d = d.assign_coords(z=grid["Z_STAG"])
-                if "rep" in d.dims:
-                    d = d.isel(rep=0, drop=True)
-                d = d.assign_attrs(attrs)
-                datout[dn] = d
+            print("\nSave data")
+        for dn, dat in datout.items():
+            warn_duplicate_dim(dat, name=dn)
+
+            #add height as coordinate
+            if "flux" in dn:
+                for D in XYZ:
+                    z = stagger_like(grid["ZW"], dat[D], cyclic=cyclic, **grid[stagger_const])
+                    z = z.assign_attrs(description=z.description +  " staggered to {}-flux grid".format(D))
+                    dat[D] = dat[D].assign_coords({"zf{}".format(D.lower()) : z})
+            elif dn != "grid":
+                dat = dat.assign_coords(z=grid["Z_STAG"])
+
+            dat = dat.assign_attrs(attrs)
+            if tile is not None:
+                #strip boundary extensions of periodic BC
+                dat = loc_data(dat, loc=dict(coord_tile))
+                #strip tile boundary points
+                t_bounds = {}
+                for d, l in tile.items():
+                    if d not in dat.dims:
+                        continue
+                    start = None
+                    stop = None
+                    if l.start is not None:
+                        start = 1
+                    if l.stop is not None:
+                        if "stag" in d:
+                            stop = -2
+                        else:
+                            stop = -1
+                    t_bounds[d] = slice(start, stop)
+                dat = dat[t_bounds]
+
+            datout[dn] = dat
+            if save_output:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, dn, avg)
                 if os.path.isfile(fpath):
                     os.remove(fpath)
-                d.to_netcdf(fpath)
+                dat.to_netcdf(fpath)
+
         datout_all[var] = datout
 
     out = datout_all
     if return_model_output:
         out = [out, dat_inst, dat_mean]
+    return out
+
+
+#%% tile processing
+
+@TaskGenerator
+def create_tasks(outpath, chunks, **load_kw):
+    print("Create tasks")
+    dat_mean, dat_inst = load_data(outpath, **load_kw)
+    tiles = []
+    for dim, size in chunks.copy().items():
+        if dim not in dat_mean.dims:
+            raise ValueError("Chunking dimension {} not in data!".format(dim))
+        bounds = np.arange(len(dat_mean[dim]))[::size]
+        if len(bounds) == 1:
+            print("Chunking in {0}-direction leads to one chunk only. Deleting {0} from chunks dictionary.".format(dim))
+            del chunks[dim]
+            continue
+        iloc = []
+        for i in range(len(bounds)):
+            iloc_b = {}
+            for stag in [False, True]:
+                if stag:
+                    dim_s = dim + "_stag"
+                    ext = 2
+                else:
+                    dim_s = dim
+                    ext = 1
+                if i == 0:
+                    start = None
+                else:
+                    start = bounds[i] - 1
+                if i == len(bounds) - 1:
+                    stop = None
+                else:
+                    stop = bounds[i+1] + ext
+
+                iloc_b[dim_s] = slice(start, stop)
+            iloc.append(iloc_b)
+        tiles.append(iloc)
+    tiles = list(itertools.product(*tiles))
+
+    return tiles
+
+@TaskGenerator
+def merge_tiles(out, variables, tiles, chunks, save_output=True, outpath=None, avg=None):
+        print("Merge tiles")
+        out = jug.value(out)
+        for var in variables:
+            for outfile in outfiles:
+                if outfile not in out[0][var]:
+                    continue
+                merge = []
+                for dat_tile, tile in zip(out, tiles):
+                    dat = dat_tile[var][outfile]
+                    if type(dat) == xr.core.dataarray.DataArray:
+                        dat.name = outfile
+                    merge.append(dat)
+                merge = xr.merge(merge)
+                if type(dat) == xr.core.dataarray.DataArray:
+                    merge = merge[outfile]
+                out[0][var][outfile] = merge
+                if save_output:
+                    fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
+                    if os.path.isfile(fpath):
+                        os.remove(fpath)
+                    merge.to_netcdf(fpath)
+        return out[0]
+
+
+@TaskGenerator
+def calc_tendencies_task(*args, **kwargs):
+    out = calc_tendencies_core(*args, **kwargs)
     return out
 
 #%%prepare
@@ -1266,13 +1439,11 @@ def get_comb(comb, keys, short_names):
             c[k] = False
     return c, comb, IDc
 
-def prepare(dat_mean, dat_inst, variables=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None):
+def prepare(dat_mean, dat_inst, variables=None, cyclic=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None):
+
     print("Prepare data")
     attrs = dat_inst.attrs
     dat_inst.attrs = {}
-    #check if periodic bc can be used in staggering operations
-    cyclic = {d : bool(attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
-    cyclic["bottom_top"] = False
 
     #strip first time as dat_inst needs to be one time stamp longer
     dat_mean = dat_mean.sel(Time=dat_mean.Time[1:])
@@ -1311,7 +1482,7 @@ def prepare(dat_mean, dat_inst, variables=None, t_avg=False, t_avg_interval=None
         if ("XLAT" in v) or ("XLONG" in v):
             dat_inst = dat_inst.drop(v)
 
-    return dat_mean, dat_inst, grid, cyclic, attrs
+    return dat_mean, dat_inst, grid, attrs
 
 def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=False, avg_dims=None):
     print("\nPrepare tendency calculations for {}".format(var.upper()))

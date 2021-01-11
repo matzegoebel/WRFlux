@@ -15,6 +15,15 @@ from wrflux import tools
 from wrflux.test import testing
 import xarray as xr
 import datetime
+from mpi4py import MPI
+import netCDF4
+rank = MPI.COMM_WORLD.rank
+nproc = MPI.COMM_WORLD.size
+import sys
+if nproc > 1:
+    sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
+    sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 
@@ -58,34 +67,38 @@ budget_methods = [
 
 #%%
 
-datout = tools.calc_tendencies(variables, outpath,
+out = tools.calc_tendencies(variables, outpath,
                               budget_methods=budget_methods, start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc,
                               t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims,
-                              chunks=chunks, save_output=save_output, skip_exist=skip_exist, return_model_output=False)
+                              chunks=chunks, save_output=save_output, skip_exist=skip_exist, return_model_output=True)
 
 #%%
-kw = dict(
-    avg_dims_error = [*avg_dims, "bottom_top", "Time"], #dimensions over which to calculate error norms
-    plot = True,
-    # plot_diff = True, #plot difference between forcing and tendency against tendency
-    discrete=True,
-    # iloc={"x" : [*np.arange(9),*np.arange(-9,0)]},
-    # iloc={"y" : [*np.arange(-9,0)]},
-    # hue="x",
-    s=40,
-    ignore_missing_hue=True,
-    # savefig = False,#TODOm
-    # close = True
-    )
+print("\n\n" + "#"*50)
+print("Run tests")
+if rank == 0:
+    datout, dat_mean, dat_inst = out
+    kw = dict(
+        avg_dims_error = [*avg_dims, "bottom_top", "Time"], #dimensions over which to calculate error norms
+        plot = True,
+        # plot_diff = True, #plot difference between forcing and tendency against tendency
+        discrete=True,
+        # iloc={"x" : [*np.arange(9),*np.arange(-9,0)]},
+        # iloc={"y" : [*np.arange(-9,0)]},
+        # hue="x",
+        s=40,
+        ignore_missing_hue=True,
+        # savefig = False,#TODOm
+        # close = True
+        )
 
-for var in variables:
-    print("\nVariable: " + var)
-    datout_v = datout[var]
+    for var in variables:
+        print("\nVariable: " + var)
+        datout_v = datout[var]
 
-    tend = datout_v["tend"].sel(comp="tendency")
-    forcing = datout_v["tend"].sel(comp="forcing")
-    failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
-    testing.test_nan(datout_v)
+        tend = datout_v["tend"].sel(comp="tendency")
+        forcing = datout_v["tend"].sel(comp="forcing")
+        failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
+        testing.test_nan(datout_v)
 
 
 print("\n\n" + "#"*50)

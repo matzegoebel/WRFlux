@@ -18,8 +18,16 @@ import pandas as pd
 from datetime import datetime
 from functools import partial
 import itertools
-from jug import TaskGenerator
-import jug
+from mpi4py import MPI
+from mpi4py.MPI import COMM_WORLD
+rank = COMM_WORLD.rank
+nproc = COMM_WORLD.size
+import netCDF4
+import sys
+import time
+DataArray = xr.core.dataarray.DataArray
+Dataset = xr.core.dataset.Dataset
+
 print = partial(print, flush=True)
 
 #directory for figures
@@ -224,6 +232,10 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
 
     if rho is not None:
         rho_s = stagger_like(rho, data, cyclic=cyclic, **stagger_const)
+        for d in rho_s.dims:
+            if (d not in rho.dims) and ("bottom_top" not in d) and (not cyclic[d[0]]):#TODOm: slow?
+                rho_s = rho_s.ffill(d)
+                rho_s = rho_s.bfill(d)
         rho_s_mean = avg_xy(rho_s, avg_dims, cyclic=cyclic)
 
     #fix dimensions
@@ -1057,22 +1069,27 @@ def load_postproc(outpath, var, avg=None):
 
 def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None, budget_methods="castesian correct",
                     pre_iloc=None, pre_loc=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, skip_exist=True,
-                    chunks=None, save_output=True, return_model_output=True, **load_kw):
+                    chunks=None, save_output=True, return_model_output=False, **load_kw):
 
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
     else:
         avg = ""
 
-    skip = False
+    #check if postprocessed output already exists
     if skip_exist:
-        #check if postprocessed output already exists
         skip = True
-        for outfile in outfiles:
-            for var in variables:
-                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
-                if not os.path.isfile(fpath):
-                    skip = False
+    else:
+        skip = False
+
+    for outfile in outfiles:
+        for var in variables:
+            fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
+            if os.path.isfile(fpath):
+                if (not skip_exist) and (rank == 0):
+                    os.remove(fpath)
+            else:
+                skip = False
 
     load_kw = dict(inst_file=inst_file, mean_file=mean_file, start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc, **load_kw)
     kwargs = dict(budget_methods=budget_methods, t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims,
@@ -1088,55 +1105,62 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
 
     if chunks is not None:
-        if not jug.is_jug_running():
-            raise RuntimeError("Jug is not running! Use 'jug execute file.py' to enable chunking!")
-
         if any([c not in xy for c in chunks.keys()]):
             raise ValueError("Chunking is only allowed in the x and y-directions! Given chunks: {}".format(chunks))
         if hor_avg:
             if any([d in avg_dims for d in chunks.keys()]):
                 raise ValueError("Averaging dimensions cannot be used for chunking!")
-        kwargs["return_model_output"] = False #makes no sense for this?? TODOm
-        kwargs["save_output"] = False
-        tiles = create_tasks(outpath, chunks=chunks, **load_kw)
-        jug.barrier()
-        tiles = jug.value(tiles)
-        out = []
-        for i, tile in enumerate(tiles):
-            tiles[i] = {k: v for d in tile for k, v in d.items()}
-            out.append(calc_tendencies_task(variables, outpath, tile=tiles[i], **kwargs))
-        jug.barrier()
-        out = merge_tiles(out, variables, tiles, chunks, save_output=save_output, outpath=outpath, avg=avg)
-        jug.barrier()
-        out = jug.value(out)
+        kwargs["return_model_output"] = False
+        all_tiles = create_tasks(outpath, chunks=chunks, **load_kw)
+        all_tiles = [(i, t) for i, t in enumerate(all_tiles)]
+        tiles = all_tiles[rank::nproc]
+        if len(tiles) == 0:
+            return
+
+        for i, (task, tile) in enumerate(tiles):
+            tile = {k: v for d in tile for k, v in d.items()}
+            if tile == {}:
+                tile = None
+                task = None
+            calc_tendencies_core(variables, outpath, tile=tile, task=task, **kwargs)
+        COMM_WORLD.Barrier()
+        if rank == 0:
+            out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
+            if return_model_output:
+                 dat_mean, dat_inst = load_data(outpath, **load_kw)
+                 out = [out, dat_inst, dat_mean]
+            return out
 
     else:
-        out = calc_tendencies_core(variables, outpath, **kwargs)
+        if nproc > 1:
+            raise ValueError("Number of processors > 1, but chunking is disabled (chunks=None)!")
+        return calc_tendencies_core(variables, outpath, **kwargs)
 
-    return out
 
 
 def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
-                         tile=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
+                         tile=None, task=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                          skip_exist=True, save_output=True, return_model_output=True, **load_kw):
 
-    dat_mean, dat_inst = load_data(outpath, **load_kw)
+    dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
+    dat_mean = dat_mean_all
+    dat_inst = dat_inst_all
 
     #check if periodic bc can be used in staggering operations
-    cyclic = {d : bool(dat_inst.attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
+    cyclic = {d : bool(dat_inst_all.attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
     cyclic["bottom_top"] = False
 
     #select tile
     if tile is not None:
         print("\n\n{0}\nProcess tile: {1}\n".format("#"*30, tile))
-        coord_tile = dat_mean[tile].isel(Time=0, drop=True).coords
+        coord_tile = dat_mean_all[tile].isel(Time=0, drop=True).coords
         coord_tile_new = {}
         cyclic_new = cyclic.copy()
         tile_new = tile.copy()
         for d, l in tile.items():
             if cyclic[d[0]]:
                 #add boundary extensions for periodic BC
-                dx = dat_inst.attrs["D{}".format(d[0].upper())]
+                dx = dat_inst_all.attrs["D{}".format(d[0].upper())]
                 coord_tile_d = coord_tile[d].values
                 if l.start is None:
                     if "stag" in d:
@@ -1152,15 +1176,15 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     else:
                         ext = 0
                     #add first point (or second for staggered dim) at end
-                    tile_new[d] = [*np.arange(l.start, len(dat_mean[d])), ext]
+                    tile_new[d] = [*np.arange(l.start, len(dat_mean_all[d])), ext]
                     coord_tile_new[d] = [*coord_tile_d, coord_tile_d[-1] + dx]
                 else:
                     continue
                 cyclic_new[d[0]] = False
 
         cyclic = cyclic_new
-        dat_mean = dat_mean[tile_new].assign_coords(coord_tile_new)
-        dat_inst = dat_inst[tile_new].assign_coords(coord_tile_new)
+        dat_mean = dat_mean_all[tile_new].assign_coords(coord_tile_new)
+        dat_inst = dat_inst_all[tile_new].assign_coords(coord_tile_new)
 
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
@@ -1303,21 +1327,60 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
             datout[dn] = dat
             if save_output:
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, dn, avg)
-                if os.path.isfile(fpath):
-                    os.remove(fpath)
-                dat.to_netcdf(fpath)
+                if tile is None:
+                    dat.to_netcdf(fpath)
+                elif task == 0:
+                    print("Writing initial file for {}".format(dn))
+                    #create nc file for all tiles and fill with current tile data
+                    coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
+                    dat_all = dat.reindex(coords_all)
+                    if type(dat) == DataArray:
+                        dat_all.name = dn
+                    print("Done")
+                    dat_all.to_netcdf(fpath)
+                    #TODOm: faster if writing of fist tile is done somewhere else?
+                    nc = netCDF4.Dataset(fpath, mode="r+", parallel=True)
+                    nc.close()
 
-        datout_all[var] = datout
+                else:
+                    #fill nc file with current tile data
+                    while not os.path.isfile(fpath):
+                        #wait for task 0 to create file
+                        pass
+                    print("Writing {}".format(dn))
+                    nc = netCDF4.Dataset(fpath, 'r+', parallel=True, comm=COMM_WORLD, info=MPI.Info())
+                    if type(dat) == DataArray:
+                        dat = dat.to_dataset(name=dn)
+                    for v in dat.variables:
+                        loc = []
+                        if v in tile:
+                            continue
+                        skip = True
+                        for d in nc[v].dimensions:
+                            start = None
+                            stop = None
+                            if d in tile:
+                                start = list(nc[d][:]).index(dat[d][0])
+                                stop = start + len(dat[d])
+                                skip = False
+                            loc.append(slice(start, stop))
 
-    out = datout_all
-    if return_model_output:
-        out = [out, dat_inst, dat_mean]
-    return out
+                        if not skip:
+                            nc[v][loc] = dat[v].values
+                    nc.close()
+        if tile is None:
+            datout_all[var] = datout
+
+
+    if tile is None:
+        out = datout_all
+        if return_model_output:
+            out = [out, dat_inst, dat_mean]
+        return out
 
 
 #%% tile processing
 
-@TaskGenerator
 def create_tasks(outpath, chunks, **load_kw):
     print("Create tasks")
     dat_mean, dat_inst = load_data(outpath, **load_kw)
@@ -1355,37 +1418,6 @@ def create_tasks(outpath, chunks, **load_kw):
     tiles = list(itertools.product(*tiles))
 
     return tiles
-
-@TaskGenerator
-def merge_tiles(out, variables, tiles, chunks, save_output=True, outpath=None, avg=None):
-        print("Merge tiles")
-        out = jug.value(out)
-        for var in variables:
-            for outfile in outfiles:
-                if outfile not in out[0][var]:
-                    continue
-                merge = []
-                for dat_tile, tile in zip(out, tiles):
-                    dat = dat_tile[var][outfile]
-                    if type(dat) == xr.core.dataarray.DataArray:
-                        dat.name = outfile
-                    merge.append(dat)
-                merge = xr.merge(merge)
-                if type(dat) == xr.core.dataarray.DataArray:
-                    merge = merge[outfile]
-                out[0][var][outfile] = merge
-                if save_output:
-                    fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
-                    if os.path.isfile(fpath):
-                        os.remove(fpath)
-                    merge.to_netcdf(fpath)
-        return out[0]
-
-
-@TaskGenerator
-def calc_tendencies_task(*args, **kwargs):
-    out = calc_tendencies_core(*args, **kwargs)
-    return out
 
 #%%prepare
 

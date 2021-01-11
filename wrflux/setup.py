@@ -51,7 +51,7 @@ setup(
     author_email='matthias-goebel@uibk.ac.at',
     keywords='WRF',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['xarray', 'seaborn'],
+    install_requires=['xarray', 'seaborn', 'mpi4py'],
     extras_require={
         'test': ['pytest'],
     },

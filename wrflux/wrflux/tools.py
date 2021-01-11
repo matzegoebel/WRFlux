@@ -19,9 +19,9 @@ from datetime import datetime
 from functools import partial
 import itertools
 from mpi4py import MPI
-from mpi4py.MPI import COMM_WORLD
-rank = COMM_WORLD.rank
-nproc = COMM_WORLD.size
+from mpi4py.MPI import COMM_WORLD as comm
+rank = comm.rank
+nproc = comm.size
 import netCDF4
 import sys
 import time
@@ -1114,16 +1114,23 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         all_tiles = create_tasks(outpath, chunks=chunks, **load_kw)
         all_tiles = [(i, t) for i, t in enumerate(all_tiles)]
         tiles = all_tiles[rank::nproc]
+
+        done = 0
         if len(tiles) == 0:
-            return
+            done = 1
+        local_comm = comm.Split(done)
 
         for i, (task, tile) in enumerate(tiles):
             tile = {k: v for d in tile for k, v in d.items()}
             if tile == {}:
                 tile = None
                 task = None
-            calc_tendencies_core(variables, outpath, tile=tile, task=task, **kwargs)
-        COMM_WORLD.Barrier()
+            calc_tendencies_core(variables, outpath, tile=tile, task=task, comm=local_comm, **kwargs)
+            #remove finished processors from communicator
+            done = int(i == len(tiles) - 1)
+            local_comm = local_comm.Split(done)
+
+        comm.Barrier()
         if rank == 0:
             out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
             if return_model_output:
@@ -1139,7 +1146,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
 
 def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
-                         tile=None, task=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
+                         tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                          skip_exist=True, save_output=True, return_model_output=True, **load_kw):
 
     dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
@@ -1339,7 +1346,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     print("Done")
                     dat_all.to_netcdf(fpath)
                     #TODOm: faster if writing of fist tile is done somewhere else?
-                    nc = netCDF4.Dataset(fpath, mode="r+", parallel=True)
+                    nc = netCDF4.Dataset(fpath, mode="r+", parallel=True, comm=comm)
                     nc.close()
 
                 else:
@@ -1348,7 +1355,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                         #wait for task 0 to create file
                         pass
                     print("Writing {}".format(dn))
-                    nc = netCDF4.Dataset(fpath, 'r+', parallel=True, comm=COMM_WORLD, info=MPI.Info())
+                    nc = netCDF4.Dataset(fpath, 'r+', parallel=True, comm=comm)
                     if type(dat) == DataArray:
                         dat = dat.to_dataset(name=dn)
                     for v in dat.variables:

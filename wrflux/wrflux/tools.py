@@ -23,7 +23,12 @@ import jug
 print = partial(print, flush=True)
 
 #directory for figures
-figloc = os.environ["figures"]
+if "FIGURES" in os.environ:
+    figloc = os.environ["FIGURES"]
+else:
+    print("Environment variable FIGURES not available. Saving figures to HOME directory.")
+    figloc = os.environ["HOME"]
+
 
 #%% constants
 
@@ -210,8 +215,8 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         averaged data.
 
     """
-
-    if type(data) == xr.core.dataset.Dataset:
+    #TODOm: bottleneck?
+    if type(data) == Dataset:
         out = xr.Dataset()
         for v in data.data_vars:
             out[v] = avg_xy(data[v], avg_dims, rho=rho, cyclic=cyclic, **stagger_const)
@@ -247,7 +252,7 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         return (rho_s*data).mean(avg_dims_final)/rho_s_mean
 
 def find_bad(dat, nan=True, inf=True):
-    """Drop all indeces of each dimension that do not contain any NaNs or infs."""
+    """Drop all indeces of each dimension in DataArray dat that do not contain any NaNs or infs."""
 
     #set coordinates for all dims
     for d in dat.dims:
@@ -363,7 +368,7 @@ def nse(dat, ref, dim=None):
 def warn_duplicate_dim(data, name=None):
     """Warn if dataarray or dataset contains both, the staggered and unstaggered version of any dimension"""
 
-    if type(data) == xr.core.dataset.Dataset:
+    if type(data) == Dataset:
         for v in data.data_vars:
             warn_duplicate_dim(data[v], name=v)
         return
@@ -519,7 +524,7 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
 
     """
 
-    if type(data) == xr.core.dataset.Dataset:
+    if type(data) == Dataset:
         out = xr.Dataset()
         for v in data.data_vars:
             out[v] = stagger_like(data[v], ref, rename=rename, cyclic=cyclic, ignore=ignore, **stagger_kw)
@@ -1240,6 +1245,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
         datout["tend"] = datout["tend"].expand_dims(comp=["tendency"])
         datout["forcing"] = datout["forcing"].expand_dims(comp=["forcing"])
         datout["tend"] = xr.concat([datout["tend"], datout["forcing"]], "comp")
+        del datout["forcing"]
         adv_sum = datout["adv"].sum("dir")
         datout["adv"] = datout["adv"].reindex(dir=[*XYZ, "sum"])
         datout["adv"].loc[{"dir":"sum"}] = adv_sum

@@ -82,7 +82,7 @@ def test_all():
     param_grids["dz_out msf=1"] = odict(hybrid_opt=[0])
     param_grids["trb no_debug msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
     param_grids["trb no_debug hor_avg msf=1"] = odict(timing=dict(end_time=["2018-06-20_12:30:00"], output_streams=[{24: ["meanout", 2./60.], 0: ["instout", 10.] }]))
-    param_grids["hor_avg msf=1"] = odict(km_opt=[2])
+    param_grids["hor_avg msf=1"] = odict(km_opt=[2]) #for Y=0 test
     param_grids["hor_avg"] = odict(hybrid_opt=[0])
     param_grids["hessel"] = odict(hesselberg_avg=[True,False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
@@ -217,28 +217,30 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 failed_i = {}
                 err_i = {}
                 if "budget" in tests:
+                    #TODOm: change threshold depending on ID
                     tend = datout_v["tend"].sel(comp="tendency")
                     forcing = datout_v["tend"].sel(comp="forcing")
                     failed_i["budget"], err_i["budget"] = testing.test_budget(tend, forcing, **kw)
                 adv = datout_v["adv"]
                 corr = datout_v["corr"]
                 if "decomp_sumdir" in tests:
-                    # thresh = 0.995
-                    # if (label == "open BC y hor_avg") and (var == "v"):#TODOm: why?
-                    #     #reduce threshold for explicit turbulent fluxes
-                    #     thresh = 0.99
+                    thresh = 0.99999
+                    if ("trb" in ind) or ("hor_avg" in ind) or ("hesselberg_avg=False" in ind):
+                        #reduce threshold
+                        thresh = 0.992
                     failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, **kw)
                 if "decomp_sumcomp" in tests:
                     thresh = 0.9999999999
                     if "trb" in label:
                         #reduce threshold for explicit turbulent fluxes
-                        thresh = 0.99
+                        thresh = 0.995
                     failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = testing.test_decomp_sumcomp(adv, thresh=thresh, **kw)
                 if dz_out and ("dz_out" in tests):
                     if var == "q":
+                        #TODOm: why so low?
                         thresh = 0.2
                     else:
-                        thresh = 0.9
+                        thresh = 0.93
                     failed_i["dz_out"], err_i["dz_out"] = testing.test_dz_out(adv, thresh=thresh, **kw)
                 if adv_2nd and ("adv_2nd" in tests):
                     failed_i["adv_2nd"], err_i["adv_2nd"] = testing.test_2nd(adv, **kw)
@@ -344,7 +346,7 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
         print(m +  " module_initialize_ideal.F and recompile")
         os.chdir(wrf_path)
         os.system("./compile em_les > log 2> err")
-
+        os.chdir(test_path)
 #%%main
 if __name__ == "__main__":
     failed, failed_short, err, err_short = test_all()

@@ -218,8 +218,8 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     #     if figloc is None:
     #         figloc = "~/"
     #     fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
+    plt.show()
     if close:
-        plt.show()
         plt.close()
 
     return fig, ax, cax

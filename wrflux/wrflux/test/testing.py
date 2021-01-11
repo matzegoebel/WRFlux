@@ -8,7 +8,7 @@ Created on Thu Dec 17 09:35:43 2020
 from wrflux import tools, plotting
 
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993, loc=None, iloc=None, plot=True, **plot_kws):
 
     failed = False
     err = []
@@ -30,7 +30,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.999, loc=None, iloc
             failed = True
     return failed, min(err)
 
-def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.992, loc=None, iloc=None, plot=True, **plot_kws):
+def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999, loc=None, iloc=None, plot=True, **plot_kws):
 #native sum vs. cartesian sum
 
     ID = "native"
@@ -127,7 +127,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
             failed = True
     return failed, min(err)
 
-def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
+def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
 
     ref = dat_inst["W"]

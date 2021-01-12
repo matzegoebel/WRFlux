@@ -1164,41 +1164,15 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
     #select tile
     if tile is not None:
         print("\n\n{0}\nProcess tile: {1}\n".format("#"*30, tile))
-        coord_tile = dat_mean_all[tile].isel(Time=0, drop=True).coords
-        coord_tile_new = {}
-        cyclic_new = cyclic.copy()
-        tile_new = tile.copy()
-        for d, l in tile.items():
-            if cyclic[d[0]]:
-                #add boundary extensions for periodic BC
-                dx = dat_inst_all.attrs["D{}".format(d[0].upper())]
-                coord_tile_d = coord_tile[d].values
-                if l.start is None:
-                    if "stag" in d:
-                        ext = -2
-                    else:
-                        ext = -1
-                    #add last point (or second to last for staggered dim) at start
-                    tile_new[d] = [ext, *np.arange(0, l.stop)]
-                    coord_tile_new[d] = [coord_tile_d[0] - dx, *coord_tile_d]
-                elif l.stop is None:
-                    if "stag" in d:
-                        ext = 1
-                    else:
-                        ext = 0
-                    #add first point (or second for staggered dim) at end
-                    tile_new[d] = [*np.arange(l.start, len(dat_mean_all[d])), ext]
-                    coord_tile_new[d] = [*coord_tile_d, coord_tile_d[-1] + dx]
-                else:
-                    continue
-                cyclic_new[d[0]] = False
-
-        cyclic = cyclic_new
-        dat_mean = dat_mean_all[tile_new].assign_coords(coord_tile_new)
-        dat_inst = dat_inst_all[tile_new].assign_coords(coord_tile_new)
+        dat_mean = dat_mean_all[tile]
+        dat_inst = dat_inst_all[tile]
+        #periodic BC cannot be used in tiling
+        cyclic = {d: cyclic[d] and (d not in tile) for d in cyclic.keys()}
 
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
+
+
 
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
@@ -1316,8 +1290,6 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
 
             dat = dat.assign_attrs(attrs)
             if tile is not None:
-                #strip boundary extensions of periodic BC
-                dat = loc_data(dat, loc=dict(coord_tile))
                 #strip tile boundary points
                 t_bounds = {}
                 for d, l in tile.items():

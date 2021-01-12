@@ -21,10 +21,6 @@ import pytest
 import importlib
 import numpy as np
 
-os.environ["OMP_NUM_THREADS"]="1"
-os.environ["MKL_NUM_THREADS"]="1"
-os.environ["OPENBLAS_NUM_THREADS"]="1"
-
 XY = ["X", "Y"]
 exist = "s"
 
@@ -38,10 +34,10 @@ debug = [True, False]
 random_msf = True  #change mapscale factors from 1 to random values
 
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0"]
-#TODO: go through with debugger to find hidden errors and add comments
-
 hor_avg = False
 avg_dims = ["y"]
+chunks = None
+# chunks = {"x" : 10} #TODOm: problem with trb runs
 kw = dict(
     avg_dims_error = [*avg_dims, "bottom_top", "Time"], #dimensions over which to calculate error norms
     plot = True,
@@ -195,7 +191,8 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 t_avg_interval = int(param_comb["output_streams"][0][1]*60/param_comb["dt_f"])
             outpath_c = os.path.join(conf.outpath, IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
-                                  skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval, save_output=True)
+                                  skip_exist=skip_exist, hor_avg=hor_avg_i, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval,
+                                  save_output=True, return_model_output=True, chunks=chunks)
 
             print("\n\n\n{0}\nRun tests\n{0}\n".format("#"*50))
 
@@ -228,7 +225,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                     if ("trb" in ind) or ("hor_avg" in ind) or ("hesselberg_avg=False" in ind):
                         #reduce threshold
                         thresh = 0.992
-                    failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, **kw)
+                    failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = testing.test_decomp_sumdir(adv, corr, thresh=thresh, **kw)
                 if "decomp_sumcomp" in tests:
                     thresh = 0.9999999999
                     if "trb" in label:

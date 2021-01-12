@@ -10,25 +10,30 @@ Functions to calculate time-averaged tendencies from fluxes
 @author: Matthias Göbel
 """
 import numpy as np
-import xarray as xr
-xr.set_options(arithmetic_join="exact")
-xr.set_options(keep_attrs=True)
+
 import os
 import pandas as pd
 from datetime import datetime
 from functools import partial
 import itertools
-from mpi4py import MPI
 from mpi4py.MPI import COMM_WORLD as comm
 rank = comm.rank
 nproc = comm.size
 import netCDF4
-import sys
-import time
+import logging
+logger = logging.getLogger('l1')
+logger.setLevel(logging.DEBUG)
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# ch.setStream(sys.stdout)
+# logger.addHandler(ch)
+print = partial(print, flush=True)
+
+import xarray as xr
+xr.set_options(arithmetic_join="exact")
+xr.set_options(keep_attrs=True)
 DataArray = xr.core.dataarray.DataArray
 Dataset = xr.core.dataset.Dataset
-
-print = partial(print, flush=True)
 
 #directory for figures
 if "FIGURES" in os.environ:
@@ -36,7 +41,6 @@ if "FIGURES" in os.environ:
 else:
     print("Environment variable FIGURES not available. Saving figures to HOME directory.")
     figloc = os.environ["HOME"]
-
 
 #%% constants
 
@@ -846,7 +850,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
     if not cartesian:
         tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"])/rhod8z
-
+        tot_flux = tot_flux.drop("dir")
     if dz_out:
         if corr_varz:
             corr.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]

@@ -142,7 +142,7 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plo
         failed = True
     return failed, e
 
-def test_nan(datout):
+def test_nan(datout, cut_bounds=None):
     failed = False
     for f,d in datout.items():
         if f == "grid":
@@ -151,6 +151,12 @@ def test_nan(datout):
         if type(d) == tools.xr.core.dataarray.DataArray:
             d = d.to_dataset(name=f)
             da = True
+        if cut_bounds is not None:
+            for dim in cut_bounds:
+                for stag in ["", "_stag"]:
+                    dim = dim + stag
+                    if dim in d.dims:
+                        d = d[{dim : slice(1,-1)}]
         for dv in d.data_vars:
             if da:
                 v = f

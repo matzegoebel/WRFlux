@@ -8,21 +8,19 @@ Scatter and profile plots of the individual terms and sums.
 
 @author: Matthias Göbel
 """
-
-import os
-import numpy as np
-from wrflux import tools
-from wrflux.test import testing
-import xarray as xr
-import datetime
 from mpi4py import MPI
-import netCDF4
 rank = MPI.COMM_WORLD.rank
 nproc = MPI.COMM_WORLD.size
 import sys
 if nproc > 1:
     sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
     sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+
+import numpy as np
+from wrflux import tools
+from wrflux.test import testing
+import xarray as xr
+import datetime
 
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
@@ -53,7 +51,7 @@ variables = ["t", "q", "u", "v", "w"] #budget variables, q,t,u,v,w
 
 save_output = True
 skip_exist = False
-chunks = {"x": 40}
+chunks = {"x": 8}#, "y" : 5}
 # chunks = None
 
 
@@ -98,7 +96,7 @@ if rank == 0:
         tend = datout_v["tend"].sel(comp="tendency")
         forcing = datout_v["tend"].sel(comp="forcing")
         failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
-        testing.test_nan(datout_v)
+        testing.test_nan(datout_v, cut_bounds=chunks.keys())
 
 
 print("\n\n" + "#"*50)

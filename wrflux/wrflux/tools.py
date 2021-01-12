@@ -19,6 +19,10 @@ import itertools
 from mpi4py.MPI import COMM_WORLD as comm
 rank = comm.rank
 nproc = comm.size
+import sys
+if nproc > 1:
+    sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
+    sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
 import netCDF4
 import logging
 logger = logging.getLogger('l1')
@@ -1309,7 +1313,9 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
 
             datout[dn] = dat
             if save_output:
-                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, dn, avg)
+                fpath = "{}/postprocessed/{}/".format(outpath, VAR)
+                os.makedirs(fpath, exist_ok=True)
+                fpath += dn + avg + ".nc"
                 if tile is None:
                     dat.to_netcdf(fpath)
                 else:

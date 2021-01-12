@@ -1312,45 +1312,9 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                 fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, dn, avg)
                 if tile is None:
                     dat.to_netcdf(fpath)
-                elif task == 0:
-                    print("Writing initial file for {}".format(dn))
-                    #create nc file for all tiles and fill with current tile data
-                    coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
-                    dat_all = dat.reindex(coords_all)
-                    if type(dat) == DataArray:
-                        dat_all.name = dn
-                    print("Done")
-                    dat_all.to_netcdf(fpath)
-                    #TODOm: faster if writing of fist tile is done somewhere else?
-                    nc = netCDF4.Dataset(fpath, mode="r+", parallel=True, comm=comm)
-                    nc.close()
-
                 else:
-                    #fill nc file with current tile data
-                    while not os.path.isfile(fpath):
-                        #wait for task 0 to create file
-                        pass
-                    print("Writing {}".format(dn))
-                    nc = netCDF4.Dataset(fpath, 'r+', parallel=True, comm=comm)
-                    if type(dat) == DataArray:
-                        dat = dat.to_dataset(name=dn)
-                    for v in dat.variables:
-                        loc = []
-                        if v in tile:
-                            continue
-                        skip = True
-                        for d in nc[v].dimensions:
-                            start = None
-                            stop = None
-                            if d in tile:
-                                start = list(nc[d][:]).index(dat[d][0])
-                                stop = start + len(dat[d])
-                                skip = False
-                            loc.append(slice(start, stop))
+                    save_tiles(dat, dn, fpath, dat_mean_all, task, tile, comm)
 
-                        if not skip:
-                            nc[v][loc] = dat[v].values
-                    nc.close()
         if tile is None:
             datout_all[var] = datout
 
@@ -1401,6 +1365,83 @@ def create_tasks(outpath, chunks, **load_kw):
     tiles = list(itertools.product(*tiles))
 
     return tiles
+
+def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
+    logger = logging.getLogger('l1')
+    logger.debug("#"*20 + "\n\n Writing {}".format(name))
+    if os.path.isfile(fpath):
+        mode = "r+"
+    else:
+        mode = "w"
+    nc = netCDF4.Dataset(fpath, mode=mode, parallel=True, comm=comm)
+    if type(dat) == DataArray:
+        dat = dat.to_dataset(name=name)
+    #coordinates of whole dataset
+    coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
+    if mode == "w":
+        tempfile = fpath + ".tmp"
+        if task == 0:
+            #create small template file to copy attributes and coordinates from
+            tmp = dat.isel({d : [1] for d in tile.keys() if d in dat.dims})
+            if os.path.isfile(tempfile):
+                os.remove(tempfile)
+            tmp.to_netcdf(tempfile)
+
+        nc_dat = netCDF4.Dataset(tempfile, "r", parallel=True, comm=comm)
+        logger.debug("Loaded template nc file")
+
+        #create dimensions
+        for d in dat.dims:
+            if d in coords_all:
+                size = len(coords_all[d])
+            else:
+                size = len(dat[d])
+            nc.createDimension(d, size)
+        logger.debug("Created dimensions")
+
+    general_vars = []
+    for v in dat.variables:
+        logger.debug("\nwrite variable {}".format(v))
+        if (v in coords_all) or all([d not in tile for d in dat[v].dims]):
+            #dimension coordinates and variables that are the same for all tiles
+            general_vars.append(v)
+        if mode == "w":
+            #create variable and set attributes
+            dtype = nc_dat[v].dtype
+            var = nc.createVariable(v, dtype, dat[v].dims)
+            attrs = {att: nc_dat[v].getncattr(att) for att in nc_dat[v].ncattrs()}
+            var.setncatts(attrs)
+            logger.debug("created variable and set attributes")
+        if v not in general_vars:
+            #fill nc file with current tile data
+            loc = []
+            for d in nc[v].dimensions:
+                start = None
+                stop = None
+                if d in tile:
+                    start = list(coords_all[d]).index(dat[d][0])
+                    stop = start + len(dat[d])
+                loc.append(slice(start, stop))
+            logger.debug("set tile: {}".format(loc))
+            nc[v][loc] = dat[v].values
+
+    nc.close()
+    if task == 0:
+        #set general vars
+        nc = netCDF4.Dataset(fpath, mode="r+")
+        for v in general_vars:
+            if v in coords_all:
+                nc[v][:] = coords_all[v]
+            else:
+                nc[v][:] = np.array(nc_dat[v][:])
+        #global attributes
+        attrs = {att: nc_dat.getncattr(att) for att in nc_dat.ncattrs()}
+        var.setncatts(attrs)
+        os.remove(tempfile)
+        nc.close()
+
+    if mode == "w":
+        nc_dat.close()
 
 #%%prepare
 

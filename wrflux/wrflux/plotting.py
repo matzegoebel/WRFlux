@@ -19,7 +19,7 @@ tex_names = {"t" : "\\theta", "q" : "q_\\mathrm{v}"}
 
 #%%
 
-def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
+def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extra_xaxis=None,
              rolling_xwindow=2000, zmax=2000, multiplier=1, sharex=True, xlim=None, **kwargs):
     attrs = dat.attrs.copy()
     if rolling_xwindow is not None:
@@ -37,6 +37,8 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
 
     cross_dim_u = cross_dim.upper()
     dat = dat.rename({cross_dim : cross_dim_u})
+    if rename is not None:
+        dat = dat.rename(rename)
 
     if kwargs["hue"] == "comp":
         kwargs["palette"] = {"adv_r":"gray", "mean":"tab:blue", "trb_r":"tab:olive", "trb_s":"tab:orange",
@@ -49,19 +51,19 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
     df = datp.to_dataframe(name="tend").reset_index()
 
     sns.set_style("whitegrid")
+    if extra_xaxis is not None:
+        #exclude locations in extra_xaxis from plot but not from legend
+        df = df.copy()
+        for key, val in extra_xaxis.items():
+            df["tend"] = df["tend"].where(df[key] != val, np.inf)
     pgrid = sns.relplot(data=df, kind="line", x="tend", y="hgt", sort_dim="y",
                        facet_kws={"sharex":sharex, "margin_titles":True, "legend_out" : True}, **kwargs)
 
-    if kwargs["hue"] == "comp":
-        for ax in pgrid.axes.flatten():
-            for l in ax.lines[3:6]:
-                l.set_linestyle("--")
-                l.set_linewidth(0.8)
-        # pgrid.add_legend()
 
     pgrid.set_xlabels("")
     pgrid.set_ylabels("height above ground (m)")
     pax = pgrid.axes
+
     if sharex == "row":
         display_ticks(pax)
     middle_column =  int((len(pax[0])-1)/2)
@@ -80,34 +82,29 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None,
             power = int(power)
         mult = "10$^{%s}$ " % power
     pax[-1,middle_column].set_xlabel("$%s$ %s components (%s%s)" % (label, t, mult, attrs["units"]))
+
+    pax_flat = pax.flatten()
+    if extra_xaxis is not None:
+        #plot locations in extra_xaxis with separate x-axis for each subplot
+        df = datp.loc[extra_xaxis].to_dataframe(name="tend").reset_index()
+        kwargs_sub = {}
+        for k in kwargs:
+            if k not in ["aspect", "height", "col", "row"]:
+                kwargs_sub[k] = kwargs[k]
+        sns.set_style("ticks")
+        pax2 = []
+        for ax in pax_flat:
+            ax2 = ax.twiny()
+            pax2.append(ax2)
+            sns.lineplot(data=df, legend=False, ax=ax2, x="tend", y="hgt", sort_dim="y", **kwargs_sub)
+        pax_flat = [*pax_flat, *pax2]
+        pax2 = np.array(pax2).reshape(pax.shape)
+        pax2[-1,middle_column].set_xlabel("$%s$ %s components sum (%s%s)" % (label, t, mult, attrs["units"]))
+
     if xlim is not None:
         pgrid.set(xlim=xlim)
 
     return pgrid
-
-#TODOm: delete?
-def scatter_tend_forcing(tend, forcing, var, plot_diff=False, hue="bottom_top", savefig=True, title=None, fname=None, figloc=None, **kwargs):
-    if title is None:
-        title = fname
-    fig, ax, cax = scatter_hue(tend, forcing, plot_diff=plot_diff, hue=hue, title=title,  **kwargs)
-    if var in tex_names:
-        tex_name = tex_names[var]
-    else:
-        tex_name = var
-    xlabel = "Total ${}$ tendency".format(tex_name)
-    ylabel = "Total ${}$ forcing".format(tex_name)
-    if plot_diff:
-        ylabel += " - " + xlabel
-    units = " ({})".format(tools.units_dict_tend[var])
-    ax.set_xlabel(xlabel + units)
-    ax.set_ylabel(ylabel + units)
-
-    if savefig:
-        if figloc is None:
-            figloc = tools.figloc
-        fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
-
-    return fig
 
 def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False, discrete=False,
                 iloc=None, loc=None, savefig=False, close=False, figloc=None, title=None, **kwargs):

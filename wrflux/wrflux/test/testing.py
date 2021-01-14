@@ -25,7 +25,6 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993, loc=None, ilo
             print(log)
             if plot:
                 dat = dat.assign_attrs(description=dat.description[:2] + "forcing")
-                # plotting.scatter_tend_forcing(dat, ref, var, **plot_kws)
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)

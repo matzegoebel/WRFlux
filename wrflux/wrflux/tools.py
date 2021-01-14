@@ -859,15 +859,14 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         if corr_varz:
             corr.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
             corr.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
-            corr_t = dat_mean[VAR + "_MEAN"]
-            corr_t = rhod8z*stagger_like(corr_t, rhod8z, cyclic=cyclic, **grid[stagger_const])
-            corr["T"] = corr_t
         else:
             corr = tot_flux[XY]
-            corr["T"] = dat_mean[VAR + "_MEAN"]
             corr = rhod8z*stagger_like(corr, rhod8z, cyclic=cyclic, **grid[stagger_const])
+            corr["T"] = corr["X"]
             corr = corr.to_array("dir")
-
+        corr_t = dat_mean[VAR + "_MEAN"]
+        corr_t = rhod8z*stagger_like(corr_t, rhod8z, cyclic=cyclic, **grid[stagger_const])
+        corr.loc["T"] = corr_t
   #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in XYZ:

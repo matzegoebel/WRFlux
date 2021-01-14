@@ -64,6 +64,7 @@ rvovrd = 461.6/287.04
 stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]
 
 outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
+del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # %%open dataset
 
@@ -1028,7 +1029,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         if dz_out:
             corr_d = stagger_like(vmean[du], **kw)
         else:
-            corr_d = stagger_like(grid["dzd{}_{}".format(d, v.lower())], **kw)
+            corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
         corr.loc["mean", du] = corr_d*rho_stag*var_stag["Z"]
 
     dzdt = stagger_like(grid["dzdd"].loc["T"], **kw)
@@ -1312,6 +1313,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
         datout["adv"] = datout["adv"].reindex(dir=[*XYZ, "sum"])
         datout["adv"].loc[{"dir": "sum"}] = adv_sum
 
+        # set units and descriptions
         units = units_dict_tend[var]
         units_flx = units_dict_flux[var]
         datout["sgsflux"] = sgsflux.assign_attrs(description="SGS {}-flux".format(VAR),
@@ -1328,13 +1330,10 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
         if c["correct"] and c["cartesian"]:
             datout["corr"] = datout["corr"].assign_attrs(
                 description="{}-tendency correction".format(VAR), units=units)
-        desc = " staggered to {}-grid".format(VAR)
         grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(
-            description="time-averaged dry air mass" + desc, units="Pa")
-        grid["Z_STAG"] = grid["Z_STAG"].assign_attrs(
-            description="time-averaged geopotential height" + desc)
+            description="time-averaged dry air mass", units="Pa")
         datout["grid"] = grid
-        # TODOm: fix attributes of vars: stagger, memory, field type,d
+
         if save_output:
             print("\nSave data")
 
@@ -1350,6 +1349,14 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     dat[D] = dat[D].assign_coords({"zf{}".format(D.lower()): z})
             elif dn != "grid":
                 dat = dat.assign_coords(z=grid["Z_STAG"])
+
+            da_type = False
+            if type(dat) == DataArray:
+                da_type = True
+                dat = dat.to_dataset(name=dn)
+
+            for v in dat.variables:
+                dat[v].attrs = {k: v for k, v in dat[v].attrs.items() if k not in del_attrs}
 
             dat = dat.assign_attrs(attrs)
             if tile is not None:
@@ -1370,7 +1377,6 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     t_bounds[d] = slice(start, stop)
                 dat = dat[t_bounds]
 
-            datout[dn] = dat
             if save_output:
                 fpath = "{}/postprocessed/{}/".format(outpath, VAR)
                 os.makedirs(fpath, exist_ok=True)
@@ -1379,6 +1385,11 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     dat.to_netcdf(fpath)
                 else:
                     save_tiles(dat, dn, fpath, dat_mean_all, task, tile, comm)
+
+            if da_type:
+                dat = dat[dn]
+
+            datout[dn] = dat
 
         if tile is None:
             datout_all[var] = datout
@@ -1440,8 +1451,6 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
     else:
         mode = "w"
     nc = netCDF4.Dataset(fpath, mode=mode, parallel=True, comm=comm)
-    if type(dat) == DataArray:
-        dat = dat.to_dataset(name=name)
     # coordinates of whole dataset
     coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
     if mode == "w":
@@ -1687,12 +1696,14 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         dzdd[d] = stagger_like(dzdd[d], ref, ignore=["bottom_top_stag"], cyclic=cyclic)
     dzdd = remove_deprecated_dims(dzdd)
     grid["dzdd"] = dzdd.to_array("dir")
-
+    grid["dzdd"] = grid["dzdd"].assign_attrs(
+        description="derivative of geopotential height with respect to x, y, and t")
     for d, vel in zip(XY, ["u", "v"]):
-        dph = -dat_mean["DPH_{}_MEAN".format(d)]/g
-        grid["dzd{}_{}".format(d.lower(), vel)] = stagger_like(
-            dph, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
-
+        dz = dat_mean["DPH_{}_MEAN".format(d)]/g
+        dzdt_d = stagger_like(dz, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
+        desc = dzdt_d.description.replace("tendency", "height tendency")
+        grid["dzdt_{}".format(d.lower())] = dzdt_d.assign_attrs(description=desc,
+                                                                units="m s-1")
     rhod = - 1/diff(g*zw_inst, "bottom_top_stag", dat_inst.bottom_top)*grid["DNW"]*mu
     dat_inst["RHOD_STAG"] = stagger_like(rhod, ref, cyclic=cyclic, **grid[stagger_const])
 

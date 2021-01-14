@@ -24,6 +24,7 @@ if nproc > 1:
     sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
     sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
 import netCDF4
+import decimal
 import logging
 logger = logging.getLogger('l1')
 logger.setLevel(logging.DEBUG)
@@ -379,10 +380,11 @@ def nse(dat, ref, dim=None):
     """
 
     if dim is not None:
-        dim = correct_dims_stag_list(dim, ref)
-
-    mse = ((dat-ref)**2).mean(dim=dim)
-    norm = ((ref - ref.mean(dim=dim))**2).mean(dim=dim)
+        d = dict(dim=correct_dims_stag_list(dim, ref))
+    else:
+        d = {}
+    mse = ((dat-ref)**2).mean(**d)
+    norm = ((ref - ref.mean(**d))**2).mean(**d)
     return 1 - mse/norm
 
 def warn_duplicate_dim(data, name=None):
@@ -508,6 +510,10 @@ def loc_data(dat, loc=None, iloc=None, copy=True):
         dat = dat.copy()
 
     return dat
+
+def round_sig(number, figures):
+    number = decimal.Decimal(number)
+    return format(round(number, -number.adjusted()-1+figures), "f")
 
 #%%manipulate datasets
 
@@ -830,7 +836,6 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
     else:
         w = dat_mean["OMZN_MEAN"]
 
-    print("fluxes: " + str(fluxnames))
     if not all([f in dat_mean for f in fluxnames]):
         raise ValueError("Fluxes not available!")
 
@@ -1106,6 +1111,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
          print("Postprocessed output already available!")
          out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
          if return_model_output:
+             print("Load model output")
              dat_mean, dat_inst = load_data(outpath, **load_kw)
              out = [out, dat_inst, dat_mean]
          return out
@@ -1139,6 +1145,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
 
         comm.Barrier()
         if rank == 0:
+            print("Load entire postprocessed output")
             out = {var : load_postproc(outpath, var, avg=avg) for var in variables}
             if return_model_output:
                  dat_mean, dat_inst = load_data(outpath, **load_kw)
@@ -1156,6 +1163,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                          skip_exist=True, save_output=True, return_model_output=True, **load_kw):
 
+    print("Load model output")
     dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
     dat_mean = dat_mean_all
     dat_inst = dat_inst_all
@@ -1441,7 +1449,7 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
                 nc[v][:] = np.array(nc_dat[v][:])
         #global attributes
         attrs = {att: nc_dat.getncattr(att) for att in nc_dat.ncattrs()}
-        var.setncatts(attrs)
+        nc.setncatts(attrs)
         os.remove(tempfile)
         nc.close()
 
@@ -1451,7 +1459,6 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
 #%%prepare
 
 def load_data(outpath, inst_file=None, mean_file=None, start_time=None, pre_loc=None, pre_iloc=None, **kw):
-    print("Load files")
     if inst_file is None:
         if start_time is None:
             raise ValueError("Either inst_file or start_time must be given!")

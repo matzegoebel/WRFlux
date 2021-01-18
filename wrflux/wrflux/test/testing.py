@@ -8,7 +8,8 @@ Created on Thu Dec 17 09:35:43 2020
 from wrflux import tools, plotting
 
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993, loc=None, iloc=None, plot=True, **plot_kws):
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
+                loc=None, iloc=None, plot=True, **plot_kws):
 
     failed = False
     err = []
@@ -29,8 +30,10 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993, loc=None, ilo
             failed = True
     return failed, min(err)
 
-def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999, loc=None, iloc=None, plot=True, **plot_kws):
-#native sum vs. cartesian sum
+
+def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999,
+                       loc=None, iloc=None, plot=True, **plot_kws):
+    # native sum vs. cartesian sum
 
     ID = "native"
     ID2 = "cartesian correct"
@@ -42,7 +45,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999, loc=None
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if e < thresh:
-        log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.5f}".format(dat.description, thresh, e)
+        log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.7f}".format(dat.description, thresh, e)
         print(log)
         if plot:
             dat = dat.assign_attrs(description="cartesian")
@@ -51,8 +54,10 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999, loc=None
         failed = True
     return failed, e
 
-def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999, loc=None, iloc=None, plot=True, **plot_kws):
-#native sum vs. cartesian sum
+
+def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
+                        loc=None, iloc=None, plot=True, **plot_kws):
+    # native sum vs. cartesian sum
     failed = False
     err = []
     for ID in adv.ID.values:
@@ -63,7 +68,8 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999, loc=None,
         e = tools.nse(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. NSE less than {}: {:.11f}".format(dat.description, ID, thresh, e)
+            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. NSE less than {}: {:.11f}".format(
+                dat.description, ID, thresh, e)
             print(log)
             if plot:
                 ref = ref.assign_attrs(description="adv_r")
@@ -71,6 +77,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999, loc=None,
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)
+
 
 def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot=True, **plot_kws):
     failed = False
@@ -92,6 +99,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot
         failed = True
     return failed, e
 
+
 def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
 
     base = "cartesian"
@@ -99,9 +107,9 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     err = []
     for correct in [False, True]:
         ID = base
-        l = "out"
+        without = "out"
         if correct:
-            l = ""
+            without = ""
             ID += " correct"
         ID2 = ID + " 2nd"
         for i in [ID, ID2]:
@@ -117,7 +125,8 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
         e = tools.nse(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "test_2nd with{} corrections, {} (XYZ): min. NSE less than {}: {:.5f}".format(l, dat.description, thresh, e)
+            log = "test_2nd with{} corrections, {} (XYZ): min. NSE less than {}: {:.5f}".format(
+                without, dat.description, thresh, e)
             print(log)
             if plot:
                 ref = ref.assign_attrs(description="correct order")
@@ -125,6 +134,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)
+
 
 def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
@@ -141,9 +151,10 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plo
         failed = True
     return failed, e
 
+
 def test_nan(datout, cut_bounds=None):
     failed = False
-    for f,d in datout.items():
+    for f, d in datout.items():
         if f == "grid":
             continue
         da = False
@@ -155,7 +166,7 @@ def test_nan(datout, cut_bounds=None):
                 for stag in ["", "_stag"]:
                     dim = dim + stag
                     if dim in d.dims:
-                        d = d[{dim : slice(1,-1)}]
+                        d = d[{dim: slice(1, -1)}]
         for dv in d.data_vars:
             if da:
                 v = f
@@ -171,8 +182,8 @@ def test_nan(datout, cut_bounds=None):
 
 def test_y0(adv):
     failed = False
-    dims = [d for d in adv.dims if d not in ["dir","ID"]]
-    f = abs((adv.sel(dir="Y")/adv.sel(dir="X"))).mean(dims)
+    dims = [d for d in adv.dims if d not in ["dir", "ID"]]
+    f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).mean(dims)
     for ID, thresh in zip(["native", "cartesian correct"], [1e-6, 5e-2]):
         fi = f.loc[ID].values
         if fi > thresh:
@@ -180,7 +191,7 @@ def test_y0(adv):
             failed = True
     return failed
 
-#TODO: reimplement?
+# TODO: reimplement?
 # def check_bounds(dat_mean, attrs, var):
 #     for dim in ["x", "y"]:
 #         if not attrs["PERIODIC_{}".format(dim.upper())]:

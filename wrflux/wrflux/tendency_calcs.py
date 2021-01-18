@@ -8,19 +8,19 @@ Scatter and profile plots of the individual terms and sums.
 
 @author: Matthias Göbel
 """
+import datetime
+import xarray as xr
+from wrflux.test import testing
+from wrflux import tools
+import numpy as np
+import sys
 from mpi4py import MPI
 rank = MPI.COMM_WORLD.rank
 nproc = MPI.COMM_WORLD.size
-import sys
 if nproc > 1:
     sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
     sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
 
-import numpy as np
-from wrflux import tools
-from wrflux.test import testing
-import xarray as xr
-import datetime
 
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
@@ -31,56 +31,60 @@ xr.set_options(keep_attrs=True)
 
 start = datetime.datetime.now()
 
-#%%settings
+# %%settings
 outpath = "/home/c7071088/phd/results/wrf/test/pytest/pytest_0"
-start_time="2018-06-20_12:00:00"
+start_time = "2018-06-20_12:00:00"
 
 # avg_dim = ["x","y"] #spatial averaging dimension, x and/or y
-avg_dims = ["y"]#spatial averaging dimension, x and/or y
-hor_avg = True #average over avg_dim
-t_avg = False #average over time
-t_avg_interval = 4 #size of the time averaging window
+avg_dims = ["y"]  # spatial averaging dimension, x and/or y
+hor_avg = True  # average over avg_dim
+t_avg = False  # average over time
+t_avg_interval = 4  # size of the time averaging window
 
-#select data before processing
+# select data before processing
 # pre_iloc = {"y" : slice(0,10), "y_stag" : slice(0,11)} #indices (do not use for Time!)
-pre_iloc = None#indices (do not use for Time!)
-pre_loc = {"Time" : slice("2018-06-20 12:30:00", None) } #labels
+pre_iloc = None  # indices (do not use for Time!)
+pre_loc = {"Time": slice("2018-06-20 12:30:00", None)}  # labels
 # pre_loc = None
-variables = ["t", "q", "u", "v", "w"] #budget variables, q,t,u,v,w
+variables = ["t", "q", "u", "v", "w"]  # budget variables, q,t,u,v,w
 # variables = ["u"]
 
 save_output = True
 skip_exist = False
-chunks = {"x": 8}#, "y" : 5}
-# chunks = None
+chunks = {"x": 20}  # , "y" : 5}
+chunks = None
 
 cut_bounds = None
 if chunks is not None:
     cut_bounds = chunks.keys()
 
-#%%set calculation methods
+# %%set calculation methods
 
-#all settings to test
+# all settings to test
 budget_methods = [
-            [[], "native"],
-            ["cartesian", "correct"],
-         ]
+    # [[], "native"],
+    ["cartesian", "correct", "2nd"],
+    ["cartesian", "correct"],
+    ["cartesian", "correct", "dz_out"],
+    ["cartesian", "correct", "dz_out", "corr_varz"],
+]
 
-#%%
+# %%
 
-out = tools.calc_tendencies(variables, outpath,
-                              budget_methods=budget_methods, start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc,
-                              t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims,
-                              chunks=chunks, save_output=save_output, skip_exist=skip_exist, return_model_output=True)
+out = tools.calc_tendencies(variables, outpath, budget_methods=budget_methods,
+                            start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc,
+                            t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg,
+                            avg_dims=avg_dims, chunks=chunks, save_output=save_output,
+                            skip_exist=skip_exist, return_model_output=True)
 
-#%%
-print("\n\n" + "#"*50)
+# %%
+print("\n\n" + "#" * 50)
 print("Run tests")
 if rank == 0:
     datout, dat_mean, dat_inst = out
     kw = dict(
-        avg_dims_error = [*avg_dims, "bottom_top", "Time"], #dimensions over which to calculate error norms
-        plot = True,
+        avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
+        plot=True,
         # plot_diff = True, #plot difference between forcing and tendency against tendency
         discrete=True,
         # iloc={"x" : [*np.arange(9),*np.arange(-9,0)]},
@@ -90,7 +94,7 @@ if rank == 0:
         ignore_missing_hue=True,
         # savefig = False,#TODOm
         # close = True
-        )
+    )
 
     for var in variables:
         print("\nVariable: " + var)
@@ -100,17 +104,17 @@ if rank == 0:
         forcing = datout_v["tend"].sel(comp="forcing")
         failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
         testing.test_nan(datout_v, cut_bounds=cut_bounds)
-        adv = datout_v["adv"][...,1:-1]
-        corr = datout_v["corr"][...,1:-1]
+        adv = datout_v["adv"][..., 1:-1]
+        corr = datout_v["corr"][..., 1:-1]
         failed, err = testing.test_decomp_sumdir(adv, corr, **kw)
         failed, err = testing.test_decomp_sumcomp(datout_v["adv"], **kw)
         failed, err = testing.test_dz_out(adv, **kw)
 
 
-print("\n\n" + "#"*50)
+print("\n\n" + "#" * 50)
 time_diff = datetime.datetime.now() - start
 time_diff = time_diff.total_seconds()
 
 hours, remainder = divmod(time_diff, 3600)
 minutes, seconds = divmod(remainder, 60)
-print("Elapsed time: %s hours %s minutes %s seconds" % (int(hours),int(minutes),round(seconds)))
+print("Elapsed time: %s hours %s minutes %s seconds" % (int(hours), int(minutes), round(seconds)))

@@ -15,13 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 # figloc = tools.figloc
 dim_dict = dict(x="U",y="V",bottom_top="W",z="W")
-tex_names = {"t" : "\\theta", "q" : "q_\\mathrm{v}"}
+tex_names = {"t": "\\theta", "q": "q_\\mathrm{v}",
+             "u": "u", "v": "v", "v": "v"}
 
 #%%
 
 def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extra_xaxis=None,
              rolling_xwindow=2000, zmax=2000, multiplier=1, sharex=True, xlim=None, **kwargs):
-    attrs = dat.attrs.copy()
+    attrs_v = dat.attrs.copy()
     if rolling_xwindow is not None:
         rolling_xwindow = int(rolling_xwindow/attrs["DX"]) + 1
         dat = tools.rolling_mean(dat, cross_dim, rolling_xwindow, periodic=True, center=True)
@@ -72,7 +73,7 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
         label = tex_names[var]
 
     t = "tendency"
-    if t not in attrs["description"]:
+    if t not in attrs_v["description"]:
         t = "flux"
 
     mult = ""
@@ -81,7 +82,7 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
         if int(power) == power:
             power = int(power)
         mult = "10$^{%s}$ " % power
-    pax[-1,middle_column].set_xlabel("$%s$ %s components (%s%s)" % (label, t, mult, attrs["units"]))
+    pax[-1,middle_column].set_xlabel("$%s$ %s components (%s%s)" % (label, t, mult, attrs_v["units"]))
 
     pax_flat = pax.flatten()
     if extra_xaxis is not None:
@@ -99,7 +100,7 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
             sns.lineplot(data=df, legend=False, ax=ax2, x="tend", y="hgt", sort_dim="y", **kwargs_sub)
         pax_flat = [*pax_flat, *pax2]
         pax2 = np.array(pax2).reshape(pax.shape)
-        pax2[-1,middle_column].set_xlabel("$%s$ %s components sum (%s%s)" % (label, t, mult, attrs["units"]))
+        pax2[-1,middle_column].set_xlabel("$%s$ %s components sum (%s%s)" % (label, t, mult, attrs_v["description"]))
 
     if xlim is not None:
         pgrid.set(xlim=xlim)

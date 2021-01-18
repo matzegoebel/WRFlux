@@ -54,6 +54,9 @@ skip_exist = False
 chunks = {"x": 8}#, "y" : 5}
 # chunks = None
 
+cut_bounds = None
+if chunks is not None:
+    cut_bounds = chunks.keys()
 
 #%%set calculation methods
 
@@ -96,7 +99,12 @@ if rank == 0:
         tend = datout_v["tend"].sel(comp="tendency")
         forcing = datout_v["tend"].sel(comp="forcing")
         failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
-        testing.test_nan(datout_v, cut_bounds=chunks.keys())
+        testing.test_nan(datout_v, cut_bounds=cut_bounds)
+        adv = datout_v["adv"][...,1:-1]
+        corr = datout_v["corr"][...,1:-1]
+        failed, err = testing.test_decomp_sumdir(adv, corr, **kw)
+        failed, err = testing.test_decomp_sumcomp(datout_v["adv"], **kw)
+        failed, err = testing.test_dz_out(adv, **kw)
 
 
 print("\n\n" + "#"*50)

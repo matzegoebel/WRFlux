@@ -8382,12 +8382,11 @@ END SUBROUTINE phy_bc
              ENDIF
           ENDIF
  
+          qfac = 1.
           DO  k = kts+1, ktf-1
             rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))
             IF(config_flags%use_theta_m == 1)THEN
                 qfac = 1.+rvovrd*moist(i,k,j,P_QV)
-            ELSE
-                qfac = 1.
             ENDIF
             a(k)  = -rdz_w*rdz(i,k,j)*xkxavg(i,k,j)*dt
             b(k)  = 1.+rdz_w*(rdz(i,k+1,j)*xkxavg(i,k+1,j)+rdz(i,k,j)*xkxavg(i,k,j))*dt

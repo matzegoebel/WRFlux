@@ -5,7 +5,7 @@
 
     USE module_bc, only: set_physical_bc3d, set_physical_bc2d ! XZ
     USE module_state_description, only: p_m23, p_m13, p_m22, p_m33, p_r23, p_r13, p_r12, p_m12, p_m11, &
-                                        P_QNS, P_QNR, P_QNG, P_QT, P_QNH, P_QVOLG  ! XZ
+                                        P_QNS, P_QNR, P_QNG, P_QT, P_QNH, P_QVOLG ! XZ
     USE module_big_step_utilities_em, only: grid_config_rec_type, param_first_scalar, p_qv, p_qi, p_qc
     USE module_model_constants
 
@@ -2160,9 +2160,18 @@ END SUBROUTINE smag2d_km
 ! tke_seed if the drag and flux are off.
 
     c_k = config_flags%c_k
-    tke_seed = tke_seed_value
-    if( (config_flags%tke_drag_coefficient .gt. epsilon) .or.  &
-        (config_flags%tke_heat_flux .gt. epsilon)  ) tke_seed = 0.
+    tke_seed = 0.
+    IF (config_flags%isfflx .eq. 0) THEN
+      IF ((config_flags%diff_opt .eq. 2) .and. (config_flags%bl_pbl_physics .eq. 0)) THEN
+        IF( (config_flags%tke_drag_coefficient .lt. epsilon) .and.  &
+            (config_flags%tke_heat_flux .lt. epsilon)  )  THEN
+          tke_seed = tke_seed_value
+        ENDIF
+      ELSE
+        !tke_drag_coefficient and tke_heat_flux are irrelevant here
+        tke_seed = tke_seed_value
+      ENDIF
+    ENDIF
 
     DO j = j_start, j_end
     DO k = kts+1, ktf-1
@@ -5405,18 +5414,11 @@ END SUBROUTINE vertical_diffusion_s
   ENDDO
   ENDDO
   ENDDO
- 
-  DO j = j_start, j_end
-  DO i = i_start, i_end
-     IF(pblflg(i,j))THEN
-         deltaoh(i,j) = deltaoh(i,j)/hpbl(i,j)
-     ENDIF
-  ENDDO
-  ENDDO
 
   DO j = j_start, j_end
   DO i = i_start, i_end
      IF (pblflg(i,j)) THEN
+         deltaoh(i,j) = deltaoh(i,j)/hpbl(i,j)
          delxy = sqrt(dx/msftx(i,j)*dy/msfty(i,j))
          mlfrac        = mltop-deltaoh(i,j)
          ezfrac        = mltop+deltaoh(i,j)
@@ -5442,7 +5444,7 @@ END SUBROUTINE vertical_diffusion_s
              ELSE IF (zfacmf(i,k,j).LE.mlfrac) THEN
                nlflux(i,k,j) =  amf2*zfacmf(i,k,j)+bmf2
              ENDIF
-             nlflux(i,k,j) = nlflux(i,k,j) + hfxpbl(i,j)*exp(-entfacmf(i,k,j)) 
+             nlflux(i,k,j) = nlflux(i,k,j) + hfxpbl(i,j)*exp(-entfacmf(i,k,j))
              nlflux(i,k,j) = nlflux(i,k,j)*pth1
            ENDIF
         ENDDO

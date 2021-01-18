@@ -9,8 +9,8 @@ Scatter and profile plots of the individual terms and sums.
 @author: Matthias Göbel
 """
 import sys
-from run_wrf.submit_jobs import submit_jobs
-from run_wrf.misc_tools import grid_combinations, Capturing
+from run_wrf.launch_jobs import launch_jobs
+from run_wrf.tools import grid_combinations, Capturing
 import shutil
 from collections import OrderedDict as odict
 import os
@@ -304,7 +304,7 @@ def delete_test_data():
 def capture_submit(*args, **kwargs):
     try:
         with Capturing() as output:
-            combs = submit_jobs(*args, **kwargs)
+            combs = launch_jobs(*args, **kwargs)
     except Exception as e:
         print("\n".join(output))
         raise(e)

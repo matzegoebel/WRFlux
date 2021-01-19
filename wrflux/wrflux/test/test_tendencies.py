@@ -55,7 +55,7 @@ kw = dict(
     # iloc={"x" : slice(5,-5)},
     # hue="comp",
     ignore_missing_hue=True,
-    # savefig = False,#TODOm
+    savefig=True,
     # close = True  # close figures directly
 )
 
@@ -237,7 +237,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
             print("\n\n\n{0}\nRun tests\n{0}\n".format("#" * 50))
             if rmsf and ("Y=0" in tests_i):
                 tests_i.remove("Y=0")
-
+            # figure filename
+            kw["fname"] = label.replace(" ", "_") + ":" + IDi
             failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst,
                                                 hor_avg=hor_avg, trb_exp=t_avg, chunks=chunks, **kw)
 

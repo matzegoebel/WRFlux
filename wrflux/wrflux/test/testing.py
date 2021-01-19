@@ -9,6 +9,7 @@ from wrflux import tools, plotting
 import pandas as pd
 import os
 
+
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
@@ -487,9 +488,10 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     err = pd.DataFrame(columns=tests, index=variables)
     failed[:] = ""
     err[:] = ""
+    fpath = os.path.abspath(os.path.dirname(__file__))
     for var, datout_v in datout.items():
         print("Variable: " + var)
-
+        figloc = "{}/figures/{}/".format(fpath, var)
         # tests
         failed_i = {}
         err_i = {}
@@ -497,6 +499,7 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
             # TODOm: change threshold depending on ID
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
+            kw["figloc"] = figloc + "/budget/"
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
 
         adv = datout_v["adv"]
@@ -505,6 +508,7 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
             if trb_exp or hor_avg or (attrs["HESSELBERG_AVG"] == 0):
                 # reduce threshold
                 thresh = 0.992
+            kw["figloc"] = figloc + "/decomp_sumdir/"
             failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
                 adv, datout_v["corr"], thresh=thresh, **kw)
 
@@ -513,16 +517,20 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
             if trb_exp:
                 # reduce threshold for explicit turbulent fluxes
                 thresh = 0.995
+            kw["figloc"] = figloc + "/decomp_sumcomp/"
             failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(
                 adv, thresh=thresh, **kw)
 
         if ("dz_out" in tests) and (var != "q"):  # TODOm: why so bad for q?
+            kw["figloc"] = figloc + "/dz_out/"
             failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv, **kw)
 
         if "adv_2nd" in tests:
+            kw["figloc"] = figloc + "/adv_2nd/"
             failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
 
         if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
+            kw["figloc"] = figloc + "/w/"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
 
         if "NaN" in tests:

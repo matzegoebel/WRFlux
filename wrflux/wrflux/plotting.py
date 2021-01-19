@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Nov 23 09:38:11 2020
+Functions for plotting WRFlux output data:
+tendency profiles and scatter plots
 
 @author: Matthias Göbel
 """
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from wrflux import tools
@@ -12,20 +14,63 @@ import seaborn as sns
 import xarray as xr
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
-# figloc = tools.figloc
 dim_dict = dict(x="U", y="V", bottom_top="W", z="W")
 tex_names = {"t": "\\theta", "q": "q_\\mathrm{v}",
              "u": "u", "v": "v", "v": "v"}
 
 # %%
 
+# TODOm possible with standard seaborn?
 
-def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extra_xaxis=None,
-              rolling_xwindow=2000, zmax=2000, multiplier=1, sharex=True, xlim=None, **kwargs):
+
+def tend_prof(dat, var, loc=None, iloc=None, rename=None, extra_xaxis=None,
+              rolling_xwindow=None, rolling_dim=None, zmax=2000, multiplier=1,
+              sharex=True, xlim=None, **kwargs):
+    """Plot tendency profiles for variable var using seaborn's relplot with all its
+    options for  grouping by style, hue, and size and faceting.
+
+
+    Parameters
+    ----------
+    dat : xarray DataArray
+        Tendency components for variable var.
+    var : str
+        Variable to plot.
+    loc : dict, optional
+        Mapping for label based indexing before plotting. The default is None.
+    iloc : dict, optional
+        Mapping for integer-location based indexing before plotting. The default is None.
+    rename : dict, optional
+        Rename coordinates. The default is None.
+    extra_xaxis : dict, optional
+        Mapping from coordinates to keys for which to draw separate x-axis in each subplot.
+        The default is None.
+    rolling_xwindow : float, optional
+        If given, do rolling average in dimension "rolling_dim" with the given window size.
+        The default is None.
+    rolling_dim : str, optional
+        Dimension for rolling mean. The default is None.
+    zmax : float, optional
+        Upper limit of y-axis: height (m). The default is 2000.
+    multiplier : float, optional
+        Multiply data with this factor. The default is 1.
+    sharex : bool, optional
+        Share x-axis among subplots. The default is True.
+    xlim : tuple of float (xmin, xmax), optional
+        Set lower and upper limit of x-axis . The default is None.
+    **kwargs :
+        Keyword arguments passed to seaborn's relplot.
+
+    Returns
+    -------
+    pgrid : FacetGrid
+
+    """
     attrs_v = dat.attrs.copy()
     if rolling_xwindow is not None:
-        rolling_xwindow = int(rolling_xwindow / attrs["DX"]) + 1
-        dat = tools.rolling_mean(dat, cross_dim, rolling_xwindow, periodic=True, center=True)
+        dx = dat[rolling_dim][-1] - dat[rolling_dim][-2]
+        rolling_xwindow = int(rolling_xwindow / dx) + 1
+        dat = tools.rolling_mean(dat, rolling_dim, rolling_xwindow, periodic=True, center=True)
 
     dat = dat.where(dat.hgt < zmax)
     if "bottom_top" in dat.dims:
@@ -36,8 +81,10 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
 
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
 
-    cross_dim_u = cross_dim.upper()
-    dat = dat.rename({cross_dim: cross_dim_u})
+    for d in tools.xy:
+        if d in dat.coords:
+            dat = dat.rename({d: d.upper()})
+
     if rename is not None:
         dat = dat.rename(rename)
 
@@ -47,7 +94,6 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
                              "forcing": "violet", "rad": "tab:green", "rad+trb": "tab:brown",
                              "rad_sw": "green", "rad_lw": "lime",
                              "pg": "tab:green", "cor_curv": "tab:brown", "mp": "cyan"}
-    # c = tuple((mpl.colors.ColorConverter.to_rgb(color) for color in colors))
 
     datp = dat.copy()
     df = datp.to_dataframe(name="tend").reset_index()
@@ -85,7 +131,6 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
         mult = "10$^{%s}$ " % power
     pax[-1, middle_column].set_xlabel("$%s$ %s components (%s%s)" % (label, t, mult,
                                                                      attrs_v["units"]))
-
     pax_flat = pax.flatten()
     if extra_xaxis is not None:
         # plot locations in extra_xaxis with separate x-axis for each subplot
@@ -111,8 +156,54 @@ def tend_prof(dat, var, attrs, cross_dim, loc=None, iloc=None, rename=None, extr
     return pgrid
 
 
-def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False, discrete=False,
-                iloc=None, loc=None, savefig=False, close=False, figloc=None, title=None, **kwargs):
+def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False,
+                discrete=False, iloc=None, loc=None, savefig=False, fname=None, figloc=None,
+                close=False, title=None, **kwargs):
+    """Scatter plot of dat vs. ref with coloring based on hue variable.
+
+
+    Parameters
+    ----------
+    dat : xarray DataArray
+        Data plotted on y-axis.
+    ref : xarray DataArray
+        Reference data plotted on x-axis.
+    plot_diff : bool, optional
+        Plot the difference dat-ref against ref. The default is False.
+    hue : str, optional
+        Hue variable. All xarray dimensions are allowed. "_stag" is automatically appended,
+        if necessary. The default is "bottom_top".
+    ignore_missing_hue : bool, optional
+        If hue variable is not available, use default instead of raising an exception.
+        The default is False.
+    discrete : bool, optional
+        Use discrete color map to facilitate discrimination of close values. The default is False.
+    loc : dict, optional
+        Mapping for label based indexing before plotting. The default is None.
+    iloc : dict, optional
+        Mapping for integer-location based indexing before plotting. The default is None.
+    savefig : bool, optional
+        Save figure to disk. The default is False.
+    fname : str, optional
+        File name of plot if savefig=True. If no file type extension is included, use png.
+        The default is None.
+    figloc : str, optional
+        Directory to save plot in. Defaults to the directory of this script.
+    close : bool, optional
+        Close the figure after creation. The default is False.
+    title : str, optional
+        Title of the plot. The default is None.
+    **kwargs :
+        keyword argument passed to plt.scatter.
+
+    Returns
+    -------
+    fig : matplotlib figure
+    ax : matplotlib axes
+    cax : matplotlib axes
+        Colorbar axes.
+
+    """
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     pdat = xr.concat([dat, ref], "concat_dim")
@@ -215,10 +306,16 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     if title is not None:
         fig.suptitle(title)
 
-    # if savefig:
-    #     if figloc is None:
-    #         figloc = "~/"
-    #     fig.savefig(figloc + "{}_budget/scatter/{}.png".format(var, fname),dpi=300, bbox_inches="tight")
+    if savefig:
+        if figloc is None:
+            figloc = os.path.abspath(os.path.dirname(__file__))
+        else:
+            os.makedirs(figloc, exist_ok=True)
+        if fname is None:
+            fname = "scatter"
+        if "." not in fname:
+            fname += ".png"
+        fig.savefig(figloc + "/" + fname, dpi=300, bbox_inches="tight")
     plt.show()
     if close:
         plt.close()

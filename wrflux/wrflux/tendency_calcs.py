@@ -99,7 +99,7 @@ if rank == 0:
         # hue="x",
         s=40,
         ignore_missing_hue=True,
-        # savefig = False,#TODOm
+        savefig=True
         # close = True
     )
 

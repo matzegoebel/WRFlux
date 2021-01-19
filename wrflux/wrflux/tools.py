@@ -21,12 +21,18 @@ import pandas as pd
 from datetime import datetime
 from functools import partial
 import itertools
-from mpi4py.MPI import COMM_WORLD as comm
-rank = comm.rank
-nproc = comm.size
-if nproc > 1:
-    sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
-    sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+try:
+    from mpi4py.MPI import COMM_WORLD as comm
+    rank = comm.rank
+    nproc = comm.size
+    if nproc > 1:
+        sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
+        sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+except ImportError:
+    rank = 0
+    nproc = 1
+    comm = None
+
 logger = logging.getLogger('l1')
 logger.setLevel(logging.DEBUG)
 # ch = logging.StreamHandler()
@@ -1441,7 +1447,10 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
         done = 0
         if len(tiles) == 0:
             done = 1
-        local_comm = comm.Split(done)
+        if comm is not None:
+            local_comm = comm.Split(done)
+        else:
+            local_comm = None
 
         for i, (task, tile) in enumerate(tiles):
             tile = {k: v for d in tile for k, v in d.items()}
@@ -1452,9 +1461,11 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
                                  task=task, comm=local_comm, **kwargs)
             # remove finished processors from communicator
             done = int(i == len(tiles) - 1)
-            local_comm = local_comm.Split(done)
+            if comm is not None:
+                local_comm = local_comm.Split(done)
 
-        comm.Barrier()
+        if comm is not None:
+            comm.Barrier()
         if rank == 0:
             print("Load entire postprocessed output")
             out = {var: load_postproc(outpath, var, avg=avg) for var in variables}
@@ -1657,7 +1668,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                 if tile is None:
                     dat.to_netcdf(fpath)
                 else:
-                    save_tiles(dat, dn, fpath, dat_mean_all, task, tile, comm)
+                    save_tiles(dat, dn, fpath, dat_mean_all, task, tile, comm=comm)
 
             if da_type:
                 dat = dat[dn]
@@ -1716,14 +1727,20 @@ def create_tasks(outpath, chunks, **load_kw):
     return tiles
 
 
-def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
+def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm=None):
     logger = logging.getLogger('l1')
     logger.debug("#" * 20 + "\n\n Writing {}".format(name))
     if os.path.isfile(fpath):
         mode = "r+"
     else:
         mode = "w"
-    nc = netCDF4.Dataset(fpath, mode=mode, parallel=True, comm=comm)
+
+    if comm is None:
+        parallel = False
+    else:
+        parallel = True
+
+    nc = netCDF4.Dataset(fpath, mode=mode, parallel=parallel, comm=comm)
     # coordinates of whole dataset
     coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
     if mode == "w":
@@ -1735,7 +1752,7 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm):
                 os.remove(tempfile)
             tmp.to_netcdf(tempfile)
 
-        nc_dat = netCDF4.Dataset(tempfile, "r", parallel=True, comm=comm)
+        nc_dat = netCDF4.Dataset(tempfile, "r", parallel=parallel, comm=comm)
         logger.debug("Loaded template nc file")
 
         # create dimensions

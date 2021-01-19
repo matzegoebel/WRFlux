@@ -14,13 +14,17 @@ from wrflux.test import testing
 from wrflux import tools
 import numpy as np
 import sys
-from mpi4py import MPI
-rank = MPI.COMM_WORLD.rank
-nproc = MPI.COMM_WORLD.size
-if nproc > 1:
-    sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
-    sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
 
+try:
+    from mpi4py import MPI
+    rank = MPI.COMM_WORLD.rank
+    nproc = MPI.COMM_WORLD.size
+    if nproc > 1:
+        sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
+        sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+except ImportError:
+    rank = 0
+    nproc = 1
 
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)

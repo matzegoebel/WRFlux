@@ -13,9 +13,11 @@ import xarray as xr
 from wrflux.test import testing
 from wrflux import tools
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
-
+import os
 try:
+    # if mpi4py is not installed: no parallel processing possible
     from mpi4py import MPI
     rank = MPI.COMM_WORLD.rank
     nproc = MPI.COMM_WORLD.size
@@ -29,58 +31,56 @@ except ImportError:
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 
-# os.environ["OMP_NUM_THREADS"]="4"
-# os.environ["MKL_NUM_THREADS"]="4"
-# os.environ["OPENBLAS_NUM_THREADS"]="4"
-
 start = datetime.datetime.now()
 
 # %%settings
-outpath = "/home/c7071088/phd/results/wrf/test/pytest/pytest_0"
-start_time = "2018-06-20_12:00:00"
+# path to WRF output
+outpath = os.path.abspath(os.path.dirname(__file__)) + "/test/"
+a = "out_d01_2018-06-20_12:00:00"
+mean_file = "mean" + a
+inst_file = "wrf" + a
 
-# avg_dim = ["x","y"] #spatial averaging dimension, x and/or y
+variables = ["t", "q", "u", "v", "w"]  # budget variables, q,t,u,v,w
 avg_dims = ["y"]  # spatial averaging dimension, x and/or y
-hor_avg = True  # average over avg_dim
-t_avg = False  # average over time
-t_avg_interval = 4  # size of the time averaging window
+hor_avg = True  # average over avg_dims
+t_avg = False  # average again over time
+t_avg_interval = None  # size of the time averaging window
 
-# select data before processing
+# select data before processing #TODO stag?
 # pre_iloc = {"y" : slice(0,10), "y_stag" : slice(0,11)} #indices (do not use for Time!)
 pre_iloc = None  # indices (do not use for Time!)
-pre_loc = {"Time": slice("2018-06-20 12:30:00", None)}  # labels
-# pre_loc = None
-variables = ["t", "q", "u", "v", "w"]  # budget variables, q,t,u,v,w
-# variables = ["u"]
+# pre_loc = {"Time": slice("2018-06-20 12:30:00", None)}  # labels
+pre_loc = None
 
-save_output = True
+# skip postprocessing if data already exists
 skip_exist = False
-chunks = {"x": 20}  # , "y" : 5}
-chunks = None
 
+# Mapping from dimension "x" and/or "y" to chunk sizes to split the domain in tiles
+# running script with mpirun enables parallel processing of tiles
+chunks = {"x": 10}
+# chunks = None
+
+# tests to perform
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 
-# %%set calculation methods
+# %% set calculation methods
 
 # all settings to test
 budget_methods = [
     [],
-    ["cartesian", "correct", "2nd"],
     ["cartesian", "correct"],
-    ["cartesian", "correct", "dz_out"],
-    ["cartesian", "correct", "dz_out", "corr_varz"],
 ]
 
-# %%
+# %% calc tendencies
 
-out = tools.calc_tendencies(variables, outpath, budget_methods=budget_methods,
-                            start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc,
+out = tools.calc_tendencies(variables, outpath, mean_file=mean_file, inst_file=inst_file,
+                            budget_methods=budget_methods, pre_iloc=pre_iloc, pre_loc=pre_loc,
                             t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg,
                             avg_dims=avg_dims, chunks=chunks,
                             skip_exist=skip_exist, return_model_output=True)
 
-# %%
+# %% run tests
 print("\n\n" + "#" * 50)
 print("Run tests")
 if rank == 0:
@@ -91,22 +91,26 @@ if rank == 0:
     datout, dat_inst, dat_mean = out
     kw = dict(
         avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
-        plot=True,
+        plot=True,  # scatter plots for failed tests
         # plot_diff = True, #plot difference between forcing and tendency against tendency
-        discrete=True,
-        # iloc={"x" : [*np.arange(9),*np.arange(-9,0)]},
-        # iloc={"y" : [*np.arange(-9,0)]},
+        discrete=True,  # discrete colormap
         # hue="x",
-        s=40,
         ignore_missing_hue=True,
         savefig=True
-        # close = True
+        # close = True # close figures directly
     )
 
     failed, err = testing.run_tests(datout, tests, dat_inst=dat_inst, hor_avg=hor_avg,
                                     chunks=chunks, **kw)
 
-# %%
+    # %% plotting
+
+    pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
+    pdat.name = "advective $\\theta$-tendency"
+    pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp")
+    plt.savefig("tend_profile.pdf")
+
+# %% elapsed time
 
 print("\n\n" + "#" * 50)
 time_diff = datetime.datetime.now() - start

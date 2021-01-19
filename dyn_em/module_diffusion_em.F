@@ -7958,7 +7958,7 @@ END SUBROUTINE phy_bc
    REAL, DIMENSION( its-1:ite+1, jts-1:jte+1 )         :: tao_xz, tao_yz
    REAL, DIMENSION( its-1:ite+1, kts:kte, jts-1:jte+1 ):: muavg_u,muavg_v
    REAL, DIMENSION( its-1:ite+1, kts:kte, jts-1:jte+1 ):: rdz_u, rdz_v
-   REAL, DIMENSION(kts:kte) :: a, b, c, d
+   REAL, DIMENSION(kts:kte) :: a, b, c, d, d_dry
    REAL, DIMENSION(kts:kte-1) :: a1, b1, c1, d1
  
    INTEGER :: im, i,j,k,ktf,nz
@@ -8376,9 +8376,9 @@ END SUBROUTINE phy_bc
                   - dt*rdz_w*nlflux_rho(i,k+1,j)*qfac   &
                   + dt*rdz_w*(qfac*hfx(i,j)/cpm+1.61*theta(i,kts,j)*qfx(i,j))
              IF (output_dry) THEN
-                  d1(k) = theta(i,kts,j)                   &
-                        - dt*rdz_w*nlflux_rho(i,k+1,j)      &
-                        + dt*rdz_w*hfx(i,j)/cpm
+                  d_dry(k) = theta(i,kts,j)                   &
+                           - dt*rdz_w*nlflux_rho(i,k+1,j)      &
+                           + dt*rdz_w*hfx(i,j)/cpm
              ENDIF
           ENDIF
  
@@ -8393,7 +8393,7 @@ END SUBROUTINE phy_bc
             c(k)  = -rdz_w*rdz(i,k+1,j)*xkxavg(i,k+1,j)*dt
             d(k)  = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*qfac*dt + var_mix(i,k,j)
             IF (output_dry) THEN
-              d1(k) = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + theta(i,k,j)
+              d_dry(k) = -rdz_w*(nlflux_rho(i,k+1,j)-nlflux_rho(i,k,j))*dt + theta(i,k,j)
             ENDIF
           ENDDO
  
@@ -8402,7 +8402,7 @@ END SUBROUTINE phy_bc
             c(ktf) = 0.
             d(ktf) = var_mix(i,ktf,j)
             IF (output_dry) THEN
-              d1(ktf) = theta(i,ktf,j)
+              d_dry(ktf) = theta(i,ktf,j)
             ENDIF
  
           CALL tridiag(nz,a,b,c,d)
@@ -8413,18 +8413,17 @@ END SUBROUTINE phy_bc
 
           IF (config_flags%output_tsgs_fluxes) THEN
             IF (output_dry) THEN
-               CALL tridiag(nz,a,b,c,d1)
-            ELSE
-               d1(:) = d(:)
+               CALL tridiag(nz,a,b,c,d_dry)
+               d(:) = d_dry(:)
             ENDIF
             ftz_sgs(i,kde,j) = 0.
             DO k=ktf,kts,-1
                   !reconstruct flux from tendency
                   rdz_w = -g/dnw(k)/(c1h(k)*mu(i,j) + c2h(k))!includes rho
                   IF (output_dry) THEN
-                    temp = d1(k) - theta(i,k,j)
+                    temp = d(k) - theta(i,k,j)
                   ELSE
-                    temp = d1(k) - var_mix(i,k,j)
+                    temp = d(k) - var_mix(i,k,j)
                   ENDIF
                   temp = temp/(dt*rdz_w)
                   ftz_sgs(i,k,j) = temp + ftz_sgs(i,k+1,j)

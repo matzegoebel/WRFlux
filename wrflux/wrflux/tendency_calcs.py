@@ -65,7 +65,7 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 
 # all settings to test
 budget_methods = [
-    # [[], "native"],
+    [],
     ["cartesian", "correct", "2nd"],
     ["cartesian", "correct"],
     ["cartesian", "correct", "dz_out"],

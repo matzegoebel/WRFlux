@@ -51,7 +51,7 @@ kw = dict(
 )
 # %%set calculation methods
 budget_methods = [
-                 [[], "native"],
+                 [],
                  ["cartesian", "correct"]]
 budget_methods_2nd = [
                      ["cartesian", "2nd"],

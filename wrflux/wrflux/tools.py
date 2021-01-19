@@ -829,10 +829,14 @@ def load_postproc(outpath, var, avg=None):
     return datout
 
 
-def get_comb(comb, keys, short_names):
-    if (len(comb) > 0) and (type(comb[0]) == list):
-        IDc = comb[1]
-        comb = comb[0]
+def get_comb(comb):
+    """Build ID and settings dictionary from list of settings. Replace abbreviations."""
+    keys = ["cartesian", "correct", "dz_out",
+            "force_2nd_adv", "corr_varz"]  # available settings
+    short_names = {"2nd": "force_2nd_adv", "corr": "correct"}  # abbreviations for settings
+
+    if len(comb) == 0:
+        IDc = "native"
     else:
         IDc = " ".join(comb)
 
@@ -1537,15 +1541,11 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                                 hor_avg=hor_avg, avg_dims=avg_dims)
 
         # calc fluxes and tendencies
-        keys = ["cartesian", "correct", "dz_out",
-                "force_2nd_adv", "corr_varz"]  # available settings
-        short_names = {"2nd": "force_2nd_adv", "corr": "correct"}  # abbreviations for settings
-
         IDcs = []
         budget_methods = make_list(budget_methods)
         for comb in budget_methods:
             datout_c = {}
-            c, comb, IDc = get_comb(comb.copy(), keys, short_names)
+            c, comb, IDc = get_comb(comb.copy())
             IDcs.append(IDc)
             print("\n" + IDc)
             if c["dz_out"]:

@@ -103,7 +103,7 @@ if rank == 0:
         # close = True
     )
 
-    failed, err = testing.run_tests(datout, dat_inst=dat_inst, tests=tests, hor_avg=hor_avg,
+    failed, err = testing.run_tests(datout, tests, dat_inst=dat_inst, hor_avg=hor_avg,
                                     chunks=chunks, **kw)
 
 # %%

@@ -6,7 +6,10 @@ Created on Thu Dec 17 09:35:43 2020
 @author: Matthias Göbel
 """
 from wrflux import tools, plotting
+import pandas as pd
 
+
+# %%
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
                 loc=None, iloc=None, plot=True, **plot_kws):
@@ -14,7 +17,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     failed = False
     err = []
     for ID in ["native", "cartesian correct"]:
-
+        if ID not in tend.ID:
+            continue
         ref = tend.sel(ID=ID, drop=True)
         dat = forcing.sel(ID=ID, drop=True)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
@@ -190,6 +194,98 @@ def test_y0(adv):
             print("test_y0 failed for ID={}!: mean(|adv_y/adv_x|) = {} > {}".format(ID, fi, thresh))
             failed = True
     return failed
+
+
+# %%
+
+def run_tests(datout, dat_inst=None, tests=None, trb_exp=False,
+              hor_avg=False, chunks=None, **kw):
+
+    if tests is None:
+        tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
+                 "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
+
+    variables = list(datout.keys())
+    # cut boundaries for non-periodic BC
+    attrs = datout[variables[0]]["flux"].attrs
+    iloc = {}
+    if (not attrs["PERIODIC_X"]) or (chunks is not None and "x" in chunks):
+        iloc["x"] = slice(1, -1)
+    if (not attrs["PERIODIC_Y"]) or (chunks is not None and "y" in chunks):
+        iloc["y"] = slice(1, -1)
+
+    if attrs["PERIODIC_Y"] == 0:
+        if "Y=0" in tests:
+            tests.remove("Y=0")
+    dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
+
+    for datout_v in datout.values():
+        for n, dat in datout_v.items():
+            datout_v[n] = tools.loc_data(dat, iloc=iloc)
+
+    variables = list(datout.keys())
+    failed = pd.DataFrame(columns=tests, index=variables)
+    err = pd.DataFrame(columns=tests, index=variables)
+    failed[:] = ""
+    err[:] = ""
+    for var, datout_v in datout.items():
+        print("Variable: " + var)
+
+        # tests
+        failed_i = {}
+        err_i = {}
+        if "budget" in tests:
+            # TODOm: change threshold depending on ID
+            tend = datout_v["tend"].sel(comp="tendency")
+            forcing = datout_v["tend"].sel(comp="forcing")
+            failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
+
+        adv = datout_v["adv"]
+        if "decomp_sumdir" in tests:
+            thresh = 0.99999
+            if trb_exp or hor_avg or (attrs["HESSELBERG_AVG"] == 0):
+                # reduce threshold
+                thresh = 0.992
+            failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
+                adv, datout_v["corr"], thresh=thresh, **kw)
+
+        if "decomp_sumcomp" in tests:
+            thresh = 0.9999999999
+            if trb_exp:
+                # reduce threshold for explicit turbulent fluxes
+                thresh = 0.995
+            failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(
+                adv, thresh=thresh, **kw)
+
+        if "dz_out" in tests:
+            if var == "q":
+                # TODOm: why so low?
+                thresh = 0.2
+            else:
+                thresh = 0.93
+            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv, thresh=thresh, **kw)
+
+        if "adv_2nd" in tests:
+            failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
+
+        if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
+            failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
+
+        if "NaN" in tests:
+            failed_i["NaN"] = test_nan(datout_v)
+
+        if hor_avg and ("Y=0" in tests):
+            failed_i["Y=0"] = test_y0(adv)
+
+        for test, f in failed_i.items():
+            if f:
+                failed.loc[var, test] = "F"
+
+        for test, e in err_i.items():
+            err.loc[var, test] = e
+
+    return failed, err
+
 
 # TODO: reimplement?
 # def check_bounds(dat_mean, attrs, var):

@@ -58,9 +58,8 @@ skip_exist = False
 chunks = {"x": 20}  # , "y" : 5}
 chunks = None
 
-cut_bounds = None
-if chunks is not None:
-    cut_bounds = chunks.keys()
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
+tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 
 # %%set calculation methods
 
@@ -78,14 +77,18 @@ budget_methods = [
 out = tools.calc_tendencies(variables, outpath, budget_methods=budget_methods,
                             start_time=start_time, pre_iloc=pre_iloc, pre_loc=pre_loc,
                             t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg,
-                            avg_dims=avg_dims, chunks=chunks, save_output=save_output,
+                            avg_dims=avg_dims, chunks=chunks,
                             skip_exist=skip_exist, return_model_output=True)
 
 # %%
 print("\n\n" + "#" * 50)
 print("Run tests")
 if rank == 0:
-    datout, dat_mean, dat_inst = out
+    cut_bounds = None
+    if chunks is not None:
+        cut_bounds = chunks.keys()
+
+    datout, dat_inst, dat_mean = out
     kw = dict(
         avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
         plot=True,
@@ -100,20 +103,10 @@ if rank == 0:
         # close = True
     )
 
-    for var in variables:
-        print("\nVariable: " + var)
-        datout_v = datout[var]
+    failed, err = testing.run_tests(datout, dat_inst=dat_inst, tests=tests, hor_avg=hor_avg,
+                                    chunks=chunks, **kw)
 
-        tend = datout_v["tend"].sel(comp="tendency")
-        forcing = datout_v["tend"].sel(comp="forcing")
-        failed, err = testing.test_budget(tend, forcing, thresh=0.999, **kw)
-        testing.test_nan(datout_v, cut_bounds=cut_bounds)
-        adv = datout_v["adv"][..., 1:-1]
-        corr = datout_v["corr"][..., 1:-1]
-        failed, err = testing.test_decomp_sumdir(adv, corr, **kw)
-        failed, err = testing.test_decomp_sumcomp(datout_v["adv"], **kw)
-        failed, err = testing.test_dz_out(adv, **kw)
-
+# %%
 
 print("\n\n" + "#" * 50)
 time_diff = datetime.datetime.now() - start

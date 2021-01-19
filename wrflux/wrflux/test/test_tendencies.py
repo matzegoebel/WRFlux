@@ -164,7 +164,7 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
                 ind = label + ": " + IDi
                 failed[ind] = ""
                 # check logs
-                run_dir = os.path.join(conf.run_path, "WRF_" + IDi + "_0")
+                run_dir = os.path.join(conf.params["run_path"], "WRF_" + IDi + "_0")
                 with open("{}/init.log".format(run_dir)) as f:
                     log = f.read()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
@@ -210,7 +210,8 @@ def run_and_check_budget(param_grids, config_file="wrflux.test.config_test_tende
             if "trb " in label:
                 t_avg = True
                 t_avg_interval = int(param_comb["output_streams"][0][1] * 60 / param_comb["dt_f"])
-            outpath_c = os.path.join(conf.outpath, IDi) + "_0"
+
+            outpath_c = os.path.join(conf.params["outpath"], IDi) + "_0"
             datout, dat_inst, dat_mean = tools.calc_tendencies(
                 variables, outpath_c, start_time=param_comb["start_time"], budget_methods=bm,
                 hor_avg=hor_avg_i, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval,
@@ -342,7 +343,7 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
         build = conf.debug_build
     else:
         build = conf.parallel_build
-    wrf_path = "{}/{}".format(conf.build_path, build)
+    wrf_path = "{}/{}".format(conf.params["build_path"], build)
     fpath = wrf_path + "/dyn_em/" + fname
 
     if restore:

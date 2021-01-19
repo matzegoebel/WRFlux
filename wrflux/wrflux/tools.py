@@ -1010,8 +1010,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     for d in [*XY, "T"]:
         dzdd[d] = stagger_like(dzdd[d], ref, ignore=["bottom_top_stag"], cyclic=cyclic)
     dzdd = remove_deprecated_dims(dzdd)
-    grid["dzdd"] = dzdd.to_array("dir")
-    grid["dzdd"] = grid["dzdd"].assign_attrs(
+    grid["dzdd"] = dzdd.to_array("dir").assign_attrs(
         description="derivative of geopotential height with respect to x, y, and t")
     for d, vel in zip(XY, ["u", "v"]):
         dz = dat_mean["DPH_{}_MEAN".format(d)] / g
@@ -1046,7 +1045,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
 
     # calculate tendencies from sgs fluxes and corrections
-    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=dim_stag, mapfac=mapfac)
+    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, cyclic, dim_stag=dim_stag, mapfac=mapfac)
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims, cyclic=cyclic)
@@ -1060,7 +1059,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     return dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac
 
 
-def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
+def sgs_tendency(dat_mean, VAR, grid, cyclic, dim_stag=None, mapfac=None):
     sgs = xr.Dataset()
     sgsflux = xr.Dataset()
     if VAR == "W":
@@ -1103,7 +1102,7 @@ def sgs_tendency(dat_mean, VAR, grid, dzdd, cyclic, dim_stag=None, mapfac=None):
             flux8z = stagger(flux8v, d3, grid["ZNW"], **grid[stagger_const])
             flux8z[:, [0, -1]] = 0
         corr_sgs = diff(flux8z, d3s, new_coord=vcoord) / dn
-        corr_sgs = corr_sgs * stagger_like(dzdd[du], corr_sgs, cyclic=cyclic, **grid[stagger_const])
+        corr_sgs = corr_sgs * stagger_like(grid["dzdd"].loc[du], corr_sgs, cyclic=cyclic, **grid[stagger_const])
 
         dx = grid["D" + du]
         sgs[du] = -diff(fd, ds, new_coord=sgs[d], cyclic=cyc) / dx * m
@@ -1619,8 +1618,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
             if "flux" in dn:
                 for D in XYZ:
                     z = stagger_like(grid["ZW"], dat[D], cyclic=cyclic, **grid[stagger_const])
-                    z = z.assign_attrs(description=z.description +
-                                       " staggered to {}-flux grid".format(D))
+                    z = z.assign_attrs(description=z.description + " staggered to {}-flux grid".format(D))
                     dat[D] = dat[D].assign_coords({"zf{}".format(D.lower()): z})
             elif dn != "grid":
                 dat = dat.assign_coords(z=grid["Z_STAG"])

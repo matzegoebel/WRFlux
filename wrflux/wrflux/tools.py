@@ -35,10 +35,13 @@ except ImportError:
 
 logger = logging.getLogger('l1')
 logger.setLevel(logging.DEBUG)
+
+# uncomment to enable debugging messages:
 # ch = logging.StreamHandler()
 # ch.setLevel(logging.DEBUG)
 # ch.setStream(sys.stdout)
 # logger.addHandler(ch)
+
 print = partial(print, flush=True)
 
 xr.set_options(arithmetic_join="exact")
@@ -71,6 +74,11 @@ stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]
 
 outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
+
+# available settings
+budget_settings = ["cartesian", "correct", "dz_out", "force_2nd_adv", "corr_varz"]
+# abbreviations for settings
+settings_short_names = {"2nd": "force_2nd_adv", "corr": "correct"}
 
 # %%open dataset
 
@@ -162,6 +170,7 @@ def coarsen_avg(data, dim, interval, rho=None, cyclic=None,
                 stagger_kw=None, rho_weighted_vars=None, **avg_kwargs):
     """
     Coarsen and average dataset over the given dimension.
+
     If rho is given a density-weighted average is done.
 
     Parameters
@@ -174,7 +183,7 @@ def coarsen_avg(data, dim, interval, rho=None, cyclic=None,
         averaging interval.
     rho : dataarray, optional
         If given, use to do density-weighted average. The default is None.
-    cyclic : dict of booleans for all dimensions or None, optional
+    cyclic : dict of booleans for xy or None, optional
         Defines which dimensions have periodic boundary conditions.
         If rho is given and needs to be staggered, use periodic boundary conditions
         to fill lateral boundary points. The default is None.
@@ -230,7 +239,7 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         averaging dimensions.
     rho : dataarray, optional
         If given, use to do density-weighted average. The default is None.
-    cyclic : dict of booleans for all dimensions or None, optional
+    cyclic : dict of booleans for xy or None, optional
         Defines which dimensions have periodic boundary conditions.
         If rho is given and needs to be staggered, use periodic boundary conditions
         to fill lateral boundary points. The default is None.
@@ -252,6 +261,8 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
 
     if rho is not None:
         rho_s = stagger_like(rho, data, cyclic=cyclic, **stagger_const)
+        if cyclic is None:
+            cyclic = {"x": False, "y": False}
         for d in rho_s.dims:
             # TODOm: slow?
             if (d not in rho.dims) and ("bottom_top" not in d) and (not cyclic[d[0]]):
@@ -391,6 +402,7 @@ def nse(dat, ref, dim=None):
 
     """
     if dim is not None:
+        dim = make_list(dim)
         d = dict(dim=correct_dims_stag_list(dim, ref))
     else:
         d = {}
@@ -401,7 +413,8 @@ def nse(dat, ref, dim=None):
 
 def warn_duplicate_dim(data, name=None):
     """Warn if dataarray or dataset contains both,
-    the staggered and unstaggered version of any dimension"""
+    the staggered and unstaggered version of any dimension.
+    """
     if type(data) == Dataset:
         for v in data.data_vars:
             warn_duplicate_dim(data[v], name=v)
@@ -417,7 +430,7 @@ def warn_duplicate_dim(data, name=None):
 
 def rolling_mean(ds, dim, window, periodic=True, center=True):
     """
-    Rolling mean over given dimension.
+    Rolling-mean over given dimension.
 
     Parameters
     ----------
@@ -487,6 +500,7 @@ def correct_dims_stag(loc, dat):
 
 def correct_dims_stag_list(iterable, dat):
     """Correct items of iterable to fit to dimensions of dat.
+
     Add "_stag" to every item in iterable l, for which the unmodified item
     is not a dimension of dat but the modified item is. Delete items that are
     not dimensions of dat. Returns a copy.
@@ -515,7 +529,7 @@ def correct_dims_stag_list(iterable, dat):
 
 
 def loc_data(dat, loc=None, iloc=None, copy=True):
-
+    """Apply label and integer-location based indexing with corrected dimensions."""
     if iloc is not None:
         iloc = correct_dims_stag(iloc, dat)
         dat = dat[iloc]
@@ -528,9 +542,10 @@ def loc_data(dat, loc=None, iloc=None, copy=True):
     return dat
 
 
-def round_sig(number, figures):
+def round_sig(number, digits):
+    """Round number to given number of significant digits."""
     number = decimal.Decimal(number)
-    return format(round(number, -number.adjusted() - 1 + figures), "f")
+    return format(round(number, -number.adjusted() - 1 + digits), "f")
 
 
 # %%manipulate datasets
@@ -553,7 +568,7 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
         reference data.
     rename : boolean, optional
         add "_stag" to dimension name. The default is True.
-    cyclic : dict of booleans for all dimensions or None, optional
+    cyclic : dict of booleans for xy or None, optional
         Defines which dimensions have periodic boundary conditions.
         Use periodic boundary conditions to fill lateral boundary points.
         The default is None.
@@ -781,6 +796,37 @@ def remove_deprecated_dims(ds):
 
 def load_data(outpath, inst_file=None, mean_file=None, start_time=None,
               pre_loc=None, pre_iloc=None, **kw):
+    """Load WRF output data as xarray Datasets.
+
+    Parameters
+    ----------
+    outpath : str
+        Path to the WRF output directory.
+    inst_file : str, optional
+        Name of the output file containing instantaneous data. The default is None.
+    mean_file : str, optional
+        Name of the output file containing time-averaged data. The default is None.
+    start_time : str, optional
+        Start time of the simulation in format YYYY-MM-DD_HH:MM:SS.
+        Used to create mean_file and inst_file if not given.
+        The default is None.
+    pre_loc : dict, optional
+        Dictionary used for label based indexing of the input data before processing
+        (e.g., {"Time" : slice("2018-06-20_12:00:00", None)}). The default is None.
+    pre_iloc : dict, optional
+        Dictionary used for integer-location based indexing of the input data before processing
+        (e.g., {"x" : slice(10, -10)}). The default is None.
+    **kw :
+        Keyword arguments passed to load_data.
+
+    Returns
+    -------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    dat_inst : xarray Dataset
+        WRF instantaneous output.
+
+    """
     if inst_file is None:
         if start_time is None:
             raise ValueError("Either inst_file or start_time must be given!")
@@ -815,10 +861,32 @@ def load_data(outpath, inst_file=None, mean_file=None, start_time=None,
     return dat_mean, dat_inst
 
 
-def load_postproc(outpath, var, avg=None):
-    datout = {}
-    if avg is None:
+def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
+    """
+    Load already postprocessed data.
+
+    Parameters
+    ----------
+    outpath : str
+        Path to the WRF output data.
+    var : str
+        Variable to load postprocessed output of.
+    hor_avg : bool, optional
+        Load horizontally averaged output. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    datout : dict
+        Postprocessed output as nested dictionary.
+
+    """
+    if hor_avg:
+        avg = "_avg_" + "".join(avg_dims)
+    else:
         avg = ""
+    datout = {}
     outpath = os.path.join(outpath, "postprocessed", var.upper())
     for f in outfiles:
         file = "{}/{}{}.nc".format(outpath, f, avg)
@@ -831,34 +899,71 @@ def load_postproc(outpath, var, avg=None):
 
 def get_comb(comb):
     """Build ID and settings dictionary from list of settings. Replace abbreviations."""
-    keys = ["cartesian", "correct", "dz_out",
-            "force_2nd_adv", "corr_varz"]  # available settings
-    short_names = {"2nd": "force_2nd_adv", "corr": "correct"}  # abbreviations for settings
-
     if len(comb) == 0:
         IDc = "native"
     else:
         IDc = " ".join(comb)
 
     for i, key in enumerate(comb):
-        if key in short_names:
-            comb[i] = short_names[key]
+        if key in settings_short_names:
+            comb[i] = settings_short_names[key]
 
-    c = {}
-    undefined = [key for key in comb if key not in keys]
+    config = {}
+    undefined = [key for key in comb if key not in budget_settings]
     if len(undefined) > 0:
         raise ValueError("Undefined keys: {}".format(", ".join(undefined)))
-    for k in keys:
+    for k in budget_settings:
         if k in comb:
-            c[k] = True
+            config[k] = True
         else:
-            c[k] = False
-    return c, comb, IDc
+            config[k] = False
+    return config, comb, IDc
 
 
-def prepare(dat_mean, dat_inst, variables=None, cyclic=None,
+def prepare(dat_mean, dat_inst, variables, cyclic=None,
             t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None):
+    """Prepare tendency calculations.
 
+    Define grid variables add vertical coordinates to WRF output data.
+    and average over time if desired. If time-averaging is performed and the
+    original output contains all time steps, turbulent fluxes are
+    computed explicitly.
+
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    dat_inst : xarray Dataset
+        WRF instantaneous output.
+    variables : list of str
+        List of variables to process.
+    cyclic : dict of booleans for xy or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None.
+    t_avg : bool, optional
+        Average WRF output again over time. The default is False.
+    t_avg_interval : integer, optional
+        Interval for time averaging (number of output time steps) if t_avg=True.
+        The default is None.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    dat_mean : xarray Dataset
+        Modified WRF time-averaged output.
+    dat_inst : xarray Dataset
+        Modified WRF instantaneous output.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    attrs : dict
+        Global attributes of WRF output.
+
+    """
     print("Prepare data")
     attrs = dat_inst.attrs
     dat_inst.attrs = {}
@@ -895,8 +1000,8 @@ def prepare(dat_mean, dat_inst, variables=None, cyclic=None,
         dt_out = float(inst.Time[1] - inst.Time[0]) / 1e9
         if round(dt_out) == attrs["DT"]:
             print("Compute turbulent fluxes explicitly")
-            trb_fluxes(dat_mean, inst, variables, grid, cyclic,
-                       t_avg_interval=t_avg_interval, hor_avg=hor_avg, avg_dims=avg_dims)
+            trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
+                       cyclic=cyclic, hor_avg=hor_avg, avg_dims=avg_dims)
 
     # select start and end points of averaging intervals
     dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
@@ -908,6 +1013,7 @@ def prepare(dat_mean, dat_inst, variables=None, cyclic=None,
 
 
 def build_mu(mut, grid, full_levels=False):
+    """Build 3D mu on full or half-levels from 2D mu and grid constants."""
     if full_levels:
         mu = grid["C1F"] * mut + grid["C2F"]
     else:
@@ -915,9 +1021,37 @@ def build_mu(mut, grid, full_levels=False):
     return mu
 
 
-def trb_fluxes(dat_mean, inst, variables, grid, cyclic, t_avg_interval,
-               hor_avg=False, avg_dims=None):
+def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
+               cyclic=None, hor_avg=False, avg_dims=None):
+    """Compute turbulent fluxes explicitly from complete timeseries output.
 
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    inst : xarray Dataset
+        WRF flux output at every time step.
+    variables : list of str
+        List of variables to process.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    t_avg_interval : integer
+        Interval for time averaging (number of output time steps) if t_avg=True.
+        The default is None.
+    cyclic : dict of booleans for xy or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
     avg_kwargs = {"Time": t_avg_interval, "coord_func": {
         "Time": partial(select_ind, indeces=-1)}, "boundary": "trim"}
 
@@ -957,6 +1091,51 @@ def trb_fluxes(dat_mean, inst, variables, grid, cyclic, t_avg_interval,
 
 
 def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=False, avg_dims=None):
+    """Calculate and sum up tendencies from SGS fluxes and other source terms except advection and
+    calculate some helper variables specific to the variable being processed.
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    dat_inst : xarray Dataset
+        WRF instantaneous output.
+    var : str
+        Variable to process.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    cyclic : dict of booleans for xy
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+    attrs : dict
+        Global attributes of WRF output.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    dat_mean : xarray Dataset
+        modified WRF time-averaged output.
+    dat_inst : xarray Dataset
+        modified WRF instantaneous output.
+    sgs : xarray DataArray
+        SGS tendencies calculated from SGS fluxes in all three directions.
+    sgsflux : xarray Dataset
+        SGS fluxes in all three directions.
+    sources : xarray DataArray
+        All source terms for variable except advection.
+    sources_sum : xarray DataArray
+        Sum of source terms.
+    grid : xarray Dataset
+        Modified grid data.
+    dim_stag : str
+        Staggering dimension of variable.
+    mapfac : xarray Dataset
+        Map-scale factor variables.
+
+    """
     print("\nPrepare tendency calculations for {}".format(var.upper()))
 
     VAR = var.upper()
@@ -1055,7 +1234,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
 
     # calculate tendencies from sgs fluxes and corrections
-    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, cyclic, dim_stag=dim_stag, mapfac=mapfac)
+    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=mapfac)
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims, cyclic=cyclic)
@@ -1069,7 +1248,31 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     return dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac
 
 
-def sgs_tendency(dat_mean, VAR, grid, cyclic, dim_stag=None, mapfac=None):
+def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
+    """Calculate tendencies from SGS fluxes.
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    VAR : str
+        variable to process.
+    grid : xarray Dataset
+        variables related to the model grid.
+    cyclic : dict of booleans for xy
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+    mapfac : xarray Dataset, optional
+        Map-scale factor variables. The default is None.
+
+    Returns
+    -------
+    sgs : xarray DataArray
+        SGS tendencies calculated from SGS fluxes in all three directions.
+    sgsflux : xarray Dataset
+        SGS fluxes in all three directions.
+
+    """
     sgs = xr.Dataset()
     sgsflux = xr.Dataset()
     if VAR == "W":
@@ -1130,8 +1333,55 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, dim_stag=None, mapfac=None):
 
 
 def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims=None,
-             cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=False):
+             cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=True):
+    """Compute advective tendencies decomposed into mean and resolved turbulent.
 
+    Also return Cartesian corrections, but do not apply them yet.
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    VAR : str
+        Variable to process.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    mapfac : xarray Dataset
+        Map-scale factor variables.
+    cyclic : dict of booleans for xy
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+    attrs : dict
+        Global attributes of WRF output.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+    cartesian : bool, optional
+        Calculate Cartesian tendencies. The default is False.
+    force_2nd_adv : bool, optional
+        Use 2nd-order fluxes. The default is False.
+    dz_out : bool, optional
+        In Cartesian correction terms: take derivatives of z out of vertical derivative.
+        The default is False.
+    corr_varz : bool, optional
+        In Cartesian correction terms if dz_out=True: use variable correctly staggered
+        in the vertical (depending on advection order). The default is True.
+
+    Returns
+    -------
+    flux : xarray Dataset
+        Decomposed advective fluxes in all three directions.
+    adv : xarray Dataarray
+        Decomposed advective tendencies from all three directions.
+    vmean : xarray Dataset
+        Mean velocities.
+    var_stag : xarray Dataset
+        Averaged variable VAR staggered to the grid of the three spatial fluxes.
+    corr : xarray Dataarray
+        Cartesian correction fluxes.
+
+    """
     print("Compute resolved tendencies")
 
     # get appropriate staggered variables, vertical velocity, and flux variables
@@ -1251,7 +1501,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
                 fac = dat_mean["RHOD_MEAN"]
             else:
                 fac = dat_mean["MUT_MEAN"]
-            if (comp in ["trb_r", "mean"]) and hor_avg:  # TODOm: correct?
+            if (comp in ["trb_r", "mean"]) and hor_avg:
                 mf_flx = avg_xy(mf_flx, avg_dims, cyclic=cyclic)
                 fac = avg_xy(fac, avg_dims, cyclic=cyclic)
             if not dz_out:
@@ -1305,7 +1555,53 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
 
 def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv, tend,
-                          cyclic, dz_out=False, hor_avg=False, avg_dims=None):
+                          cyclic=None, dz_out=False, hor_avg=False, avg_dims=None):
+    """
+    Compute cartesian corrections and apply them to advective and total tendencies.
+
+    Parameters
+    ----------
+    VAR : str
+        Variable to process.
+    dim_stag : str
+        Staggering dimension of variable.
+    corr : xarray Dataarray
+        Cartesian correction fluxes.
+    var_stag : xarray Dataset
+        Averaged variable VAR staggered to the grid of the three spatial fluxes.
+    vmean : xarray Dataset
+        Mean velocities.
+    rhodm : xarray Dataarray
+        Averaged density.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    adv : xarray Dataarray
+        Decomposed advective tendencies from all three directions.
+    tend : xarray Dataarray
+        Total tendency of VAR.
+    cyclic : dict of booleans for xy or None
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None.
+    dz_out : bool, optional
+        In Cartesian correction terms: take derivatives of z out of vertical derivative.
+        The default is False.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    adv : xarray Dataarray
+        Decomposed advective tendencies from all three directions
+        with Cartesian corrections included.
+    tend : xarray Dataarray
+        Total tendency of VAR with Cartesian correction included.
+    dcorr_dz : xarray Dataarray
+        Cartesian corrections as vertical derivative of correction fluxes.
+
+    """
     print("Compute Cartesian corrections")
     # decompose cartesian corrections
     # total
@@ -1358,11 +1654,42 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
     return adv, tend, dcorr_dz
 
 
-def total_tendency(dat_inst, var, grid, dz_out=False,
-                   hor_avg=False, avg_dims=None, cyclic=None, **attrs):
+def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
+                   hor_avg=False, avg_dims=None, cyclic=None):
+    """Compute total tendency.
+
+    Parameters
+    ----------
+    dat_inst : xarray Dataset
+        WRF instantaneous output.
+    VAR : str
+        Variable to process.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    attrs : dict
+        Global attributes of WRF output.
+    dz_out : bool, optional
+        In Cartesian correction terms: take derivatives of z out of vertical derivative.
+        The default is False.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+    cyclic : dict of booleans for xy, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None
+
+    Returns
+    -------
+    tend : xarray Dataarray
+        Total tendency of VAR.
+
+    """
     # instantaneous variable
     if var == "t":
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
+            # use moist theta
             if "THM" in dat_inst:
                 vard = dat_inst["THM"]
             else:
@@ -1395,12 +1722,59 @@ def total_tendency(dat_inst, var, grid, dz_out=False,
     return total_tend
 
 
-def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_time=None,
-                    budget_methods="castesian correct", pre_iloc=None, pre_loc=None,
+def calc_tendencies(variables, outpath, budget_methods="castesian correct",
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                     skip_exist=True, chunks=None, save_output=True, return_model_output=False,
                     **load_kw):
+    """Load WRF output and start tendency calculations according to the given budget methods.
+       MPI processing is available via the chunks argument.
 
+    Parameters
+    ----------
+    variables : list of str
+        List of variables to process.
+    outpath : str
+        Path to the WRF output directory.
+    budget_methods : str or list of str, optional
+        Budget calculation methods to apply. One method is a string that contains
+        keys from tools.budget_settings separated by a space.
+        Several methods can be combined in a list.
+        The default is "castesian correct".
+    t_avg : bool, optional
+        Average WRF output again over time. The default is False.
+    t_avg_interval : integer, optional
+        Interval for time averaging (number of output time steps) if t_avg=True.
+        The default is None.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+    skip_exist : bool, optional
+        Skip variables for which postprocessed output is already available. The default is True.
+    chunks : dict of integers, optional
+        Mapping from dimension "x" and/or "y" to chunk sizes. The domain is split into tiles
+        with the given chunk sizes which are postprocessed independently. If script is run with
+        mpirun, the tiles can be processed in parallel.
+        The default is None which disables chunking.
+    save_output : bool, optional
+        Save postprocessed output to disk. The default is True.
+    return_model_output : bool, optional
+        Also return WRF model output (dat_inst and dat_mean) for further calculations.
+        The default is False.
+    **load_kw :
+        Keyword arguments passed to load_data.
+
+    Returns
+    -------
+    datout : dict
+        Postprocessed output as nested dictionary.
+    dat_inst : xarray Dataset
+        Modified WRF instantaneous output. Only for return_model_output=True.
+    dat_mean : xarray Dataset
+        Modified WRF time-averaged output. Only for return_model_output=True.
+
+
+    """
     if hor_avg:
         avg = "_avg_" + "".join(avg_dims)
     else:
@@ -1421,15 +1795,13 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             else:
                 skip = False
 
-    load_kw = dict(inst_file=inst_file, mean_file=mean_file, start_time=start_time,
-                   pre_iloc=pre_iloc, pre_loc=pre_loc, **load_kw)
     kwargs = dict(budget_methods=budget_methods, t_avg=t_avg, t_avg_interval=t_avg_interval,
                   hor_avg=hor_avg, avg_dims=avg_dims, skip_exist=skip_exist,
                   save_output=save_output, return_model_output=return_model_output, **load_kw)
 
     if skip:
         print("Postprocessed output already available!")
-        out = {var: load_postproc(outpath, var, avg=avg) for var in variables}
+        out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
         if return_model_output:
             print("Load model output")
             dat_mean, dat_inst = load_data(outpath, **load_kw)
@@ -1444,7 +1816,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             if any([d in avg_dims for d in chunks.keys()]):
                 raise ValueError("Averaging dimensions cannot be used for chunking!")
         kwargs["return_model_output"] = False
-        all_tiles = create_tasks(outpath, chunks=chunks, **load_kw)
+        all_tiles = create_tiles(outpath, chunks=chunks, **load_kw)
         all_tiles = [(i, t) for i, t in enumerate(all_tiles)]
         tiles = all_tiles[rank::nproc]
 
@@ -1472,7 +1844,7 @@ def calc_tendencies(variables, outpath, inst_file=None, mean_file=None, start_ti
             comm.Barrier()
         if rank == 0:
             print("Load entire postprocessed output")
-            out = {var: load_postproc(outpath, var, avg=avg) for var in variables}
+            out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
             if return_model_output:
                 dat_mean, dat_inst = load_data(outpath, **load_kw)
                 out = [out, dat_inst, dat_mean]
@@ -1488,7 +1860,57 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
                          hor_avg=False, avg_dims=None, skip_exist=True, save_output=True,
                          return_model_output=True, **load_kw):
+    """Core function of calc_tendencies. Load WRF output and start tendency calculations
+       according to the given budget methods. Only process a certain tile, if desired.
 
+    Parameters
+    ----------
+    variables : list of str
+        List of variables to process.
+    outpath : str
+        Path to the WRF output directory.
+    budget_methods : str or list of str, optional
+        Budget calculation methods to apply. One method is a string that contains
+        keys from tools.budget_settings separated by a space.
+        Several methods can be combined in a list.
+        The default is "castesian correct".
+    tile : dict, optional
+        Tile to process. Mapping from dimension names to integer-based indexers.
+        The default is None.
+    task : integer, optional
+        ID number of current tile task. The default is None.
+    comm : mpi4py.MPI.Intracomm, optional
+        Intracommunicator for communication between MPI tasks. The default is None.
+    t_avg : bool, optional
+        Average WRF output again over time. The default is False.
+    t_avg_interval : integer, optional
+        Interval for time averaging (number of output time steps) if t_avg=True.
+        The default is None.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+    skip_exist : bool, optional
+        Skip variables for which postprocessed output is already available. The default is True.
+    save_output : bool, optional
+        Save postprocessed output to disk. The default is True.
+    return_model_output : bool, optional
+        Also return WRF model output (dat_inst and dat_mean) for further calculations.
+        The default is False.
+    **load_kw :
+        Keyword arguments passed to xr.open_dataset.
+
+
+    Returns
+    -------
+    datout : dict
+        Postprocessed output as nested dictionary.
+    dat_inst : xarray Dataset
+        Modified WRF instantaneous output. Only for return_model_output=True.
+    dat_mean : xarray Dataset
+        Modified WRF time-averaged output. Only for return_model_output=True.
+
+    """
     print("Load model output")
     dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
     dat_mean = dat_mean_all
@@ -1514,7 +1936,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
     else:
         avg = ""
 
-    dat_mean, dat_inst, grid, attrs = prepare(dat_mean, dat_inst, variables=variables,
+    dat_mean, dat_inst, grid, attrs = prepare(dat_mean, dat_inst, variables,
                                               cyclic=cyclic, t_avg=t_avg,
                                               t_avg_interval=t_avg_interval,
                                               hor_avg=hor_avg, avg_dims=avg_dims)
@@ -1533,7 +1955,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                     skip = False
             if skip:
                 print("Postprocessed output already available!")
-                datout_all[var] = load_postproc(outpath, var, avg=avg)
+                datout_all[var] = load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims)
                 continue
 
         dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac, \
@@ -1555,8 +1977,8 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                 raise ValueError("corr_varz can only be used together with dz_out!")
 
             # calculate total tendency
-            total_tend = total_tendency(dat_inst, var, grid, dz_out=c["dz_out"],
-                                        hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic, **attrs)
+            total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=c["dz_out"],
+                                        hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
 
             dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs,
                            hor_avg=hor_avg, avg_dims=avg_dims,
@@ -1634,6 +2056,8 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
             elif dn != "grid":
                 dat = dat.assign_coords(z=grid["Z_STAG"])
 
+            dat = dat.assign_attrs(attrs)
+
             da_type = False
             if type(dat) == DataArray:
                 da_type = True
@@ -1642,7 +2066,6 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
             for v in dat.variables:
                 dat[v].attrs = {k: v for k, v in dat[v].attrs.items() if k not in del_attrs}
 
-            dat = dat.assign_attrs(attrs)
             if tile is not None:
                 # strip tile boundary points
                 t_bounds = {}
@@ -1668,7 +2091,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                 if tile is None:
                     dat.to_netcdf(fpath)
                 else:
-                    save_tiles(dat, dn, fpath, dat_mean_all, task, tile, comm=comm)
+                    save_tiles(dat, dn, fpath, dat_mean_all.coords, task, tile, comm=comm)
 
             if da_type:
                 dat = dat[dn]
@@ -1687,7 +2110,8 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
 
 # %% tile processing
 
-def create_tasks(outpath, chunks, **load_kw):
+def create_tiles(outpath, chunks, **load_kw):
+    """Split processing domain into xy tiles according to the dictionary chunks."""
     print("Create tasks")
     dat_mean, dat_inst = load_data(outpath, **load_kw)
     tiles = []
@@ -1727,7 +2151,36 @@ def create_tasks(outpath, chunks, **load_kw):
     return tiles
 
 
-def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm=None):
+def save_tiles(dat, name, fpath, coords_all, task, tile, comm=None):
+    """Save current tile to disk.
+
+    If several tiles are processed in parallel,
+    the writing is also in parallel. The first task writes the
+    coordinate variables and global attributes.
+
+
+    Parameters
+    ----------
+    dat : xarray Dataset or DataArray
+        Data to save.
+    name : str
+        Name of data to save.
+    fpath : str
+        Save location.
+    coords_all : xarray Dataset
+        Coordinates of complete file.
+    tile : dict
+        Tile to process. Mapping from dimension names to integer-based indexers.
+    task : integer
+        ID number of current tile task.
+    comm : mpi4py.MPI.Intracomm, optional
+        Intracommunicator for communication between MPI tasks. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
     logger = logging.getLogger('l1')
     logger.debug("#" * 20 + "\n\n Writing {}".format(name))
     if os.path.isfile(fpath):
@@ -1742,7 +2195,7 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm=None):
 
     nc = netCDF4.Dataset(fpath, mode=mode, parallel=parallel, comm=comm)
     # coordinates of whole dataset
-    coords_all = {d: dat_mean_all[d].values for d in tile.keys() if d in dat.dims}
+    coords_all = {d: coords_all[d].values for d in tile.keys() if d in dat.dims}
     if mode == "w":
         tempfile = fpath + ".tmp"
         if task == 0:
@@ -1807,4 +2260,3 @@ def save_tiles(dat, name, fpath, dat_mean_all, task, tile, comm=None):
 
     if mode == "w":
         nc_dat.close()
-

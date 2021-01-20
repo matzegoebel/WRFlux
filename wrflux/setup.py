@@ -50,9 +50,9 @@ setup(
     author='Matthias Göbel',
     author_email='matthias-goebel@uibk.ac.at',
     keywords='WRF',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['xarray', 'seaborn', 'mpi4py'],
+    packages=find_packages(),
+    install_requires=['xarray', 'matplotlib', 'netcdf4', 'bottleneck'],
     extras_require={
-        'test': ['pytest'],
+        'test': ['pytest', 'run_wrf'],
     },
 )

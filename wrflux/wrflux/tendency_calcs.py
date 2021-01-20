@@ -47,6 +47,8 @@ t_avg = False  # average again over time
 t_avg_interval = None  # size of the time averaging window
 
 # select data before processing #TODO stag?
+# staggered dimension must have one gridpoint more than unstaggered
+
 # pre_iloc = {"y" : slice(0,10), "y_stag" : slice(0,11)} #indices (do not use for Time!)
 pre_iloc = None  # indices (do not use for Time!)
 # pre_loc = {"Time": slice("2018-06-20 12:30:00", None)}  # labels

@@ -15,13 +15,15 @@ from run_wrf.configs.base_config import *
 from copy import deepcopy
 params = deepcopy(params)
 
+
+mpiexec = "/usr/bin/mpiexec"
 # %%
 '''Simulations settings'''
 
 runID = "pytest"  # name for this simulation series
-
-params["outpath"] = os.environ["wrf_res"] + "/test/" + runID  # WRF output path root
-params["run_path"] = os.environ["wrf_runs"] + "/test/" + runID  # path where run directories of simulations will be created
+test_path = os.path.abspath(os.path.dirname(__file__)) + "/test_sims/"
+params["outpath"] = test_path + "/results/"  # WRF output path root
+params["run_path"] = test_path + "/runs/"  # path where run directories of simulations will be created
 params["build_path"] = os.environ["wrf_builds"]  # path where different versions of the compiled WRF model code reside
 serial_build = "WRF_fluxmod"  # used if nslots=1
 parallel_build = "WRF_fluxmod"  # used if nslots > 1
@@ -35,7 +37,11 @@ param_names = {"th": ["thd", "thm", "thdm"],
                "v_adv_order": [2, 3],
                "adv_order": o,
                "bc": ["open"],
-               "timing": ["short"]}
+               "timing": ["short"],
+               "open_x": [True],
+               "open_y": [True],
+               "symm_x": [True],
+               "symm_y": [True]}
 
 # Fill dictionary params with default values to be used for parameters not present in param_grid
 

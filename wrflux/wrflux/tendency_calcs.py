@@ -35,7 +35,7 @@ start = datetime.datetime.now()
 
 # %%settings
 # path to WRF output
-outpath = os.path.abspath(os.path.dirname(__file__)) + "/test/"
+outpath = os.path.abspath(os.path.dirname(__file__)) + "/example/"
 a = "out_d01_2018-06-20_12:00:00"
 mean_file = "mean" + a
 inst_file = "wrf" + a
@@ -94,7 +94,7 @@ if rank == 0:
     kw = dict(
         avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
         plot=True,  # scatter plots for failed tests
-        # plot_diff = True, #plot difference between forcing and tendency against tendency
+        # plot_diff=True, #plot difference between forcing and tendency against tendency
         discrete=True,  # discrete colormap
         # hue="x",
         ignore_missing_hue=True,
@@ -110,7 +110,7 @@ if rank == 0:
     pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp")
-    plt.savefig("tend_profile.pdf")
+    plt.savefig(outpath + "/tend_profile.pdf")
 
 # %% elapsed time
 

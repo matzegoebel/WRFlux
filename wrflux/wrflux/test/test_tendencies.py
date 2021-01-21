@@ -371,15 +371,14 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
             test_file = f.read()
         if test_file == org_file:
             return
-
-        # copy file and recompile
-        m = "Copy"
-        shutil.copy(fpath, fpath + ".org")
-        shutil.copy(test_path + "/" + testf + fname, fpath)
-        print(m + " module_initialize_ideal.F and recompile")
-        os.chdir(wrf_path)
-        os.system("./compile em_les > log 2> err")
-        os.chdir(test_path)
+        else:
+            m = "Copy"
+            shutil.copy(fpath, fpath + ".org")
+            shutil.copy(test_path + "/" + testf + fname, fpath)
+    print(m + " module_initialize_ideal.F and recompile")
+    os.chdir(wrf_path)
+    os.system("./compile em_les > log 2> err")
+    os.chdir(test_path)
 
 
 # %%main

@@ -300,8 +300,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
     failed = failed.where(~failed.isnull(), "")
     failed.to_csv(res_file + now + ".csv")
     err.to_csv(scores_file + now + ".csv")
-    failed_short.to_csv(res_file + "_failsonly_" + now + ".csv")
-    err_short.to_csv(scores_file + "_failsonly_" + now + ".csv")
+    failed_short.to_csv(res_file + "failsonly_" + now + ".csv")
+    err_short.to_csv(scores_file + "failsonly_" + now + ".csv")
 
     if (failed_short != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())

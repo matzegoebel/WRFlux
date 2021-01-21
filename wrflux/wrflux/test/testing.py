@@ -117,17 +117,17 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     dat = data.sel(ID="cartesian") + corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
     failed = False
-    if e < thresh:
-        log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.7f}".format(dat.description, thresh, e)
+    if err < thresh:
+        log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.7f}".format(dat.description, thresh, err)
         print(log)
         if plot:
             dat.name = "cartesian"
             ref.name = "native"
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
-    return failed, e
+    return failed, err
 
 
 def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
@@ -228,22 +228,22 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     dat = adv.sel(ID="cartesian dz_out corr_varz")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
-    if e < thresh:
-        log = "test_dz_out, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, e)
+    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    if err < thresh:
+        log = "test_dz_out, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
         if plot:
             dat.name = "dz_out corr_varz"
             ref.name = "reference corr."
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
-    return failed, e
+    return failed, err
 
 
 def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the advective tendencies resulting from 2nd-order and
     correct advection order are equal in all three directions and components
-    (usually carried out if correct order is 2nd order).
+    (usually carried out if correct order is equal to 2nd order).
 
     The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
     is below the given threshold. If avg_dims_error is given, the averaging in the
@@ -331,15 +331,15 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
     ref = dat_inst["W"]
     dat = dat_inst["W_DIAG"]
-    e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
     failed = False
-    if e < thresh:
-        log = "test_w: min. NSE less than {}: {:.5f}".format(thresh, e)
+    if err < thresh:
+        log = "test_w: min. NSE less than {}: {:.5f}".format(thresh, err)
         print(log)
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
-    return failed, e
+    return failed, err
 
 
 def test_nan(datout, cut_bounds=None):
@@ -369,6 +369,7 @@ def test_nan(datout, cut_bounds=None):
         if type(d) == tools.xr.core.dataarray.DataArray:
             d = d.to_dataset(name=f)
             da = True
+
         if cut_bounds is not None:
             for dim in cut_bounds:
                 for stag in ["", "_stag"]:

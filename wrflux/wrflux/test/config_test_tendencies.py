@@ -15,19 +15,23 @@ from run_wrf.configs.base_config import *
 from copy import deepcopy
 params = deepcopy(params)
 
-
-mpiexec = "/usr/bin/mpiexec"
+# path to mpiexec or mpirun executable to use; if None: use the system default
+mpiexec = None
 # %%
 '''Simulations settings'''
 
 runID = "pytest"
-test_path = os.path.abspath(os.path.dirname(__file__)) + "/test_sims/"
-params["outpath"] = test_path + "/results/"  # WRF output path root
-params["run_path"] = test_path + "/runs/"  # path where run directories of simulations will be created
-params["build_path"] = os.environ["wrf_builds"]  # path where different versions of the compiled WRF model code reside
-serial_build = "WRF_fluxmod"  # used if nslots=1
-parallel_build = "WRF_fluxmod"  # used if nslots > 1
-debug_build = "WRF_fluxmod_debug"  # used for -d option
+test_path = os.path.abspath(os.path.dirname(__file__))
+test_sims = test_path + "/test_sims/"
+params["outpath"] = test_sims + "/results/"  # WRF output path root
+params["run_path"] = test_sims + "/runs/"  # path where run directories of simulations will be created
+
+# path where different versions of the compiled WRF model code reside
+build_path = os.path.abspath(test_path + "/../../../../")
+params["build_path"] = build_path
+serial_build = "WRFlux"  # used if nslots=1
+parallel_build = "WRFlux"  # used if nslots > 1
+debug_build = "WRFlux_debug"  # used for -d option
 
 o = np.arange(2, 7)
 # names of parameter values for output filenames

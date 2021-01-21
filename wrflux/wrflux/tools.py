@@ -11,7 +11,6 @@ Functions to calculate time-averaged tendencies from fluxes
 """
 import xarray as xr
 import logging
-import decimal
 import netCDF4
 import sys
 import numpy as np
@@ -1293,7 +1292,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
 
 
 def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims=None,
-             cartesian=False, force_2nd_adv=False, dz_out=False, corr_varz=True):
+             cartesian=True, force_2nd_adv=False, dz_out=False, corr_varz=True):
     """Compute advective tendencies decomposed into mean and resolved turbulent.
 
     Also return Cartesian corrections, but do not apply them yet.

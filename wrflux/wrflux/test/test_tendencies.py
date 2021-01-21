@@ -65,14 +65,13 @@ kw = dict(
 # %% budget calculation methods
 budget_methods = [
                  [],
-                 ["cartesian", "correct"]]
+                 ["cartesian"]]
 budget_methods_2nd = [
                      ["cartesian", "2nd"],
-                     ["cartesian", "correct", "2nd"],
                      ["cartesian"]]
 budget_methods_dzout = [
-                       ["cartesian", "correct", "dz_out"],
-                       ["cartesian", "correct", "dz_out", "corr_varz"]]
+                       ["cartesian", "dz_out"],
+                       ["cartesian", "dz_out", "corr_varz"]]
 
 
 # %%test functions

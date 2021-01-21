@@ -18,7 +18,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     """
     Test closure of budget: tend = forcing.
 
-    Only the budget methods "native" and "cartesian correct" are tested.
+    Only the budget methods "native" and "cartesian" are tested.
     The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
     is below the given threshold. If avg_dims_error is given, the averaging in the
     NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
@@ -53,7 +53,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     """
     failed = False
     err = []
-    for ID in ["native", "cartesian correct"]:
+    for ID in ["native", "cartesian"]:
         if ID not in tend.ID:
             continue
         ref = tend.sel(ID=ID, drop=True)
@@ -76,7 +76,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
 def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
                        loc=None, iloc=None, plot=True, **plot_kws):
     """
-    Test that budget methods "native" and "cartesian correct" give equal advective tendencies
+    Test that budget methods "native" and "cartesian" give equal advective tendencies
     in all components if the three spatial directions are summed up.
 
     The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
@@ -114,7 +114,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     """
     data = adv.sel(dir="sum")
     ref = data.sel(ID="native")
-    dat = data.sel(ID="cartesian correct") + corr.sel(ID="cartesian correct", dir="T")
+    dat = data.sel(ID="cartesian") + corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -189,7 +189,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
 
 def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the Cartesian corrections imposed by the budget methods
-    "cartesian correct" and "cartesian correct dz_out corr_varz" lead to
+    "cartesian" and "cartesian dz_out corr_varz" lead to
     similar advective tendencies in all three directions and components.
 
     The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
@@ -224,8 +224,8 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
 
     """
     failed = False
-    ref = adv.sel(ID="cartesian correct")
-    dat = adv.sel(ID="cartesian correct dz_out corr_varz")
+    ref = adv.sel(ID="cartesian")
+    dat = adv.sel(ID="cartesian dz_out corr_varz")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -277,30 +277,20 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
 
     """
     failed = False
-    err = []
-    for correct in [False, True]:
-        ID = "cartesian"
-        without = "out"
-        if correct:
-            without = ""
-            ID += " correct"
-        ID2 = ID + " 2nd"
-        ref = adv.sel(ID=ID)
-        dat = adv.sel(ID=ID2)
-        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
-        err.append(e)
-        if e < thresh:
-            log = "test_2nd with{} corrections, {} (XYZ): min. NSE less than {}: {:.5f}".format(
-                without, dat.description, thresh, e)
-            print(log)
-            if plot:
-                ref.name = "correct order"
-                dat.name = "2nd order"
-                plotting.scatter_hue(dat, ref, title=log, **plot_kws)
-            failed = True
-    return failed, min(err)
+    ref = adv.sel(ID="cartesian")
+    dat = adv.sel(ID="cartesian 2nd")
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    if err < thresh:
+        log = "test_2nd, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, err)
+        print(log)
+        if plot:
+            ref.name = "correct order"
+            dat.name = "2nd order"
+            plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+        failed = True
+    return failed, err
 
 
 def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
@@ -402,12 +392,12 @@ def test_y0(adv, thresh=(1e-6, 5e-2)):
     """Test whether the advective tendency resulting from fluxes in y-direction is,
     on average, much smaller than the one resulting from fluxes in x-direction. This
     should be the case if the budget is averaged over y. The average absolute ratio is
-    compared to the given thresholds for the two budget methods "native" and "cartesian correct".
+    compared to the given thresholds for the two budget methods "native" and "cartesian".
     """
     failed = False
     dims = [d for d in adv.dims if d not in ["dir", "ID"]]
     f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).mean(dims)
-    for ID, thresh in zip(["native", "cartesian correct"], thresh):
+    for ID, thresh in zip(["native", "cartesian"], thresh):
         fi = f.loc[ID].values
         if fi > thresh:
             print("test_y0 failed for ID={}!: mean(|adv_y/adv_x|) = {} > {}".format(ID, fi, thresh))

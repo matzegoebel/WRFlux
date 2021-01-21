@@ -71,7 +71,7 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 # all settings to test
 budget_methods = [
     [],
-    ["cartesian", "correct"],
+    ["cartesian"],
 ]
 
 # %% calc tendencies

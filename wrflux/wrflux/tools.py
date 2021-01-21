@@ -79,9 +79,9 @@ outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "correct", "dz_out", "force_2nd_adv", "corr_varz"]
+budget_settings = ["cartesian", "dz_out", "force_2nd_adv", "corr_varz"]
 # abbreviations for settings
-settings_short_names = {"2nd": "force_2nd_adv", "corr": "correct"}
+settings_short_names = {"2nd": "force_2nd_adv"}
 
 # %%open dataset
 
@@ -1695,7 +1695,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     return total_tend
 
 
-def calc_tendencies(variables, outpath, budget_methods="castesian correct",
+def calc_tendencies(variables, outpath, budget_methods="castesian",
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                     skip_exist=True, chunks=None, save_output=True, return_model_output=False,
                     **load_kw):
@@ -1712,7 +1712,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian correct",
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
         Several methods can be combined in a list.
-        The default is "castesian correct".
+        The default is "castesian".
     t_avg : bool, optional
         Average WRF output again over time. The default is False.
     t_avg_interval : integer, optional
@@ -1835,7 +1835,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian correct",
         return calc_tendencies_core(variables, outpath, **kwargs)
 
 
-def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
+def calc_tendencies_core(variables, outpath, budget_methods="castesian",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
                          hor_avg=False, avg_dims=None, skip_exist=True, save_output=True,
                          return_model_output=True, **load_kw):
@@ -1852,7 +1852,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
         Several methods can be combined in a list.
-        The default is "castesian correct".
+        The default is "castesian".
     tile : dict, optional
         Tile to process. Mapping from dimension names to integer-based indexers.
         The default is None.
@@ -1971,7 +1971,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
 
             datout_c["tend"] = total_tend
 
-            if c["correct"] and c["cartesian"]:
+            if c["cartesian"]:
                 out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
                                             total_tend, cyclic, dz_out=c["dz_out"],
@@ -2015,7 +2015,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian correct",
                                                      units=units)
         datout["sources"] = sources.assign_attrs(description="{}-tendency sources".format(VAR),
                                                  units=units)
-        if c["correct"] and c["cartesian"]:
+        if c["cartesian"]:
             datout["corr"] = datout["corr"].assign_attrs(
                 description="{}-tendency correction".format(VAR), units=units)
         grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(

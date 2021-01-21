@@ -9,7 +9,8 @@ from wrflux import tools, plotting
 import pandas as pd
 import os
 
-
+all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
+             "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
@@ -71,7 +72,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     return failed, min(err)
 
 
-def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999,
+def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
                        loc=None, iloc=None, plot=True, **plot_kws):
     """
     Test that budget methods "native" and "cartesian correct" give equal advective tendencies
@@ -110,11 +111,9 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.999999,
         Test statistic NSE
 
     """
-    ID = "native"
-    ID2 = "cartesian correct"
     data = adv.sel(dir="sum")
-    ref = data.sel(ID=ID)
-    dat = data.sel(ID=ID2) + corr.sel(ID=ID2, dir="T")
+    ref = data.sel(ID="native")
+    dat = data.sel(ID="cartesian correct") + corr.sel(ID="cartesian correct", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -224,11 +223,8 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
 
     """
     failed = False
-    ID = "cartesian correct"
-    ID2 = "cartesian correct dz_out corr_varz"
-
-    ref = adv.sel(ID=ID)
-    dat = adv.sel(ID=ID2)
+    ref = adv.sel(ID="cartesian correct")
+    dat = adv.sel(ID="cartesian correct dz_out corr_varz")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -279,24 +275,17 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
         Test statistic NSE
 
     """
-    base = "cartesian"
     failed = False
     err = []
     for correct in [False, True]:
-        ID = base
+        ID = "cartesian"
         without = "out"
         if correct:
             without = ""
             ID += " correct"
         ID2 = ID + " 2nd"
-        for i in [ID, ID2]:
-            if i not in adv.ID:
-                raise ValueError("Could not find output of budget method '{}'".format(i))
-
-        data = adv
-
-        ref = data.sel(ID=ID)
-        dat = data.sel(ID=ID2)
+        ref = adv.sel(ID=ID)
+        dat = adv.sel(ID=ID2)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
         e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -313,7 +302,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     return failed, min(err)
 
 
-def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
+def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the instantaneous vertical velocity is very similar to the
     instantaneous diagnosed vertical velocity used in the tendency calculations.
 
@@ -349,7 +338,6 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plo
 
     """
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
-
     ref = dat_inst["W"]
     dat = dat_inst["W_DIAG"]
     e = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -423,7 +411,7 @@ def test_y0(adv, thresh=(1e-6, 5e-2)):
         if fi > thresh:
             print("test_y0 failed for ID={}!: mean(|adv_y/adv_x|) = {} > {}".format(ID, fi, thresh))
             failed = True
-    return failed
+    return failed, f.values
 
 
 # %% run_tests
@@ -435,8 +423,8 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
 
     Parameters
     ----------
-    datout : TYPE
-        DESCRIPTION.
+    datout : nested dict
+        Postprocessed output for all variables.
     tests : list of str
         Tests to perform.
         Choices: budget, decomp_sumdir, decomp_sumcomp, dz_out, adv_2nd, w, Y=0, NaN
@@ -462,11 +450,10 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
 
     """
     if tests is None:
-        tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
-                 "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
+        tests = all_tests
 
     variables = list(datout.keys())
-    # cut boundaries for non-periodic BC
+    # cut boundaries for non-periodic BC or if chunking was used
     attrs = datout[variables[0]]["flux"].attrs
     iloc = {}
     if (not attrs["PERIODIC_X"]) or (chunks is not None and "x" in chunks):
@@ -477,6 +464,7 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     if attrs["PERIODIC_Y"] == 0:
         if "Y=0" in tests:
             tests.remove("Y=0")
+    # for w test: cut first time step
     dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
 
     for datout_v in datout.values():
@@ -492,11 +480,10 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     for var, datout_v in datout.items():
         print("Variable: " + var)
         figloc = "{}/figures/{}/".format(fpath, var)
-        # tests
         failed_i = {}
         err_i = {}
         if "budget" in tests:
-            # TODOm: change threshold depending on ID
+            # TODOm: change threshold depending on ID?
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc + "/budget/"
@@ -504,22 +491,23 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
 
         adv = datout_v["adv"]
         if "decomp_sumdir" in tests:
-            thresh = 0.99999
             if trb_exp or hor_avg or (attrs["HESSELBERG_AVG"] == 0):
                 # reduce threshold
-                thresh = 0.992
+                kw["thresh"] = 0.992
             kw["figloc"] = figloc + "/decomp_sumdir/"
             failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
-                adv, datout_v["corr"], thresh=thresh, **kw)
+                adv, datout_v["corr"], **kw)
+            if "thresh" in kw:
+                del kw["thresh"]
 
         if "decomp_sumcomp" in tests:
-            thresh = 0.9999999999
             if trb_exp:
                 # reduce threshold for explicit turbulent fluxes
-                thresh = 0.995
+                kw["thresh"] = 0.995
             kw["figloc"] = figloc + "/decomp_sumcomp/"
-            failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(
-                adv, thresh=thresh, **kw)
+            failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(adv, **kw)
+            if "thresh" in kw:
+                del kw["thresh"]
 
         if ("dz_out" in tests) and (var != "q"):  # TODOm: why so bad for q?
             kw["figloc"] = figloc + "/dz_out/"
@@ -530,6 +518,7 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
             failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
 
         if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
+            # only do test once: for last variable
             kw["figloc"] = figloc + "/w/"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
 
@@ -537,8 +526,9 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
             failed_i["NaN"] = test_nan(datout_v)
 
         if hor_avg and ("Y=0" in tests):
-            failed_i["Y=0"] = test_y0(adv)
+            failed_i["Y=0"], err_i["Y=0"] = test_y0(adv)
 
+        # store results
         for test, f in failed_i.items():
             if f:
                 failed.loc[var, test] = "FAIL"

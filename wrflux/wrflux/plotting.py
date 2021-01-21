@@ -82,6 +82,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     if (hue not in pdat.dims) and (hue + "_stag" in pdat.dims):
         hue = hue + "_stag"
 
+    # create integer hue variable to allow non-numeric hue variables
     n_hue = len(pdat[hue])
     hue_int = np.arange(n_hue)
     pdat = pdat.assign_coords(hue=(hue, hue_int))
@@ -92,18 +93,20 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     if ("bottom_top" in hue) and (not discrete):
         color = -pdatf[hue]
     elif (hue == "Time") and (not discrete):
+        # use integer hue variable to prevent error
         color = pdatf["hue"]
     else:
         color = pdatf[hue]
         try:
             color.astype(int)  # check if hue is numeric
-        except:
+        except ValueError:
             discrete = True
         if discrete:
             cmap = plt.get_cmap("tab20", n_hue)
             if n_hue > 20:
                 raise ValueError("Too many different hue values for cmap tab20!")
             discrete = True
+            # use integer hue variable to prevent error
             color = pdatf["hue"]
 
     kwargs.setdefault("cmap", cmap)
@@ -111,6 +114,8 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     fig, ax = plt.subplots()
     kwargs.setdefault("s", 10)
     p = plt.scatter(pdat[1], pdat[0], c=color.values, **kwargs)
+
+    # set x and y labels
     labels = []
     for d in [ref, dat]:
         label = ""
@@ -119,9 +124,9 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         elif "description" in d.attrs:
             label = d.description
         labels.append(label)
-
-    if (labels[0] != "") and (labels[1] != "") and plot_diff:
+    if plot_diff and (labels[0] != "") and (labels[1] != ""):
         labels[1] = "{} - {}".format(labels[1], labels[0])
+    # add units
     for i, d in enumerate([ref, dat]):
         if (labels[i] != "") and ("units" in d.attrs):
             labels[i] += " ({})".format(d.units)
@@ -130,8 +135,10 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
 
     for i in [0, 1]:
         pdat = pdat.where(~pdat[i].isnull())
+    # set axis limits equal for x and y axis
     if not plot_diff:
         minmax = [pdat.min(), pdat.max()]
+        # tak full range of data increased by 3%
         dist = minmax[1] - minmax[0]
         minmax[0] -= 0.03 * dist
         minmax[1] += 0.03 * dist
@@ -148,20 +155,21 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         clabel = "$\eta$"
     if ("bottom_top" in hue) and (not discrete):
         cb = plt.colorbar(p, cax=cax, label=clabel)
+        # highest value must be at bottom
         cb.set_ticks(np.arange(-0.8, -0.2, 0.2))
         cb.set_ticklabels(np.linspace(0.8, 0.2, 4).round(1))
     else:
         cb = plt.colorbar(p, cax=cax, label=clabel)
         if discrete:
+            # set ticks for all hue values
             if n_hue > 1:
                 d = (n_hue - 1) / n_hue
                 cb.set_ticks(np.arange(d / 2, n_hue - 1, d))
             else:
                 cb.set_ticks([0])
-
             cb.set_ticklabels(pdat[hue].values)
 
-    # error labels
+    # labels for error stats
     err = abs(dat - ref)
     rmse = (err**2).mean().values**0.5
     ns = tools.nse(dat, ref)

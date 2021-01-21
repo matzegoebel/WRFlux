@@ -20,7 +20,7 @@ mpiexec = "/usr/bin/mpiexec"
 # %%
 '''Simulations settings'''
 
-runID = "pytest"  # name for this simulation series
+runID = "pytest"
 test_path = os.path.abspath(os.path.dirname(__file__)) + "/test_sims/"
 params["outpath"] = test_path + "/results/"  # WRF output path root
 params["run_path"] = test_path + "/runs/"  # path where run directories of simulations will be created

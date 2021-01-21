@@ -27,7 +27,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-# Always prefer setuptools over distutils
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
@@ -43,7 +42,8 @@ here = path.abspath(path.dirname(__file__))
 setup(
     name='wrflux',
     version='1.0',
-    description='With this package tendencies of the WRF model can be assessed.',
+    description='With this package time-averaged tendencies of the WRF model can be retrieved '
+    'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
     # ~ long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/matzegoebel/wrflux',

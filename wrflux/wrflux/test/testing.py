@@ -66,7 +66,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
             log = "test_budget for ID='{}': min. NSE less than {}: {:.5f}\n".format(ID, thresh, e)
             print(log)
             if plot:
-                dat = dat.assign_attrs(description=dat.description[:2] + "forcing")
+                dat.name = dat.description[:2] + "forcing"
+                ref.name = ref.description
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)
@@ -122,8 +123,8 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
         log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.7f}".format(dat.description, thresh, e)
         print(log)
         if plot:
-            dat = dat.assign_attrs(description="cartesian")
-            ref = ref.assign_attrs(description="native")
+            dat.name = "cartesian"
+            ref.name = "native"
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
     return failed, e
@@ -179,8 +180,8 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
                 dat.description, ID, thresh, e)
             print(log)
             if plot:
-                ref = ref.assign_attrs(description="adv_r")
-                dat = dat.assign_attrs(description="mean + trb_r")
+                ref.name = "adv_r"
+                dat.name = "mean + trb_r"
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)
@@ -232,8 +233,8 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
         log = "test_dz_out, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, e)
         print(log)
         if plot:
-            dat = dat.assign_attrs(description="dz_out corr_varz")
-            ref = ref.assign_attrs(description="reference corr.")
+            dat.name = "dz_out corr_varz"
+            ref.name = "reference corr."
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True
     return failed, e
@@ -295,8 +296,8 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
                 without, dat.description, thresh, e)
             print(log)
             if plot:
-                ref = ref.assign_attrs(description="correct order")
-                dat = dat.assign_attrs(description="2nd order")
+                ref.name = "correct order"
+                dat.name = "2nd order"
                 plotting.scatter_hue(dat, ref, title=log, **plot_kws)
             failed = True
     return failed, min(err)

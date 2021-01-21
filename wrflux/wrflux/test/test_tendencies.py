@@ -20,6 +20,8 @@ from wrflux.test import testing
 import pandas as pd
 import importlib
 import numpy as np
+import datetime
+now = datetime.datetime.now().isoformat()[:16]
 XY = ["X", "Y"]
 test_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -195,6 +197,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
                     failed[ind].loc["RUN", variables[0]] = "FAIL"
                     continue
 
+        res_file = test_path + "/test_results_" + now + ".csv"
+        scores_file = test_path + "/test_scores_" + now + ".csv"
         for cname, param_comb in param_combs.iterrows():
             if cname in ["core_param", "composite_idx"]:
                 continue
@@ -254,8 +258,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
                     failed[ind].loc[test, var] = f
                 for test, e in err_i.loc[var].items():
                     err[ind].loc[test, var] = e
-            failed.to_csv(test_path + "/test_results.csv")
-            err.to_csv(test_path + "/test_scores.csv")
+            failed.to_csv(res_file)
+            err.to_csv(scores_file)
 
     if restore_init_module:
         for deb in tools.make_list(debug):
@@ -273,17 +277,19 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
     failed_short = failed_short.where(failed_short != "").dropna(how="all").dropna(axis=1, how="all")
     failed_short = failed_short.where(~failed_short.isnull(), "")
 
-    err_short = err.where(failed == "FAIL").dropna(how="all").dropna(axis=1, how="all")
+    err_short = err.where(failed == "FAIL")
+    err_short = err_short.where(~err_short.isnull(), "")
+    err_short = err_short.where(err_short != "").dropna(how="all").dropna(axis=1, how="all")
     err_short = err_short.where(~err_short.isnull(), "")
     err = err.where(err != "").dropna(how="all").dropna(axis=1, how="all")
     err = err.where(~err.isnull(), "")
     failed = failed.where(failed != "").dropna(how="all").dropna(axis=1, how="all")
     failed = failed.where(~failed.isnull(), "")
 
-    failed.to_csv(test_path + "/test_results.csv")
-    err.to_csv(test_path + "/test_scores.csv")
-    failed_short.to_csv(test_path + "/test_results_failsonly.csv")
-    err_short.to_csv(test_path + "/test_scores_failsonly.csv")
+    failed.to_csv(res_file)
+    err.to_csv(scores_file)
+    failed_short.to_csv(test_path + "/test_results_failsonly" + now + ".csv")
+    err_short.to_csv(test_path + "/test_scores_failsonly" + now + ".csv")
     if (failed_short != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
         if raise_error:

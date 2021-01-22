@@ -189,7 +189,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
 
 def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the Cartesian corrections imposed by the budget methods
-    "cartesian" and "cartesian dz_out corr_varz" lead to
+    "cartesian" and "cartesian dz_out_z" lead to
     similar advective tendencies in all three directions and components.
 
     The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
@@ -225,7 +225,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     """
     failed = False
     ref = adv.sel(ID="cartesian")
-    dat = adv.sel(ID="cartesian dz_out corr_varz")
+    dat = adv.sel(ID="cartesian dz_out_z")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     err = tools.nse(dat, ref, dim=avg_dims_error).min().values
@@ -233,7 +233,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
         log = "test_dz_out, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
         if plot:
-            dat.name = "dz_out corr_varz"
+            dat.name = "dz_out_z"
             ref.name = "reference corr."
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
         failed = True

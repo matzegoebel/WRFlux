@@ -78,7 +78,7 @@ outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "dz_out", "force_2nd_adv", "corr_varz"]
+budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv"]
 # abbreviations for settings
 settings_short_names = {"2nd": "force_2nd_adv"}
 
@@ -1292,7 +1292,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
 
 
 def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims=None,
-             cartesian=True, force_2nd_adv=False, dz_out=False, corr_varz=True):
+             cartesian=True, force_2nd_adv=False, dz_out_x=False, dz_out_z=False):
     """Compute advective tendencies decomposed into mean and resolved turbulent.
 
     Also return Cartesian corrections, but do not apply them yet.
@@ -1320,12 +1320,14 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         Calculate Cartesian tendencies. The default is False.
     force_2nd_adv : bool, optional
         Use 2nd-order fluxes. The default is False.
-    dz_out : bool, optional
+    dz_out_x : bool, optional
         In Cartesian correction terms: take derivatives of z out of vertical derivative.
+        Stagger horizontal flux to the grid of the vertical flux.
         The default is False.
-    corr_varz : bool, optional
-        In Cartesian correction terms if dz_out=True: use variable correctly staggered
-        in the vertical (depending on advection order). The default is True.
+    dz_out_z : bool, optional
+        In Cartesian correction terms: take derivatives of z out of vertical derivative.
+        Use variable correctly staggered in the vertical (depending on advection order).
+        The default is True.
 
     Returns
     -------
@@ -1396,8 +1398,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         tot_flux = tot_flux.drop("dir")
 
     # Use alternative corrections
-    if dz_out:
-        if corr_varz:
+    dz_out = False
+    if dz_out_x or dz_out_z:
+        dz_out = True
+        if dz_out_z:
             corr.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
             corr.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
         else:
@@ -1950,19 +1954,21 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
             c, comb, IDc = get_budget_method(comb.copy())
             IDcs.append(IDc)
             print("\n" + IDc)
-            if c["dz_out"]:
+            dz_out = False
+            if c["dz_out_x"] or c["dz_out_z"]:
+                dz_out = True
                 if not c["cartesian"]:
-                    raise ValueError("dz_out can only be used for cartesian calculations!")
-            elif c["corr_varz"]:
-                raise ValueError("corr_varz can only be used together with dz_out!")
+                    raise ValueError("dz_out can only be used for Cartesian calculations!")
+                if c["dz_out_x"] and c["dz_out_z"]:
+                    raise ValueError("dz_out_x and dz_out_z cannot be used at the same time!")
 
-            total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=c["dz_out"],
+            total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
                                         hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
             # advective tendency
             dat = adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs,
                            hor_avg=hor_avg, avg_dims=avg_dims,
                            cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
-                           dz_out=c["dz_out"], corr_varz=c["corr_varz"])
+                           dz_out_x=c["dz_out_x"], dz_out_z=c["dz_out_z"])
             if dat is None:
                 continue
             else:
@@ -1973,7 +1979,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
             if c["cartesian"]:
                 out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
-                                            total_tend, cyclic, dz_out=c["dz_out"],
+                                            total_tend, cyclic, dz_out=dz_out,
                                             hor_avg=hor_avg, avg_dims=avg_dims)
                 datout_c["adv"], datout_c["tend"], datout_c["corr"] = out
             # add all forcings

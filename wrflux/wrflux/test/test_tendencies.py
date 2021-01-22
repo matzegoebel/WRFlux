@@ -70,8 +70,8 @@ budget_methods_2nd = [
                      ["cartesian", "2nd"],
                      ["cartesian"]]
 budget_methods_dzout = [
-                       ["cartesian", "dz_out"],
-                       ["cartesian", "dz_out", "corr_varz"]]
+                       ["cartesian", "dz_out_x"],
+                       ["cartesian", "dz_out_z"]]
 
 
 # %%test functions

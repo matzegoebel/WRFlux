@@ -10,6 +10,7 @@ Test settings for automated tests.
 
 """
 import os
+from pathlib import Path
 import numpy as np
 from run_wrf.configs.base_config import *
 from copy import deepcopy
@@ -21,13 +22,13 @@ mpiexec = None
 '''Simulations settings'''
 
 runID = "pytest"
-test_path = os.path.abspath(os.path.dirname(__file__))
-test_sims = test_path + "/test_sims/"
-params["outpath"] = test_sims + "/results/"  # WRF output path root
-params["run_path"] = test_sims + "/runs/"  # path where run directories of simulations will be created
+test_path = Path(__file__).parent
+test_sims = test_path / "test_sims"
+params["outpath"] = str(test_sims / "results")  # WRF output path root
+params["run_path"] = str(test_sims / "runs")  # path where run directories of simulations will be created
 
 # path where different versions of the compiled WRF model code reside
-build_path = os.path.abspath(test_path + "/../../../../")
+build_path = str(test_path.parents[3])
 params["build_path"] = build_path
 serial_build = "WRFlux"  # used if nslots=1
 parallel_build = "WRFlux"  # used if nslots > 1

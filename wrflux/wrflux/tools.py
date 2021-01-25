@@ -16,6 +16,7 @@ import sys
 import numpy as np
 
 import os
+from pathlib import Path
 import pandas as pd
 from datetime import datetime
 from functools import partial
@@ -766,7 +767,7 @@ def load_data(outpath, inst_file, mean_file,
     ----------
     outpath : str
         Path to the WRF output directory.
-    inst_file : str
+    inst_file : str or path-like
         Name of the output file containing instantaneous data.
     mean_file : str
         Name of the output file containing time-averaged data.
@@ -817,7 +818,7 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
 
     Parameters
     ----------
-    outpath : str
+    outpath : str or path-like
         Path to the WRF output data.
     var : str
         Variable to load postprocessed output of.
@@ -837,9 +838,9 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
     else:
         avg = ""
     datout = {}
-    outpath = os.path.join(outpath, "postprocessed", var.upper())
+    outpath = Path(outpath) / "postprocessed" / var.upper()
     for f in outfiles:
-        file = "{}/{}{}.nc".format(outpath, f, avg)
+        file = outpath / (f + avg + ".nc")
         if f in ["sgsflux", "flux", "grid"]:
             datout[f] = xr.open_dataset(file, cache=False)
         else:
@@ -1709,7 +1710,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
     ----------
     variables : list of str
         List of variables to process.
-    outpath : str
+    outpath : str or path-like
         Path to the WRF output directory.
     budget_methods : str or list of str, optional
         Budget calculation methods to apply. One method is a string that contains
@@ -1756,6 +1757,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
     else:
         avg = ""
 
+    outpath = Path(outpath)
     # check if postprocessed output already exists
     if skip_exist:
         skip = True
@@ -1763,8 +1765,8 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
         skip = False
     for outfile in outfiles:
         for var in variables:
-            fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, var.upper(), outfile, avg)
-            if os.path.isfile(fpath):
+            fpath = outpath / "postprocessed" / var.upper() / (outfile + avg + ".nc")
+            if fpath.exists():
                 if (not skip_exist) and (rank == 0):
                     os.remove(fpath)
             else:
@@ -1849,7 +1851,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
     ----------
     variables : list of str
         List of variables to process.
-    outpath : str
+    outpath : str or path-like
         Path to the WRF output directory.
     budget_methods : str or list of str, optional
         Budget calculation methods to apply. One method is a string that contains
@@ -1894,6 +1896,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
 
     """
     print("Load model output")
+    outpath = Path(outpath)
     dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
     dat_mean = dat_mean_all
     dat_inst = dat_inst_all
@@ -1932,8 +1935,8 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
             # check if postprocessed output already exists
             skip = True
             for outfile in outfiles:
-                fpath = "{}/postprocessed/{}/{}{}.nc".format(outpath, VAR, outfile, avg)
-                if not os.path.isfile(fpath):
+                fpath = outpath / "postprocessed" / VAR / (outfile + avg + ".nc")
+                if not fpath.exists():
                     skip = False
             if skip:
                 print("Postprocessed output already available!")
@@ -2074,9 +2077,9 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
                 dat = dat[t_bounds]
 
             if save_output:
-                fpath = "{}/postprocessed/{}/".format(outpath, VAR)
+                fpath = outpath / "postprocessed" / VAR
                 os.makedirs(fpath, exist_ok=True)
-                fpath += dn + avg + ".nc"
+                fpath = fpath / (dn + avg + ".nc")
                 if tile is None:
                     dat.to_netcdf(fpath)
                 else:
@@ -2163,7 +2166,7 @@ def save_tiles(dat, name, fpath, coords_all, task, tile, comm=None):
         Data to save.
     name : str
         Name of data to save.
-    fpath : str
+    fpath : str or path-like
         Save location.
     coords_all : xarray Dataset
         Coordinates of complete file.
@@ -2195,7 +2198,7 @@ def save_tiles(dat, name, fpath, coords_all, task, tile, comm=None):
     # coordinates of whole dataset
     coords_all = {d: coords_all[d].values for d in tile.keys() if d in dat.dims}
     if mode == "w":
-        tempfile = fpath + ".tmp"
+        tempfile = str(fpath) + ".tmp"
         if task == 0:
             # create small template file to copy attributes and coordinates from
             tmp = dat.isel({d: [1] for d in tile.keys() if d in dat.dims})

@@ -15,7 +15,7 @@ from wrflux import tools
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-import os
+from pathlib import Path
 try:
     # if mpi4py is not installed: no parallel processing possible
     from mpi4py import MPI
@@ -35,7 +35,7 @@ start = datetime.datetime.now()
 
 # %%settings
 # path to WRF output
-outpath = os.path.abspath(os.path.dirname(__file__)) + "/example/"
+outpath = Path(__file__).parent / "example"
 a = "out_d01_2018-06-20_12:00:00"
 mean_file = "mean" + a
 inst_file = "wrf" + a
@@ -110,7 +110,7 @@ if rank == 0:
     pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp")
-    plt.savefig(outpath + "/tend_profile.pdf")
+    plt.savefig(outpath / "tend_profile.pdf")
 
 # %% elapsed time
 

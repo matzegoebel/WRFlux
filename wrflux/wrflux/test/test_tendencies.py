@@ -21,8 +21,9 @@ import pandas as pd
 import importlib
 import numpy as np
 import datetime
+from pathlib import Path
 now = datetime.datetime.now().isoformat()[:16]
-test_path = os.path.abspath(os.path.dirname(__file__))
+test_path = Path(__file__).parent
 
 # %% settings
 
@@ -142,8 +143,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
         # if simulation is repeated, also repeat postprocessing
         skip_exist_i = False
     # remove previous figures
-    figloc = test_path + "/figures"
-    if os.path.isdir(figloc):
+    figloc = test_path / "figures"
+    if figloc.exists():
         shutil.rmtree(figloc)
 
     for label, param_grid in param_grids.items():
@@ -193,23 +194,20 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
                 ind = label + ": " + IDi
                 failed[ind] = ""
                 # check logs
-                run_dir = os.path.join(conf.params["run_path"], "WRF_" + IDi + "_0")
-                with open("{}/init.log".format(run_dir)) as f:
-                    log = f.read()
+                run_dir = Path(conf.params["run_path"]) / ("WRF_" + IDi + "_0")
+                log = (run_dir / "init.log").read_text()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
                     print("Error in initializing simulation {}!".format(cname))
                     failed[ind].loc["INIT", variables[0]] = "FAIL"
                     continue
-                with open("{}/run.log".format(run_dir)) as f:
-                    log = f.read()
+                log = (run_dir / "run.log").read_text()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
                     print("Error in running simulation {}!".format(cname))
                     failed[ind].loc["RUN", variables[0]] = "FAIL"
                     continue
 
         # postprocess data and run tests
-        res_file = test_path + "/test_results/test_results_"
-        scores_file = test_path + "/test_results/test_scores_"
+        test_results = test_path / "test_results"
         for cname, param_comb in param_combs.iterrows():
             if cname in ["core_param", "composite_idx"]:
                 continue
@@ -271,8 +269,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
                     failed[ind].loc[test, var] = f
                 for test, e in err_i.loc[var].items():
                     err[ind].loc[test, var] = e
-            failed.to_csv(res_file + now + ".csv")
-            err.to_csv(scores_file + now + ".csv")
+            failed.to_csv(test_results / ("test_results_" + now + ".csv"))
+            err.to_csv(test_results / ("test_scores_" + now + ".csv"))
 
     if restore_init_module:
         for deb in tools.make_list(debug):
@@ -298,10 +296,10 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
     err = err.where(~err.isnull(), "")
     failed = failed.where(failed != "").dropna(how="all").dropna(axis=1, how="all")
     failed = failed.where(~failed.isnull(), "")
-    failed.to_csv(res_file + now + ".csv")
-    err.to_csv(scores_file + now + ".csv")
-    failed_short.to_csv(res_file + "failsonly_" + now + ".csv")
-    err_short.to_csv(scores_file + "failsonly_" + now + ".csv")
+    failed.to_csv(test_results / ("test_results_" + now + ".csv"))
+    err.to_csv(test_results / ("test_scores_" + now + ".csv"))
+    failed_short.to_csv(test_results / ("test_results_failsonly_" + now + ".csv"))
+    err_short.to_csv(test_results / ("test_scores_failsonly_" + now + ".csv"))
 
     if (failed_short != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
@@ -354,29 +352,28 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
         build = conf.debug_build
     else:
         build = conf.parallel_build
-    wrf_path = "{}/{}".format(conf.params["build_path"], build)
-    fpath = wrf_path + "/dyn_em/" + fname
+    wrf_path = Path(conf.params["build_path"]) / build
+    fpath = wrf_path / "dyn_em" / fname
 
     if restore:
         m = "Restore"
-        shutil.copy(fpath + ".org", fpath)
+        shutil.copy(str(fpath) + ".org", fpath)
     else:
-        with open(fpath) as f:
-            org_file = f.read()
+        org_file = fpath.read_text()
         testf = "TEST_"
         if random_msf:
             testf += "msf_"
-        with open(test_path + "/" + testf + fname) as f:
-            test_file = f.read()
+        test_file_path = (test_path / (testf + fname))
+        test_file = test_file_path.read_text()
         if test_file == org_file:
             return
         else:
             m = "Copy"
-            shutil.copy(fpath, fpath + ".org")
-            shutil.copy(test_path + "/" + testf + fname, fpath)
+            shutil.copy(fpath, str(fpath) + ".org")
+            shutil.copy(test_file_path, fpath)
     print(m + " module_initialize_ideal.F and recompile")
     os.chdir(wrf_path)
-    os.system("./compile em_les > log 2> err")
+    os.system(str(wrf_path / "compile") + " em_les > log 2> err")
     os.chdir(test_path)
 
 

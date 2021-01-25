@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from wrflux import tools
 import xarray as xr
+from pathlib import Path
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 dim_dict = dict(x="U", y="V", bottom_top="W", z="W")
@@ -51,7 +52,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     fname : str, optional
         File name of plot if savefig=True. If no file type extension is included, use png.
         The default is None.
-    figloc : str, optional
+    figloc : str or path-like, optional
         Directory to save plot in. Defaults to the directory of this script.
     close : bool, optional
         Close the figure after creation. The default is False.
@@ -180,16 +181,16 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
 
     if savefig:
         if figloc is None:
-            figloc = os.path.abspath(os.path.dirname(__file__))
+            figloc = Path(__file__).parent
         else:
             os.makedirs(figloc, exist_ok=True)
         if fname is None:
             fname = "scatter"
-        fpath = figloc + "/" + fname
+        fpath = Path(figloc) / fname
         try:
             fig.savefig(fpath, dpi=300, bbox_inches="tight")
         except ValueError:
-            fig.savefig(fpath + ".png", dpi=300, bbox_inches="tight")
+            fig.savefig(str(fpath) + ".png", dpi=300, bbox_inches="tight")
 
     if close:
         plt.close()

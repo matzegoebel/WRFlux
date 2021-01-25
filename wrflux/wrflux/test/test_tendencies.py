@@ -303,10 +303,9 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
 
     if (failed_short != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
+        print(message)
         if raise_error:
             raise RuntimeError(message)
-        else:
-            print(message)
 
     return failed, failed_short, err, err_short
 
@@ -373,7 +372,9 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
             shutil.copy(test_file_path, fpath)
     print(m + " module_initialize_ideal.F and recompile")
     os.chdir(wrf_path)
-    os.system(str(wrf_path / "compile") + " em_les > log 2> err")
+    err = os.system(str(wrf_path / "compile") + " em_les > log 2> err")
+    if err != 0:
+        raise RuntimeError("WRF compilation failed!")
     os.chdir(test_path)
 
 

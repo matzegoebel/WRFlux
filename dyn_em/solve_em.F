@@ -37,7 +37,7 @@ SUBROUTINE solve_em ( grid , config_flags  &
                  ,halo_em_tracer_e_7_sub,halo_em_tracer_old_e_5_sub                        &
                  ,halo_em_tracer_old_e_7_sub,halo_em_sbm_sub,period_bdy_em_a_sub                           &
                  ,period_bdy_em_b3_sub,period_bdy_em_b_sub,period_bdy_em_chem2_sub         &
-                 ,period_bdy_em_flxmod_sub,halo_em_flxmod_sub                              &
+                 ,period_bdy_em_wrflux_sub,halo_em_wrflux_sub                              &
                  ,period_bdy_em_chem_old_sub,period_bdy_em_chem_sub,period_bdy_em_d3_sub   &
                  ,period_bdy_em_d_sub,period_bdy_em_e_sub,period_bdy_em_moist2_sub         &
                  ,period_bdy_em_moist_old_sub,period_bdy_em_moist_sub                      &
@@ -1656,8 +1656,8 @@ BENCH_END(phys_bc_tim)
 
      IF ( (rk_step == rk_order) .and. (config_flags%output_res_fluxes) ) THEN
 #ifdef DM_PARALLEL
-#      include "HALO_EM_FLXMOD.inc"
-#      include "PERIOD_BDY_EM_FLXMOD.inc"
+#      include "HALO_EM_WRFLUX.inc"
+#      include "PERIOD_BDY_EM_WRFLUX.inc"
 #endif
      ENDIF
 

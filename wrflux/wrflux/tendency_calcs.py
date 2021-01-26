@@ -69,11 +69,17 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 
 # %% set calculation methods
 
-# all settings to test
-budget_methods = [
-    [],
-    ["cartesian"],
-]
+# available settings:
+# cartesian: advective tendencies in Cartesian instead of native form
+# dz_out_x: use alternative cartesian corrections with dz taken out of derivative
+#           horizontal corrections derived from horizontal flux (requires cartesian)
+# dz_out_z: use alternative cartesian corrections with dz taken out of derivative
+#           horizontal corrections derived from vertical flux (requires cartesian)
+# force_2nd_adv : use second order advection
+
+# all budget calculation methods to apply as a list of str
+# each item is a combination of setting strings from above separated by a space
+budget_methods = ["", "cartesian", "cartesian force_2nd_adv"]
 
 # %% calc tendencies
 

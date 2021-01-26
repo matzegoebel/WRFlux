@@ -848,28 +848,29 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
     return datout
 
 
-def get_budget_method(comb):
-    """Build ID and settings dictionary from list of settings. Replace abbreviations."""
-    if len(comb) == 0:
+def get_budget_method(budget_method):
+    """Build settings dictionary from str. Replace abbreviations."""
+    if budget_method == "":
         # if no settings are given: calculate native WRF tendencies
-        IDc = "native"
+        budget_method = "native"
+        budget_method_list = []
     else:
-        IDc = " ".join(comb)
+        budget_method_list = budget_method.split(" ")
 
-    for i, key in enumerate(comb):
+    for i, key in enumerate(budget_method_list):
         if key in settings_short_names:
-            comb[i] = settings_short_names[key]
+            budget_method_list[i] = settings_short_names[key]
 
     config = {}
-    undefined = [key for key in comb if key not in budget_settings]
+    undefined = [key for key in budget_method_list if key not in budget_settings]
     if len(undefined) > 0:
         raise ValueError("Undefined keys: {}".format(", ".join(undefined)))
     for k in budget_settings:
-        if k in comb:
+        if k in budget_method_list:
             config[k] = True
         else:
             config[k] = False
-    return config, comb, IDc
+    return config, budget_method
 
 
 def prepare(dat_mean, dat_inst, variables, cyclic=None,
@@ -1959,14 +1960,12 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                                 hor_avg=hor_avg, avg_dims=avg_dims)
 
         # total and advective tendencies
-        IDcs = []
         budget_methods = make_list(budget_methods)
-        for comb in budget_methods:
+        for budget_method in budget_methods:
             datout_c = {}
             # get config dict for current budget method
-            c, comb, IDc = get_budget_method(comb.copy())
-            IDcs.append(IDc)
-            print("\n" + IDc)
+            c, budget_method = get_budget_method(budget_method)
+            print("\n" + budget_method)
             dz_out = False
             if c["dz_out_x"] or c["dz_out_z"]:
                 dz_out = True
@@ -2003,7 +2002,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                 datout_c["tend"] = datout_c["tend"].drop("dim")
 
             # aggregate output of different IDs
-            loc = dict(ID=[IDc])
+            loc = dict(ID=[budget_method])
             for dn in datout_c.keys():
                 datout_c[dn] = datout_c[dn].expand_dims(loc)
                 if dn not in datout:

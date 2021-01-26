@@ -35,7 +35,8 @@ start = datetime.datetime.now()
 
 # %%settings
 # path to WRF output
-outpath = Path(__file__).parent / "example"
+outpath_wrf = Path(__file__).parent / "example"
+outpath = outpath_wrf / "postprocessed"
 a = "out_d01_2018-06-20_12:00:00"
 mean_file = "mean" + a
 inst_file = "wrf" + a
@@ -76,7 +77,7 @@ budget_methods = [
 
 # %% calc tendencies
 
-out = tools.calc_tendencies(variables, outpath, mean_file=mean_file, inst_file=inst_file,
+out = tools.calc_tendencies(variables, outpath_wrf, outpath, mean_file=mean_file, inst_file=inst_file,
                             budget_methods=budget_methods, pre_iloc=pre_iloc, pre_loc=pre_loc,
                             t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg,
                             avg_dims=avg_dims, chunks=chunks,
@@ -110,7 +111,7 @@ if rank == 0:
     pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp")
-    plt.savefig(outpath / "tend_profile.pdf")
+    plt.savefig(outpath_wrf / "tend_profile.pdf")
 
 # %% elapsed time
 

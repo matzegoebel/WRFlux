@@ -759,13 +759,13 @@ def remove_deprecated_dims(ds):
 # %%prepare tendencies
 
 
-def load_data(outpath, inst_file, mean_file,
+def load_data(outpath_wrf, inst_file, mean_file,
               pre_loc=None, pre_iloc=None, **kw):
     """Load WRF output data as xarray Datasets.
 
     Parameters
     ----------
-    outpath : str
+    outpath_wrf : str
         Path to the WRF output directory.
     inst_file : str or path-like
         Name of the output file containing instantaneous data.
@@ -788,8 +788,8 @@ def load_data(outpath, inst_file, mean_file,
         WRF instantaneous output.
 
     """
-    dat_inst = open_dataset(os.path.join(outpath, inst_file), cache=False, del_attrs=False, **kw)
-    dat_mean = open_dataset(os.path.join(outpath, mean_file), cache=False, **kw)
+    dat_inst = open_dataset(os.path.join(outpath_wrf, inst_file), cache=False, del_attrs=False, **kw)
+    dat_mean = open_dataset(os.path.join(outpath_wrf, mean_file), cache=False, **kw)
 
     # select subset of data
     if pre_iloc is not None:
@@ -819,7 +819,7 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
     Parameters
     ----------
     outpath : str or path-like
-        Path to the WRF output data.
+        Path to the postprocessed data.
     var : str
         Variable to load postprocessed output of.
     hor_avg : bool, optional
@@ -838,7 +838,7 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
     else:
         avg = ""
     datout = {}
-    outpath = Path(outpath) / "postprocessed" / var.upper()
+    outpath = Path(outpath) / var.upper()
     for f in outfiles:
         file = outpath / (f + avg + ".nc")
         if f in ["sgsflux", "flux", "grid"]:
@@ -1699,7 +1699,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     return total_tend
 
 
-def calc_tendencies(variables, outpath, budget_methods="castesian",
+def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castesian",
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
                     skip_exist=True, chunks=None, save_output=True, return_model_output=False,
                     **load_kw):
@@ -1710,8 +1710,10 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
     ----------
     variables : list of str
         List of variables to process.
-    outpath : str or path-like
+    outpath_wrf : str or path-like
         Path to the WRF output directory.
+    outpath : str or path-like, optional
+        Where to save the postprocessed output. Defaults to $outpath_wrf/postprocessed.
     budget_methods : str or list of str, optional
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
@@ -1757,7 +1759,12 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
     else:
         avg = ""
 
-    outpath = Path(outpath)
+    outpath_wrf = Path(outpath_wrf)
+    if outpath is None:
+        outpath = outpath_wrf / "postprocessed"
+    else:
+        outpath = Path(outpath)
+
     # check if postprocessed output already exists
     if skip_exist:
         skip = True
@@ -1765,7 +1772,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
         skip = False
     for outfile in outfiles:
         for var in variables:
-            fpath = outpath / "postprocessed" / var.upper() / (outfile + avg + ".nc")
+            fpath = outpath / var.upper() / (outfile + avg + ".nc")
             if fpath.exists():
                 if (not skip_exist) and (rank == 0):
                     os.remove(fpath)
@@ -1781,7 +1788,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
         out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
         if return_model_output:
             print("Load model output")
-            dat_mean, dat_inst = load_data(outpath, **load_kw)
+            dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
             out = [out, dat_inst, dat_mean]
         return out
 
@@ -1796,7 +1803,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
                 raise ValueError("Averaging dimensions cannot be used for chunking!")
         kwargs["return_model_output"] = False  # model_output will be added later
         # create tiles and divide among processors
-        all_tiles = create_tiles(outpath, chunks=chunks, **load_kw)
+        all_tiles = create_tiles(outpath_wrf, chunks=chunks, **load_kw)
         all_tiles = [(i, t) for i, t in enumerate(all_tiles)]
         tiles = all_tiles[rank::nproc]
         # check if this processor is already finished
@@ -1815,7 +1822,7 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
             if tile == {}:
                 tile = None
                 task = None
-            calc_tendencies_core(variables, outpath, tile=tile,
+            calc_tendencies_core(variables, outpath_wrf, outpath, tile=tile,
                                  task=task, comm=local_comm, **kwargs)
             done = int(i == len(tiles) - 1)
             if comm is not None:
@@ -1830,17 +1837,17 @@ def calc_tendencies(variables, outpath, budget_methods="castesian",
             print("Load entire postprocessed output")
             out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
             if return_model_output:
-                dat_mean, dat_inst = load_data(outpath, **load_kw)
+                dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
                 out = [out, dat_inst, dat_mean]
             return out
 
     else:
         if nproc > 1:
             raise ValueError("Number of processors > 1, but chunking is disabled (chunks=None)!")
-        return calc_tendencies_core(variables, outpath, **kwargs)
+        return calc_tendencies_core(variables, outpath_wrf, outpath, **kwargs)
 
 
-def calc_tendencies_core(variables, outpath, budget_methods="castesian",
+def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castesian",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
                          hor_avg=False, avg_dims=None, skip_exist=True, save_output=True,
                          return_model_output=True, **load_kw):
@@ -1851,8 +1858,10 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
     ----------
     variables : list of str
         List of variables to process.
-    outpath : str or path-like
+    outpath_wrf : str or path-like
         Path to the WRF output directory.
+    outpath : str or path-like
+        Where to save the postprocessed output.
     budget_methods : str or list of str, optional
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
@@ -1897,7 +1906,8 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
     """
     print("Load model output")
     outpath = Path(outpath)
-    dat_mean_all, dat_inst_all = load_data(outpath, **load_kw)
+    outpath_wrf = Path(outpath_wrf)
+    dat_mean_all, dat_inst_all = load_data(outpath_wrf, **load_kw)
     dat_mean = dat_mean_all
     dat_inst = dat_inst_all
 
@@ -1926,16 +1936,16 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
                                               cyclic=cyclic, t_avg=t_avg,
                                               t_avg_interval=t_avg_interval,
                                               hor_avg=hor_avg, avg_dims=avg_dims)
+    # check if postprocessed output already exists
     datout_all = {}
     for var in variables:
         datout = {}
         VAR = var.upper()
         print("\n\n{0}\nProcess variable {1}\n".format("#" * 20, VAR))
         if skip_exist:
-            # check if postprocessed output already exists
             skip = True
             for outfile in outfiles:
-                fpath = outpath / "postprocessed" / VAR / (outfile + avg + ".nc")
+                fpath = outpath / VAR / (outfile + avg + ".nc")
                 if not fpath.exists():
                     skip = False
             if skip:
@@ -2077,7 +2087,7 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
                 dat = dat[t_bounds]
 
             if save_output:
-                fpath = outpath / "postprocessed" / VAR
+                fpath = outpath / VAR
                 os.makedirs(fpath, exist_ok=True)
                 fpath = fpath / (dn + avg + ".nc")
                 if tile is None:
@@ -2104,10 +2114,10 @@ def calc_tendencies_core(variables, outpath, budget_methods="castesian",
 
 # %% tile processing
 
-def create_tiles(outpath, chunks, **load_kw):
+def create_tiles(outpath_wrf, chunks, **load_kw):
     """Split processing domain into xy tiles according to the dictionary chunks."""
     print("Create tasks")
-    dat_mean, _ = load_data(outpath, **load_kw)
+    dat_mean, _ = load_data(outpath_wrf, **load_kw)
     tiles = []
     # iterate over chunking dimensions
     for dim, size in chunks.copy().items():

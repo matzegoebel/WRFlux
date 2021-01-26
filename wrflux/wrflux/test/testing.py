@@ -460,9 +460,11 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     # for w test: cut first time step
     dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
 
-    for datout_v in datout.values():
+    datout_lim = {}
+    for v, datout_v in datout.items():
+        datout_lim[v] = {}
         for n, dat in datout_v.items():
-            datout_v[n] = tools.loc_data(dat, iloc=iloc)
+            datout_lim[v][n] = tools.loc_data(dat, iloc=iloc)
 
     variables = list(datout.keys())
     failed = pd.DataFrame(columns=tests, index=variables)
@@ -470,7 +472,7 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     failed[:] = ""
     err[:] = ""
     fpath = Path(__file__).parent
-    for var, datout_v in datout.items():
+    for var, datout_v in datout_lim.items():
         print("Variable: " + var)
         figloc = fpath / "figures" / var
         failed_i = {}

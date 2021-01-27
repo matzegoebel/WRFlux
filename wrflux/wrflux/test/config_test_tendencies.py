@@ -16,8 +16,7 @@ from run_wrf.configs.base_config import *
 from copy import deepcopy
 params = deepcopy(params)
 
-# path to mpiexec or mpirun executable to use; if None: use the system default
-mpiexec = None
+
 # %%
 '''Simulations settings'''
 

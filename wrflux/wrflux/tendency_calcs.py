@@ -60,8 +60,8 @@ skip_exist = False
 
 # Mapping from dimension "x" and/or "y" to chunk sizes to split the domain in tiles
 # running script with mpirun enables parallel processing of tiles
-chunks = {"x": 10}
-# chunks = None
+# chunks = {"x": 10}
+chunks = None
 
 # tests to perform
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
@@ -93,10 +93,6 @@ out = tools.calc_tendencies(variables, outpath_wrf, outpath, mean_file=mean_file
 print("\n\n" + "#" * 50)
 print("Run tests")
 if rank == 0:
-    cut_bounds = None
-    if chunks is not None:
-        cut_bounds = chunks.keys()
-
     datout, dat_inst, dat_mean = out
     kw = dict(
         avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms

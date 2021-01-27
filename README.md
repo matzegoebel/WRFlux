@@ -197,7 +197,7 @@ The advection equation for a variable ![](https://latex.codecogs.com/svg.latex?\
 
 ![](https://latex.codecogs.com/svg.latex?\partial_t\left({\rho}\psi\right)=\sum_{i=1}^{3}-\partial_{x_i}\left({\rho}u_i\psi\right))
 
-Like many other atmospheric models, WRF uses a coordinate transformation from the Cartesian coordinate system ![](https://latex.codecogs.com/svg.latex?(t,x,y,z)) to ![](https://latex.codecogs.com/svg.latex?(t,x,y,\eta)) with the generalized vertical coordinate $ \eta = \eta(x, y, z, t)$. In WRF ![](https://latex.codecogs.com/svg.latex?\eta) is a hybrid terrain-following coordinate.
+Like many other atmospheric models, WRF uses a coordinate transformation from the Cartesian coordinate system ![](https://latex.codecogs.com/svg.latex?(t,x,y,z)) to ![](https://latex.codecogs.com/svg.latex?(t,x,y,\eta)) with the generalized vertical coordinate ![](https://latex.codecogs.com/svg.latex?\eta=\eta(x,y,z,t)). In WRF ![](https://latex.codecogs.com/svg.latex?\eta) is a hybrid terrain-following coordinate.
 
 The transformed advection equation reads:
 
@@ -248,7 +248,7 @@ Thus, we stay with the previous [back-transformed equation](#backtrans), in whic
 
 ### Numerical implementation
 
-WRF uses a staggered grid, where the fluxes of $ \psi  $ are staggered with respect to ![](https://latex.codecogs.com/svg.latex?\psi). If ![](https://latex.codecogs.com/svg.latex?\psi) is on the mass grid (potential temperature and mixing ratio) the equation with staggering operations indicated reads:
+WRF uses a staggered grid, where the fluxes of [](https://latex.codecogs.com/svg.latex?\psi)  are staggered with respect to ![](https://latex.codecogs.com/svg.latex?\psi). If ![](https://latex.codecogs.com/svg.latex?\psi) is on the mass grid (potential temperature and mixing ratio) the equation with staggering operations indicated reads:
 
 ![](https://latex.codecogs.com/svg.latex?z_\eta^{-1}\partial_{t}\left({\rho}z_\eta\psi\right)-\partial_{z}\left({\rho}z_t\overline{\psi}^z\right)=\sum_{i=1}^{2}\left[-z_\eta^{-1}\partial_{x_i}\left({\rho}z_{\eta}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left({\rho}z_{x_i}\overline{u_i}^{x_iz}\overline{\psi}^z\right)\right]-\partial_{z}\left({\rho}w\overline{\psi}^z\right))
 

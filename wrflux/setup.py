@@ -41,7 +41,7 @@ here = path.abspath(path.dirname(__file__))
 
 setup(
     name='wrflux',
-    version='1.0',
+    version='0.1',
     description='With this package time-averaged tendencies of the WRF model can be retrieved '
     'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
     # ~ long_description=long_description,
@@ -51,6 +51,7 @@ setup(
     author_email='matthias-goebel@uibk.ac.at',
     keywords='WRF',
     packages=find_packages(),
+    python_requires=">=3",
     install_requires=['xarray', 'matplotlib', 'netcdf4', 'bottleneck'],
     extras_require={
         'test': ['pytest', 'run_wrf'],

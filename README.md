@@ -6,6 +6,7 @@
 	* [Post-processing](#post-processing)
 - [Installation](#installation)
 - [Implementation](#implementation)
+	* [List of modified files](#list-of-modified-files)
 - [Caveats/Limitations](#caveats-limitations)
 	* [Changes to the dynamical core](#changes-to-the-dynamical-core)
 - [Tests](#tests)
@@ -120,6 +121,34 @@ When spatial averaging is switched on in the post-processing, the mean flux does
 
 Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html).
 All output variables are decoupled from the map-scale factors.
+
+
+### List of modified files
+The following WRF source code files have been modified:
+
+- Registry/Registry.EM_COMMON
+- Registry/registry.em_shared_collection
+- Registry/registry.les
+- Registry/registry.wrflux
+- dyn_em/module_advect_em.F
+- dyn_em/module_avgflx_em.F
+- dyn_em/module_big_step_utilities_em.F
+- dyn_em/module_diffusion_em.F
+- dyn_em/module_em.F
+- dyn_em/module_first_rk_step_part1.F
+- dyn_em/module_first_rk_step_part2.F
+- dyn_em/module_initialize_ideal.F
+- dyn_em/module_small_step_em.F
+- dyn_em/solve_em.F
+- dyn_em/start_em.F
+- phys/module_pbl_driver.F
+- share/module_check_a_mundo.F
+- share/output_wrf.F
+- wrftladj/solve_em_ad.F
+- wrftladj/solve_em_tl.F
+
+
+
 
 ## Caveats/Limitations
 Note the following limitations:

@@ -23,6 +23,7 @@ This is a fork of the "Weather Research and Forecast model (WRF)" available at: 
 
 **WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulent components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
 It is continuously updated when new WRF versions are released.
+I'm currently preparing a publication that introduces WRFlux.
 
 ## Usage
 
@@ -42,15 +43,15 @@ The following namelist variables are available:
 SGS fluxes include horizontal and vertical fluxes from the diffusion module depending on `km_opt` and vertical fluxes from the boundary layer scheme.
 The time-averaged fluxes are output in kinematic form (divided by mean dry air mass) and in the Cartesian coordinate system (see [Implementation](#implementation)).
 
-The other source terms that are output beside resolved and SGS fluxes for `output_{t,q,u,v,w}_fluxes=1` are the following tendencies:
+The other source terms that are output beside resolved and SGS fluxes for `output_{t,q,u,v,w}_fluxes=1` are the following:
 
 - **t**: microphysics, radiation (SW and LW)
 - **q**: microphysics
 - **u,v,w**: Coriolis and curvature, pressure gradient (from RK and acoustic step)
-- **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both part of the pressure gradient tendency)
+- **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both share output variable with pressure gradient tendency)
 
 
-All variables are output to the auxiliary output stream `auxhist24`. The time-averaging interval is set by the output interval `auxhist24_interval_m` and `auxhist24_interval_s`.
+All variables are output to the auxiliary output stream `auxhist24`. The **time-averaging interval** is set by the output interval `auxhist24_interval_m` and `auxhist24_interval_s`.
 
 In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add` you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file. Instantaneous fluxes are by default not output.
 
@@ -62,10 +63,10 @@ In the post-processing, the tendencies are calculated by differentiating the flu
 The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
 - `cartesian`: advective tendencies in Cartesian instead of native form
-- `dz_out_x`: use alternative corrections with dz taken out of derivative;
-            horizontal corrections derived from horizontal flux (requires cartesian)
-- `dz_out_z`: use alternative corrections with dz taken out of derivative;
-            horizontal corrections derived from vertical flux (requires cartesian)
+- `dz_out_x`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
+horizontal corrections derived from horizontal flux (requires cartesian)
+- `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
+horizontal corrections derived from vertical flux (requires cartesian)
 - `force_2nd_adv`: use 2nd-order advection
 
 For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details. For an explanation of `dz_out_x` and `dz_out_z`, see [Theory/Alternative Corrections](#alternative-corrections).
@@ -76,7 +77,7 @@ The tiles can also be processed in parallel:
  mpiexec -n N ./tendency_calcs.py
 ```
 
-Other arguments of `tools.calc_tendencies` include: averaging directions (x and/or y) for horizontal average, time-averaging interval (if time-averaged data should be coarsened again before processing), and definition of a limited subset (in time or space) to process.
+Other arguments of `tools.calc_tendencies` include: averaging directions (x and/or y) for horizontal average, time-averaging interval (if time-averaged data should be coarsened again before processing), and definition of a limited subset (in time and/or space) to process.
 
 
 
@@ -107,10 +108,10 @@ mpiexec -n N ./tendency_calcs.py
 
 ## Implementation
 
-The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. This option is automatically turned on when using WRFlux. 
+The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux. 
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
-The resolved vertical fluxes are output in the Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
+The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
 This recalculated w is almost identical to the prognostic w. Only the last component in the equation is calculated in a slightly different way to be more consistent with the vertical advection in the native coordinate system (see also next section). The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
 
 When decomposing the resolved flux into mean and resolved turbulent components in the post-processing (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)), the turbulent component is calculated as a residual of the other two components. The same is done for the resolved advective tendency.
@@ -134,7 +135,7 @@ WRFlux has a relatively strong impact on the runtime of the model. If all budget
 ### Changes to the dynamical core
 The model evolution is almost identical to the current official version. However, two details in the dynamical core are different:
 
-1. The vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) is adapted to avoid double staggering of [](https://latex.codecogs.com/svg.latex?h). This modification is currently under review and will probably be published in the next major release (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/)). The modification makes the vertical advection of geopotential more consistent with the vertical advection of other variables and thereby reduces the differences between prognostic w and w diagnosed from the equation in the theory section to a minimum.
+1. The vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) is adapted to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification is currently under review and will probably be published in WRF's next major release (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/)). The modification makes the vertical advection of geopotential more consistent with the vertical advection of other variables and thereby reduces the differences between prognostic w and w diagnosed from the [equation](#w_eq) in the theory section to a minimum.
 2. The conversion of the non-local flux from dry to moist theta for `km_opt=5` uses the moisture at each level instead of the surface moisture. In effect, the modification in [PR 1352](https://github.com/wrf-model/WRF/pull/1352) is not adopted, because it is not correct, in my opinion. My arguments for this standpoint are discussed in [PR 1259](https://github.com/wrf-model/WRF/pull/1259). The differences between the two approaches are, however, hardly noticeable in practice.
 
 
@@ -147,10 +148,10 @@ This package includes a test suite for automated testing with `pytest`. Idealize
 - closure of budget (model tendency = summed forcing) in native and Cartesian grid (e > 0.9993)
 - Cartesian = native advective tendencies if spatial directions are summed up (e > 0.99999)
 - total advective tendency =  mean + resolved turbulent component (e > 0.9999999999)
-- instantaneous vertical velocity very similar to the instantaneous diagnosed vertical velocity used in the tendency calculations (e > 0.995)
-- no NaN and infinity values appearing except for the lateral boundaries for non-periodic BC
+- instantaneous vertical velocity very similar to the instantaneous [diagnosed vertical velocity](#w_eq) used in the tendency calculations (e > 0.995)
+- no NaN and infinity values appearing except on the lateral boundaries for non-periodic BC
 - 2nd-order tendencies equivalent to model tendencies if 2nd-order advection is used in the model (e > 0.999)
-- similar advective tendencies for standard Cartesian corrections and `dz_out_z` type corrections (e > 0.9)
+- similar advective tendencies for standard Cartesian corrections and [`dz_out_z` type corrections](#dz_out_z) (e > 0.9)
 
 The last test is only done for one simulation.
 All simulations, except for the ones with non-periodic BC, contain a 2D mountain ridge to turn on the effect of the Cartesian corrections.
@@ -170,7 +171,7 @@ All test simulations are repeated with a short runtime (2 minutes) in debugging 
 
 
 ### Installation
-To run the test suite, `pytest` and my other WRF-related package [`run_wrf`](https://github.com/matzegoebel/run_WRF) are required. `run_wrf` facilitates the automatic setup and running of idealized WRF simulations (locally or using a batch system) given a configuration file that defines the simulations to run. It only runs on Linux.
+To run the test suite, `pytest` and my other WRF-related package [`run_wrf`](https://github.com/matzegoebel/run_WRF) are required. `run_wrf` facilitates the automatic setup and running of idealized WRF simulations (locally or using a batch system) given a configuration file that defines the simulations to run. It only runs on Linux. Download and install it with `pip`:
 
 
 ```sh
@@ -183,7 +184,7 @@ pip install -e .
 Then go back to the directory `wrflux` and run:
 `pip install -e .[test]`
 
-To run the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure` -D). Specify the location of these builds in the configuration file `config_test_tendencies.py` in the variable `build_path`.
+To run the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). Specify the location of these builds in the configuration file `config_test_tendencies.py` in the variable `build_path`.
 The names of the folders of the two builds are specified by the variables `parallel_build` and `debug_build` in the configuration file.
 
 To run the test suite, execute `pytest` in the folder `wrflux/wrflux/test`. Make sure you do not have a python installation activated with an MPI library if you did not compile WRF with it. This would cause a problem when running the test simulations.
@@ -211,7 +212,7 @@ with the contra-variant vertical velocity ![](https://latex.codecogs.com/svg.lat
 In this and the following equations, all horizontal and temporal derivatives are taken on constant ![](https://latex.codecogs.com/svg.latex?\eta)-levels.
 Note that in WRF the coordinate metric appears as part of the dry air mass ![](https://latex.codecogs.com/svg.latex?\mu_{\mathrm{d}}=-\rho_{\mathrm{d}}gz_\eta) in the equations.
 
-In the following, I will derive a form of the advection equation where the individual parts are the same as in the Cartesian advection equation for improved interpretability, but nevertheless, horizontal derivatives are taken on constant ![](https://latex.codecogs.com/svg.latex?\eta)-levels for ease of computation.
+In the following, I will derive a form of the advection equation in which the individual parts are the same as in the Cartesian advection equation for improved interpretability, but nevertheless, horizontal derivatives are taken on constant ![](https://latex.codecogs.com/svg.latex?\eta)-levels for ease of computation.
 
 The relationship between the contra-variant vertical velocity ![](https://latex.codecogs.com/svg.latex?\omega) in the ![](https://latex.codecogs.com/svg.latex?\eta)-coordinate system and the Cartesian vertical velocity ![](https://latex.codecogs.com/svg.latex?w) is given by the geopotential equation:
 
@@ -241,37 +242,39 @@ Using the product rule and the commutativity of partial derivatives we can show 
 
 </a>
 
-This equation follows straight from the Cartesian advection equation. The advective tendency (left-hand side) and the horizontal advection components have a correction term added that accounts for the derivatives being taken on constant ![](https://latex.codecogs.com/svg.latex?\eta) instead of on constant height levels.
+This equation follows straight from the Cartesian advection equation. The advective tendency (left-hand side) and the horizontal advection components have a correction term added that accounts for the derivatives being taken on constant ![](https://latex.codecogs.com/svg.latex?\eta) instead of constant height levels.
 Numerically however, this form is not perfectly consistent with the [original transformed advection equation](#trans) (see also [Alternative Corrections](#alternative-corrections)).
 
 Thus, we stay with the previous [back-transformed equation](#backtrans), in which the individual components plus their corrections are equivalent to the components of the Cartesian advection equation. 
 
 ### Numerical implementation
 
-WRF uses a staggered grid, where the fluxes of [](https://latex.codecogs.com/svg.latex?\psi)  are staggered with respect to ![](https://latex.codecogs.com/svg.latex?\psi). If ![](https://latex.codecogs.com/svg.latex?\psi) is on the mass grid (potential temperature and mixing ratio) the equation with staggering operations indicated reads:
+WRF uses a staggered grid, where the fluxes of ![](https://latex.codecogs.com/svg.latex?\psi)  are staggered with respect to ![](https://latex.codecogs.com/svg.latex?\psi). If ![](https://latex.codecogs.com/svg.latex?\psi) is on the mass grid (potential temperature and mixing ratio) the equation with staggering operations indicated reads:
 
 ![](https://latex.codecogs.com/svg.latex?z_\eta^{-1}\partial_{t}\left({\rho}z_\eta\psi\right)-\partial_{z}\left({\rho}z_t\overline{\psi}^z\right)=\sum_{i=1}^{2}\left[-z_\eta^{-1}\partial_{x_i}\left({\rho}z_{\eta}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left({\rho}z_{x_i}\overline{u_i}^{x_iz}\overline{\psi}^z\right)\right]-\partial_{z}\left({\rho}w\overline{\psi}^z\right))
 
-where the staggering operations are denoted with an overbar and the staggering direction.
-
-The staggering of ![](https://latex.codecogs.com/svg.latex?\psi) depends on the advection order. For the [back-transformed advection equation](#backtrans) to be numerically consistent with the [original transformed advection equation](#trans), all derivatives need to use the correct advection order. The correction terms derive from the vertical advection term and thus must use the order of the vertical advection.
+where the staggering operations are denoted with an overbar and the staggering direction. For momentum, the equation looks a bit differently, since also the velocities in the fluxes need to be staggered. The staggering of ![](https://latex.codecogs.com/svg.latex?\psi) depends on the advection order as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html). For the [back-transformed advection equation](#backtrans) to be numerically consistent with the [original transformed advection equation](#trans), all derivatives need to use the correct advection order. The correction terms derive from the vertical advection term and thus must use the order of the vertical advection.
 
 
 ### Alternative corrections
 
 Before, we introduced a [form of the advection equation](#dz_out) in which the derivatives of z were taken out of the temporal and horizontal derivatives.
 For comparison, this form is also implemented in the package in two different ways:
-The straightforward implementation takes the horizontal flux and staggers it horizontally and vertically to the grid of the vertical flux (budget setting \verb|dz_out_x|):
+The straightforward implementation takes the horizontal flux and staggers it horizontally and vertically to the grid of the vertical flux (budget setting `dz_out_x`):
 
 ![](https://latex.codecogs.com/svg.latex?\partial_{t}\left({\rho}\psi\right)-\partial_{z}\left({\rho}\overline{\psi}^z\right)z_t=\sum_{i=1}^{2}\left[-\partial_{x_i}\left({\rho}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left(\overline{{\rho}u_i\overline{\psi}^{x_i}}^{x_iz}\right)\overline{z_{x_i}}^{x_i}\right]-\partial_{z}\left({\rho}w\overline{\psi}^{z}\right))
 
-This implementation is analogous to the implementation of SGS diffusion in WRF.
+This implementation is analogous to how SGS fluxes are corrected in WRF.
 
-The second implementation is a hybrid form in which the correctly staggered ![](https://latex.codecogs.com/svg.latex?\overline{\psi}^{z}) is used (budget setting \verb|dz_out_z|):
+The second implementation is a hybrid form in which the correctly staggered ![](https://latex.codecogs.com/svg.latex?\overline{\psi}^{z}) is used (budget setting `dz_out_z`):
+
+<a name="dz_out_z">
 
 ![](https://latex.codecogs.com/svg.latex?\partial_{t}\left({\rho}\psi\right)-\partial_{z}\left({\rho}\overline{\psi}^z\right)z_t=\sum_{i=1}^{2}\left[-\partial_{x_i}\left({\rho}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left({\rho}\overline{u_i}^{x_iz}\overline{\psi}^{z}\right)\overline{z_{x_i}}^{x_i}\right]-\partial_{z}\left({\rho}w\overline{\psi}^{z}\right))
 
-This implementation leads to a much better closure of the budget.
+</a>
+
+This implementation leads to a much better closure of the budget as the previous one, but not quite as good as the [back-transformed advection equation](#backtrans).
 
 
 ### Averaging and decomposition

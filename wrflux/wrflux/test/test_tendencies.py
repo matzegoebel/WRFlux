@@ -42,12 +42,10 @@ skip_exist = False
 debug = [True, False]
 # Change mapscale factors from 1 to random values around 1 to mimic real-case runs:
 random_msf = True
+
 # tests to perform
 tests = testing.all_tests
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
-# Mapping from dimension "x" and/or "y" to chunk sizes to split the domain in tiles
-chunks = None
-# chunks = {"x" : 10} #TODOm: problem with trb runs
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords"]
 
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
@@ -87,6 +85,9 @@ def test_all():
     param_grids["trb no_debug hor_avg msf=1"] = param_grids["trb no_debug msf=1"]
     param_grids["hor_avg msf=1"] = odict(runID="hor_avg_msf=1")  # for Y=0 test
     param_grids["hor_avg"] = odict(runID="hor_avg")
+    param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
+    param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
+    param_grids["chunking x hor_avg no_debug"] = odict(chunks={"x": 10}, runID="hor_avg")
     param_grids["hessel"] = odict(hesselberg_avg=[False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
@@ -152,7 +153,10 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
             runID = param_grid.pop("runID")
         else:
             runID = None
-
+        if "chunks" in param_grid:
+            chunks = param_grid.pop("chunks")
+        else:
+            chunks = None
         for deb in tools.make_list(debugs):
             # select config file and setup module_initialize_ideal.F
             cfile = config_file

@@ -7,11 +7,13 @@ Functions for automatic testing of WRFlux output.
 """
 from wrflux import tools, plotting
 import pandas as pd
+import xarray as xr
 import os
 from pathlib import Path
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
-             "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords"]
+             "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords",
+             "no_model_change"]
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
@@ -390,7 +392,7 @@ def test_nan(datout, cut_bounds=None):
     return failed
 
 
-def test_y0(adv, thresh=(1e-6, 5e-2)):
+def test_y0(adv, thresh=(1e-5, 5e-2)):
     """Test whether the advective tendency resulting from fluxes in y-direction is,
     on average, much smaller than the one resulting from fluxes in x-direction. This
     should be the case if the budget is averaged over y. The average absolute ratio is
@@ -432,6 +434,49 @@ def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
             if (f0 == "") or (f0 == "pass"):
                 failed.loc[variable, "dim_coords"] = f
 
+
+def test_no_model_change(outpath, ID, inst_file, mean_file, builds):
+    """
+    Check that output of WRFlux and original WRF is identical for all history variables.
+
+    Parameters
+    ----------
+    outpath : str
+        Path to the WRF output directory.
+    ID : str
+        Simulation ID.
+    inst_file : str or path-like
+        Name of the output file containing instantaneous data.
+    mean_file : str
+        Name of the output file containing time-averaged data.
+    builds : list of str
+        builds that have been processed.
+
+    Returns
+    -------
+    res : str
+        "FAIL" or "pass".
+
+    """
+    res = "pass"
+    # open WRF output
+    dat_inst = {}
+    for build in ["org", "debug"]:
+        ID_b = ID.replace(builds[-1], build)
+        outpath_c = os.path.join(outpath, ID_b) + "_0"
+        _, dat_inst[build] = tools.load_data(outpath_c, inst_file=inst_file, mean_file=mean_file)
+
+    # check that the right output was loaded
+    assert "W_DIAG" in dat_inst["debug"]
+    assert "W_DIAG" not in dat_inst["org"]
+
+    for v in dat_inst["org"].variables:
+        try:
+            xr.testing.assert_allclose(dat_inst["debug"][v], dat_inst["org"][v])
+        except AssertionError:
+            print("Simulation with WRFlux and original WRF differ in variable {}!".format(v))
+            res = "FAIL"
+    return res
 
 # %% run_tests
 

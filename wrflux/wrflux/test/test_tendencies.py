@@ -38,14 +38,15 @@ restore_init_module = True
 exist = "s"
 # skip postprocessing if data already exists
 skip_exist = False
-# run simulations with debug and/or normal built
-debug = [True, False]
+# builds to run simulations with
+builds = ["org", "debug", "normal"]
 # Change mapscale factors from 1 to random values around 1 to mimic real-case runs:
 random_msf = True
 
 # tests to perform
 tests = testing.all_tests
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords"]
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd",
+#          "w", "Y=0", "NaN", "dim_coords", "no_model_change"]
 
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
@@ -125,7 +126,7 @@ def test_all():
 
 # %% run_and_test
 
-def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", avg_dims=None):
+def run_and_test(param_grids, avg_dims=None):
     """Run test simulations defined by param_grids and config_file and perform tests."""
     index = pd.MultiIndex.from_product([["INIT", "RUN"] + tests, variables])
     failed = pd.DataFrame(index=index)
@@ -146,9 +147,9 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
         print("\n\n\n{0}\nRun test simulations: {1}\n{0}\n".format("#" * 50, label))
         # initialize and run simulations
 
-        debugs = debug
+        builds_i = builds.copy()
         if "no_debug" in label:
-            debugs = False
+            builds_i = [b for b in builds if b not in ["debug", "org"]]
         if "runID" in param_grid:
             runID = param_grid.pop("runID")
         else:
@@ -157,30 +158,35 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
             chunks = param_grid.pop("chunks")
         else:
             chunks = None
-        for deb in tools.make_list(debugs):
-            # select config file and setup module_initialize_ideal.F
-            cfile = config_file
-            if deb:
-                cfile = cfile + "_debug"
-            conf = importlib.import_module(cfile)
+
+        for build in tools.make_list(builds_i):
+            # setup module_initialize_ideal.F
             rmsf = random_msf
             if "msf=1" in label:
                 rmsf = False
-            setup_test_init_module(conf, debug=deb, random_msf=rmsf)
+            conf, cfile, build_dir = setup_test_init_module(build, random_msf=rmsf)
 
             if runID is None:
                 runID_i = conf.runID
-            elif deb:
-                runID_i = runID + "_debug"
             else:
                 runID_i = runID
-            param_combs = grid_combinations(param_grid, conf.params, param_names=conf.param_names,
+            runID_i += "_" + build
+
+            param_grid_i = param_grid.copy()
+
+            param_combs = grid_combinations(param_grid_i, conf.params, param_names=conf.param_names,
                                             runID=runID_i)
+            # delete parameters not available in original WRF
+            if build == "org":
+                for p in ["output_dry_theta_fluxes", "hesselberg_avg", "output_t_fluxes_small"]:
+                    if p in param_combs:
+                        del param_combs[p]
+
             # initialize simulations
-            combs, output = capture_submit(init=True, exist=exist, debug=deb, config_file=cfile,
+            combs, output = capture_submit(init=True, exist=exist, build=build_dir, config_file=cfile,
                                            param_combs=param_combs)
             # run simulations
-            combs, output = capture_submit(init=False, wait=True, debug=deb, pool_jobs=True,
+            combs, output = capture_submit(init=False, wait=True, build=build_dir, pool_jobs=True,
                                            exist=exist, config_file=cfile, param_combs=param_combs)
             print("\n\n")
 
@@ -247,6 +253,15 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
             start_time = param_comb["start_time"]
             inst_file = "instout_d01_" + start_time
             mean_file = "meanout_d01_" + start_time
+
+            if ("no_model_change" in tests_i) and ("debug" in builds_i):
+                f = testing.test_no_model_change(conf.params["outpath"], IDi, inst_file, mean_file, builds_i)
+                failed.loc["no_model_change", variables[0]] = f
+
+            if build != "normal":
+                print("Skip post-processing and tests, because last build is not 'normal'!")
+                continue
+
             print("Postprocess data")
             datout, dat_inst, dat_mean = tools.calc_tendencies(
                 variables, outpath_c, inst_file=inst_file, mean_file=mean_file, budget_methods=bm,
@@ -271,12 +286,8 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
             err.to_csv(test_results / ("test_scores_" + now + ".csv"))
 
     if restore_init_module:
-        for deb in tools.make_list(debug):
-            cfile = config_file
-            if deb:
-                cfile = cfile + "_debug"
-            conf = importlib.import_module(cfile)
-            setup_test_init_module(conf, debug=deb, restore=True)
+        for build in tools.make_list(builds):
+            conf, cfile, build_dir = setup_test_init_module(build, restore=True)
 
     # assemble and save final test results
     for ind in failed.keys():
@@ -323,15 +334,13 @@ def capture_submit(*args, **kwargs):
     return combs, output
 
 
-def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
+def setup_test_init_module(build, restore=False, random_msf=True):
     """Replace module_initialize_ideal.F with test file and recompile.
 
     Parameters
     ----------
-    conf : module
-        Configuration module for test simulations.
-    debug : bool, optional
-        Copy file to debug build instead of normal build. The default is False.
+    build : str
+        WRF build: 'normal', 'debug', or 'org'.
     restore : bool, optional
         Restore original module_initialize_ideal.F after tests are finished and recompile.
         The default is True.
@@ -341,15 +350,27 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
 
     Returns
     -------
-    None.
-
+    conf : module
+        Configuration module for test simulations.
+    cfile : str
+        Path to conf.
+    build_dir : str
+        WRF build directory.
     """
-    fname = "module_initialize_ideal.F"
-    if debug:
-        build = conf.debug_build
+    cfile = "wrflux.test.config_test_tendencies"
+    conf = importlib.import_module(cfile)
+    if build == "debug":
+        cfile = cfile + "_debug"
+        build_dir = conf.debug_build
+    elif build == "org":
+        cfile = cfile + "_base"
+        build_dir = conf.org_build
     else:
-        build = conf.parallel_build
-    wrf_path = Path(conf.params["build_path"]) / build
+        build_dir = conf.parallel_build
+    conf = importlib.import_module(cfile)
+
+    fname = "module_initialize_ideal.F"
+    wrf_path = Path(conf.params["build_path"]) / build_dir
     fpath = wrf_path / "dyn_em" / fname
 
     if restore:
@@ -363,7 +384,7 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
         test_file_path = (test_path / (testf + fname))
         test_file = test_file_path.read_text()
         if test_file == org_file:
-            return
+            return conf, cfile, build_dir
         else:
             m = "Copy"
             shutil.copy(fpath, str(fpath) + ".org")
@@ -374,6 +395,8 @@ def setup_test_init_module(conf, debug=False, restore=False, random_msf=True):
     if err != 0:
         raise RuntimeError("WRF compilation failed!")
     os.chdir(test_path)
+
+    return conf, cfile, build_dir
 
 
 # %%main

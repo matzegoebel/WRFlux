@@ -106,13 +106,16 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     ds : xarray Dataset
 
     """
+
     try:
-        ds = xr.open_dataset(file, **kwargs)
+        ds = xr.open_dataset(file, cache=False, **kwargs)
     except ValueError as e:
         if "unable to decode time" in e.args[0]:
-            ds = xr.open_dataset(file, decode_times=False, **kwargs)
+            ds = xr.open_dataset(file, cache=False, decode_times=False, **kwargs)
         else:
             raise e
+    ds.close()
+
     if fix_c:
         dx, dy = ds.DX, ds.DY
         ds = fix_coords(ds, dx=dx, dy=dy)
@@ -788,8 +791,8 @@ def load_data(outpath_wrf, inst_file, mean_file,
         WRF instantaneous output.
 
     """
-    dat_inst = open_dataset(os.path.join(outpath_wrf, inst_file), cache=False, del_attrs=False, **kw)
-    dat_mean = open_dataset(os.path.join(outpath_wrf, mean_file), cache=False, **kw)
+    dat_inst = open_dataset(os.path.join(outpath_wrf, inst_file), del_attrs=False, **kw)
+    dat_mean = open_dataset(os.path.join(outpath_wrf, mean_file), **kw)
 
     # select subset of data
     if pre_iloc is not None:
@@ -845,6 +848,8 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
             datout[f] = xr.open_dataset(file, cache=False)
         else:
             datout[f] = xr.open_dataarray(file, cache=False)
+        datout[f].close()
+
     return datout
 
 

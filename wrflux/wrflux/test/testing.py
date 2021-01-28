@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
-             "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
+             "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords"]
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
@@ -407,6 +407,32 @@ def test_y0(adv, thresh=(1e-6, 5e-2)):
     return failed, f.values
 
 
+def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
+    """
+    Test if dimension coordinates in postprocessed output are the same as in instantaneous WRF output.
+
+    Exclude Time, ID, dir, and comp.
+
+    """
+    for dim in dat.dims:
+        c = dat[dim].values
+        if dim in ["Time", "ID", "dir", "comp"]:
+            cr = None
+        elif dim in dat_inst.dims:
+            cr = dat_inst[dim].values
+        if cr is not None:
+            if (len(c) != len(cr)) or (c != cr).any():
+                print("Coordinates for dimension {} in data {} of variable {}"
+                      " differs between postprocessed output and WRF output:"
+                      "\n {} vs. {}".format(dim, dat_name, variable, c, cr))
+                f = "FAIL"
+            else:
+                f = "pass"
+            f0 = failed.loc[variable, "dim_coords"]
+            if (f0 == "") or (f0 == "pass"):
+                failed.loc[variable, "dim_coords"] = f
+
+
 # %% run_tests
 
 def run_tests(datout, tests, dat_inst=None, trb_exp=False,
@@ -446,6 +472,11 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
         tests = all_tests
 
     variables = list(datout.keys())
+    failed = pd.DataFrame(columns=tests, index=variables)
+    err = pd.DataFrame(columns=tests, index=variables)
+    failed[:] = ""
+    err[:] = ""
+
     # cut boundaries for non-periodic BC or if chunking was used
     attrs = datout[variables[0]]["flux"].attrs
     iloc = {}
@@ -464,13 +495,10 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
     for v, datout_v in datout.items():
         datout_lim[v] = {}
         for n, dat in datout_v.items():
+            if "dim_coords" in tests:
+                test_dim_coords(dat, dat_inst, v, n, failed)
             datout_lim[v][n] = tools.loc_data(dat, iloc=iloc)
 
-    variables = list(datout.keys())
-    failed = pd.DataFrame(columns=tests, index=variables)
-    err = pd.DataFrame(columns=tests, index=variables)
-    failed[:] = ""
-    err[:] = ""
     fpath = Path(__file__).parent
     for var, datout_v in datout_lim.items():
         print("Variable: " + var)

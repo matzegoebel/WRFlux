@@ -254,7 +254,7 @@ def run_and_test(param_grids, config_file="wrflux.test.config_test_tendencies", 
                 tests_i.remove("Y=0")
             kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
             kw["close"] = True  # always close figures
-            failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst,
+            failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, label=label,
                                                 hor_avg=hor_avg, trb_exp=t_avg,
                                                 chunks=chunks, **kw)
 

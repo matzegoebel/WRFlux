@@ -615,33 +615,35 @@ CONTAINS
           rhoy_mean_flx = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
           rhoxy_mean_flx = 0.25*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1) + RHOD_MEAN(i-1,k,j) + RHOD_MEAN(i-1,k,j-1))
 
-          !factors to decouple horizontal fluxes from mu and map-scale factors
-          muxz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2f(k)
-          muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
-          fwx_dfac  = msfuy(i,j)/muxz_mean
-          fwy_dfac  = msfvx(i,j)/muyz_mean
-          IF (k .lt. kde) THEN
-            !k=kde only relevant for vertically staggered variables
-            mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
-            mux_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2h(k)
-            muy_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2h(k)
-            muxy_mean = c1h(k)*0.25*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j) + MUT_MEAN(i,j-1) + MUT_MEAN(i-1,j-1)) + c2h(k)
-            fqx_dfac  = msfuy(i,j)/mux_mean
-            fqy_dfac  = msfvx(i,j)/muy_mean
-            fux_dfac  = 0.5*(msfuy(i,j) + msfuy(i+1,j))/mu_mean
-            fuy_dfac  = 0.5*(msfvx(i,j) + msfvx(i-1,j))/muxy_mean
-            fvx_dfac  = 0.5*(msfuy(i,j) + msfuy(i,j-1))/muxy_mean
-            fvy_dfac  = 0.5*(msfvx(i,j) + msfvx(i,j+1))/mu_mean
-          ENDIF
-          IF (config_flags%hesselberg_avg) THEN
-            !mean staggered densities to normalize means by density
-            rho_mean = RHOD_MEAN(i,k,j)
-            rhoz_mean = rhoz_mean_flx
-            rhoxz_mean = rhoxz_mean_flx
-            rhoyz_mean = rhoyz_mean_flx
-            rhox_mean = rhox_mean_flx
-            rhoy_mean = rhoy_mean_flx
-            rhoxy_mean = rhoxy_mean_flx
+          IF (config_flags%output_res_fluxes) THEN
+            !factors to decouple horizontal fluxes from mu and map-scale factors
+            muxz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2f(k)
+            muyz_mean = c1f(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2f(k)
+            fwx_dfac  = msfuy(i,j)/muxz_mean
+            fwy_dfac  = msfvx(i,j)/muyz_mean
+            IF (k .lt. kde) THEN
+              !k=kde only relevant for vertically staggered variables
+              mu_mean = c1h(k)*MUT_MEAN(i,j) + c2h(k)
+              mux_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j)) + c2h(k)
+              muy_mean = c1h(k)*0.5*(MUT_MEAN(i,j) + MUT_MEAN(i,j-1)) + c2h(k)
+              muxy_mean = c1h(k)*0.25*(MUT_MEAN(i,j) + MUT_MEAN(i-1,j) + MUT_MEAN(i,j-1) + MUT_MEAN(i-1,j-1)) + c2h(k)
+              fqx_dfac  = msfuy(i,j)/mux_mean
+              fqy_dfac  = msfvx(i,j)/muy_mean
+              fux_dfac  = 0.5*(msfuy(i,j) + msfuy(i+1,j))/mu_mean
+              fuy_dfac  = 0.5*(msfvx(i,j) + msfvx(i-1,j))/muxy_mean
+              fvx_dfac  = 0.5*(msfuy(i,j) + msfuy(i,j-1))/muxy_mean
+              fvy_dfac  = 0.5*(msfvx(i,j) + msfvx(i,j+1))/mu_mean
+            ENDIF
+            IF (config_flags%hesselberg_avg) THEN
+              !mean staggered densities to normalize means by density
+              rho_mean = RHOD_MEAN(i,k,j)
+              rhoz_mean = rhoz_mean_flx
+              rhoxz_mean = rhoxz_mean_flx
+              rhoyz_mean = rhoyz_mean_flx
+              rhox_mean = rhox_mean_flx
+              rhoy_mean = rhoy_mean_flx
+              rhoxy_mean = rhoxy_mean_flx
+            ENDIF
           ENDIF
 
         ENDIF

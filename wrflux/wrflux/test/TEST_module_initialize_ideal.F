@@ -134,6 +134,9 @@ CONTAINS
    REAL :: randx       ! for LES
    INTEGER :: ks, ke, id
 
+   INTEGER :: state_size
+   INTEGER, ALLOCATABLE, DIMENSION(:) :: state
+
    LOGICAL, EXTERNAL :: wrf_dm_on_monitor
 
    SELECT CASE ( model_data_order )
@@ -582,6 +585,11 @@ CONTAINS
 !  here we initialize data that currently is not initialized
 !  in the input data
 
+    !set seed for repeatability
+    call random_seed( size=state_size )
+    allocate(state(state_size))
+    state = 20180815
+    CALL RANDOM_SEED(put=state)
     DO j = jts, jte
       DO i = its, ite
          mminlu2 = ' '

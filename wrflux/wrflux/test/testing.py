@@ -435,7 +435,7 @@ def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
 
 # %% run_tests
 
-def run_tests(datout, tests, dat_inst=None, trb_exp=False,
+def run_tests(datout, tests, dat_inst=None, label=None, trb_exp=False,
               hor_avg=False, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
@@ -449,6 +449,8 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
         Choices: budget, decomp_sumdir, decomp_sumcomp, dz_out, adv_2nd, w, Y=0, NaN
     dat_inst : xarray DataArray, optional
         WRF instantaneous output needed for w test. The default is None.
+    label : str, optional
+        Label of the current test simulation. The default is None.
     trb_exp : bool, optional
         Turbulent fluxes were calculated explicitly. The default is False.
     hor_avg : bool, optional
@@ -505,13 +507,17 @@ def run_tests(datout, tests, dat_inst=None, trb_exp=False,
         figloc = fpath / "figures" / var
         failed_i = {}
         err_i = {}
+
         if "budget" in tests:
             # TODOm: change threshold depending on ID?
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc / "budget"
+            if (var == "w") and (label == "open BC y hor_avg"):
+                kw["thresh"] = 0.99
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
-
+            if "thresh" in kw:
+                del kw["thresh"]
         adv = datout_v["adv"]
         if "decomp_sumdir" in tests:
             if trb_exp or hor_avg or (attrs["HESSELBERG_AVG"] == 0):

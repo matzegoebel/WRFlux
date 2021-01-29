@@ -815,7 +815,7 @@ def load_data(outpath_wrf, inst_file, mean_file,
     return dat_mean, dat_inst
 
 
-def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
+def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None):
     """
     Load already postprocessed data.
 
@@ -825,6 +825,9 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
         Path to the postprocessed data.
     var : str
         Variable to load postprocessed output of.
+    cartesian : bool
+        If post-processed data includes calculations in Cartesian form,
+        the file 'corr' will be loaded, as well.
     hor_avg : bool, optional
         Load horizontally averaged output. The default is False.
     avg_dims : str or list of str, optional
@@ -843,6 +846,8 @@ def load_postproc(outpath, var, hor_avg=False, avg_dims=None):
     datout = {}
     outpath = Path(outpath) / var.upper()
     for f in outfiles:
+        if (f == "corr") and (not cartesian):
+            continue
         file = outpath / (f + avg + ".nc")
         if f in ["sgsflux", "flux", "grid"]:
             datout[f] = xr.open_dataset(file, cache=False)
@@ -1776,7 +1781,10 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
         skip = True
     else:
         skip = False
+    cartesian = "cartesian" in " ".join(make_list(budget_methods))
     for outfile in outfiles:
+        if (outfile == "corr") and (not cartesian):
+            continue
         for var in variables:
             fpath = outpath / var.upper() / (outfile + avg + ".nc")
             if fpath.exists():
@@ -1791,7 +1799,8 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
 
     if skip:
         print("Postprocessed output already available!")
-        out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
+        out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+                                  avg_dims=avg_dims) for var in variables}
         if return_model_output:
             print("Load model output")
             dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
@@ -1841,7 +1850,8 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
 
         if rank == 0:
             print("Load entire postprocessed output")
-            out = {var: load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims) for var in variables}
+            out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+                                      avg_dims=avg_dims) for var in variables}
             if return_model_output:
                 dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
                 out = [out, dat_inst, dat_mean]
@@ -1921,6 +1931,9 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
     cyclic = {d: bool(dat_inst_all.attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
     cyclic["bottom_top"] = False
 
+    budget_methods = make_list(budget_methods)
+    cartesian = "cartesian" in " ".join(budget_methods)
+
     # select tile
     if tile is not None:
         print("\n\n{0}\nProcess tile: {1}\n".format("#" * 30, tile))
@@ -1951,12 +1964,14 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
         if skip_exist:
             skip = True
             for outfile in outfiles:
+                if (outfile == "corr") and (not cartesian):
+                    continue
                 fpath = outpath / VAR / (outfile + avg + ".nc")
                 if not fpath.exists():
                     skip = False
             if skip:
                 print("Postprocessed output already available!")
-                datout_all[var] = load_postproc(outpath, var, hor_avg=hor_avg, avg_dims=avg_dims)
+                datout_all[var] = load_postproc(outpath, var, cartesian, hor_avg=hor_avg, avg_dims=avg_dims)
                 continue
 
         # calculate all sources except advection
@@ -1965,7 +1980,6 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                                 hor_avg=hor_avg, avg_dims=avg_dims)
 
         # total and advective tendencies
-        budget_methods = make_list(budget_methods)
         for budget_method in budget_methods:
             datout_c = {}
             # get config dict for current budget method

@@ -164,7 +164,7 @@ def run_and_test(param_grids, avg_dims=None):
             rmsf = random_msf
             if "msf=1" in label:
                 rmsf = False
-            conf, cfile, build_dir = setup_test_init_module(build, random_msf=rmsf)
+            conf, cfile, build_dir = setup_test_sim(build, random_msf=rmsf)
 
             if runID is None:
                 runID_i = conf.runID
@@ -204,7 +204,7 @@ def run_and_test(param_grids, avg_dims=None):
                     print("Error in initializing simulation {}!".format(cname))
                     failed[ind].loc["INIT", variables[0]] = "FAIL"
                     continue
-                log = (run_dir / "run.log").read_text()
+                log = (run_dir / "rsl.error.0000").read_text()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
                     print("Error in running simulation {}!".format(cname))
                     failed[ind].loc["RUN", variables[0]] = "FAIL"
@@ -212,6 +212,7 @@ def run_and_test(param_grids, avg_dims=None):
 
         # postprocess data and run tests
         test_results = test_path / "test_results"
+        os.makedirs(test_results, exist_ok=True)
         for cname, param_comb in param_combs.iterrows():
             if cname in ["core_param", "composite_idx"]:
                 continue
@@ -287,7 +288,7 @@ def run_and_test(param_grids, avg_dims=None):
 
     if restore_init_module:
         for build in tools.make_list(builds):
-            conf, cfile, build_dir = setup_test_init_module(build, restore=True)
+            conf, cfile, build_dir = setup_test_sim(build, restore=True)
 
     # assemble and save final test results
     for ind in failed.keys():
@@ -334,8 +335,11 @@ def capture_submit(*args, **kwargs):
     return combs, output
 
 
-def setup_test_init_module(build, restore=False, random_msf=True):
-    """Replace module_initialize_ideal.F with test file and recompile.
+def setup_test_sim(build, restore=False, random_msf=True):
+    """Setup test simulation.
+
+    Replace module_initialize_ideal.F with test file and recompile.
+    Copy input sounding and IO_file to case directory.
 
     Parameters
     ----------
@@ -357,7 +361,7 @@ def setup_test_init_module(build, restore=False, random_msf=True):
     build_dir : str
         WRF build directory.
     """
-    cfile = "wrflux.test.config_test_tendencies"
+    cfile = "wrflux.test.config.config_test_tendencies"
     conf = importlib.import_module(cfile)
     if build == "debug":
         cfile = cfile + "_debug"
@@ -369,32 +373,64 @@ def setup_test_init_module(build, restore=False, random_msf=True):
         build_dir = conf.parallel_build
     conf = importlib.import_module(cfile)
 
+    #  setup module_initialize_ideal.F
     fname = "module_initialize_ideal.F"
     wrf_path = Path(conf.params["build_path"]) / build_dir
     fpath = wrf_path / "dyn_em" / fname
-
+    recompile = True
     if restore:
         m = "Restore"
-        shutil.copy(str(fpath) + ".org", fpath)
+        os.rename(str(fpath) + ".org", fpath)
     else:
+        input_path = test_path / "input"
         org_file = fpath.read_text()
         testf = "TEST_"
         if random_msf:
             testf += "msf_"
-        test_file_path = (test_path / (testf + fname))
+        test_file_path = (input_path / (testf + fname))
         test_file = test_file_path.read_text()
         if test_file == org_file:
-            return conf, cfile, build_dir
+            recompile = False
         else:
             m = "Copy"
-            shutil.copy(fpath, str(fpath) + ".org")
+            fpath_org = Path(str(fpath) + ".org")
+            if not fpath_org.exists():
+                shutil.copy(fpath, fpath_org)
             shutil.copy(test_file_path, fpath)
-    print(m + " module_initialize_ideal.F and recompile")
-    os.chdir(wrf_path)
-    err = os.system(str(wrf_path / "compile") + " em_les > log 2> err")
-    if err != 0:
-        raise RuntimeError("WRF compilation failed!")
-    os.chdir(test_path)
+    if recompile:
+        print(m + " module_initialize_ideal.F and recompile")
+        os.chdir(wrf_path)
+        err = os.system(str(wrf_path / "compile") + " em_les > log 2> err")
+        if err != 0:
+            raise RuntimeError("WRF compilation failed!")
+        os.chdir(test_path)
+
+    # IO file, input sounding, and namelist file
+    input_files = ["IO_wdiag.txt", "input_sounding_wrflux", "namelist.input"]
+    case_path = wrf_path / "test" / conf.params["ideal_case_name"]
+
+    for f in input_files:
+        fpath = case_path / f
+        fpath_org = Path(str(fpath) + ".org")
+        if not restore:
+            src = f
+            if f == "namelist.input":
+                if build == "org":
+                    src = src + ".org"
+                else:
+                    src = src + ".wrflux"
+            src = input_path / src
+            if (not fpath.exists()) or (fpath.read_text() != src.read_text()):
+                print("Copy {}".format(f))
+                if f == "namelist.input":
+                    if not fpath_org.exists():
+                        shutil.copy(fpath, fpath_org)
+                shutil.copy(src, fpath)
+        else:
+            os.remove(fpath)
+            if f == "namelist.input":
+                print("Restore namelist file")
+                os.rename(fpath_org, fpath)
 
     return conf, cfile, build_dir
 

@@ -9,8 +9,7 @@ Test settings for automated tests with normal build.
 @author: Matthias Göbel
 
 """
-
-from wrflux.test.config_test_tendencies_base import *
+from wrflux.test.config.config_test_tendencies_base import *
 from copy import deepcopy
 params = deepcopy(params)
 
@@ -34,7 +33,7 @@ params["output_w_fluxes_add"] = 1
 params["hesselberg_avg"] = True
 params["output_dry_theta_fluxes"] = True
 
-params["iofields_filename"] = "IO_file.txt"
+params["iofields_filename"] = "IO_wdiag.txt"
 
 # registries to look for default namelist parameters
 registries = [*registries, "registry.wrflux"]

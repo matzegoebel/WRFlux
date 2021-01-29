@@ -21,7 +21,7 @@ params = deepcopy(params)
 '''Simulations settings'''
 
 runID = "pytest"
-test_path = Path(__file__).parent
+test_path = Path(__file__).parent.parent
 test_sims = test_path / "test_sims"
 params["outpath"] = str(test_sims / "results")  # WRF output path root
 params["run_path"] = str(test_sims / "runs")  # path where run directories of simulations will be created
@@ -77,7 +77,7 @@ params["vgrid_method"] = 1
 params["dt_f"] = 2  # time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
 params["spec_hfx"] = None
 
-params["input_sounding"] = "unstable"  # name of input sounding to use (final name is then created: input_sounding_$name)
+params["input_sounding"] = "wrflux"  # name of input sounding to use (final name is then created: input_sounding_$name)
 params["hm"] = 500  # mountain height (m)
 
 # other standard namelist parameters

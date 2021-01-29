@@ -47,7 +47,7 @@ hor_avg = True  # average over avg_dims
 t_avg = False  # average again over time
 t_avg_interval = None  # size of the time averaging window
 
-# select data before processing #TODO stag?
+# select data before processing
 # staggered dimension must have one gridpoint more than unstaggered
 
 # pre_iloc = {"y" : slice(0,10), "y_stag" : slice(0,11)} #indices (do not use for Time!)

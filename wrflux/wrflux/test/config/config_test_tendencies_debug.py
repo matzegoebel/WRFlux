@@ -9,7 +9,7 @@ Test settings for automated tests with debug build.
 @author: Matthias Göbel
 
 """
-from wrflux.test.config_test_tendencies import *
+from wrflux.test.config.config_test_tendencies import *
 from copy import deepcopy
 params = deepcopy(params)
 

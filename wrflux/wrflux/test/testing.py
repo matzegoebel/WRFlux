@@ -435,7 +435,7 @@ def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
                 failed.loc[variable, "dim_coords"] = f
 
 
-def test_no_model_change(outpath, ID, inst_file, mean_file, builds):
+def test_no_model_change(outpath, ID, inst_file, mean_file):
     """
     Check that output of WRFlux and original WRF is identical for all history variables.
 
@@ -444,13 +444,11 @@ def test_no_model_change(outpath, ID, inst_file, mean_file, builds):
     outpath : str
         Path to the WRF output directory.
     ID : str
-        Simulation ID.
+        Simulation ID with placeholder for build.
     inst_file : str or path-like
         Name of the output file containing instantaneous data.
     mean_file : str
         Name of the output file containing time-averaged data.
-    builds : list of str
-        builds that have been processed.
 
     Returns
     -------
@@ -462,8 +460,7 @@ def test_no_model_change(outpath, ID, inst_file, mean_file, builds):
     # open WRF output
     dat_inst = {}
     for build in ["org", "debug"]:
-        ID_b = ID.replace(builds[-1], build)
-        outpath_c = os.path.join(outpath, ID_b) + "_0"
+        outpath_c = os.path.join(outpath, ID.format(build)) + "_0"
         _, dat_inst[build] = tools.load_data(outpath_c, inst_file=inst_file, mean_file=mean_file)
 
     # check that the right output was loaded
@@ -472,11 +469,12 @@ def test_no_model_change(outpath, ID, inst_file, mean_file, builds):
 
     for v in dat_inst["org"].variables:
         try:
-            xr.testing.assert_allclose(dat_inst["debug"][v], dat_inst["org"][v])
+            xr.testing.assert_identical(dat_inst["debug"][v], dat_inst["org"][v])
         except AssertionError:
             print("Simulation with WRFlux and original WRF differ in variable {}!".format(v))
             res = "FAIL"
     return res
+
 
 # %% run_tests
 

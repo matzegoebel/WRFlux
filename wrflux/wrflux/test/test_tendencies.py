@@ -85,10 +85,10 @@ def test_all():
         output_streams=[{24: ["meanout", 2. / 60.], 0: ["instout", 10.]}]))
     param_grids["trb no_debug hor_avg msf=1"] = param_grids["trb no_debug msf=1"]
     param_grids["hor_avg msf=1"] = odict(runID="hor_avg_msf=1")  # for Y=0 test
-    param_grids["hor_avg"] = odict(runID="hor_avg")
+    param_grids["hor_avg"] = odict()
     param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
     param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
-    param_grids["chunking x hor_avg no_debug"] = odict(chunks={"x": 10}, runID="hor_avg")
+    param_grids["chunking x hor_avg no_debug"] = odict(chunks={"x": 10})
     param_grids["hessel"] = odict(hesselberg_avg=[False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
@@ -140,11 +140,14 @@ def run_and_test(param_grids, avg_dims=None):
         skip_exist_i = False
     # remove previous figures
     figloc = test_path / "figures"
+
+    test_results = test_path / "test_results"
+    os.makedirs(test_results, exist_ok=True)
     if figloc.exists():
         shutil.rmtree(figloc)
 
     for label, param_grid in param_grids.items():
-        print("\n\n\n{0}\nRun test simulations: {1}\n{0}\n".format("#" * 50, label))
+        print("\n\n\n{0}\n{0}\n{0}\nRun test simulations: {1}\n{0}\n{0}\n{0}\n".format("#" * 70, label))
         # initialize and run simulations
 
         builds_i = builds.copy()
@@ -160,6 +163,7 @@ def run_and_test(param_grids, avg_dims=None):
             chunks = None
 
         for build in tools.make_list(builds_i):
+            print("\n\n\n{0}\n{0}\nbuild: {1}\n{0}\n{0}\n".format("#" * 50, build))
             # setup module_initialize_ideal.F
             rmsf = random_msf
             if "msf=1" in label:
@@ -196,98 +200,95 @@ def run_and_test(param_grids, avg_dims=None):
                     continue
                 IDi = param_comb["fname"]
                 ind = label + ": " + IDi
+                print("\n\n{0}\nCheck simulation: {1}, {2}\n{0}\n".format("#" * 70, label, IDi))
                 failed[ind] = ""
-                # check logs
+                err[ind] = ""
+                print("Check if simulations were successfully initialized and run.")
                 run_dir = Path(conf.params["run_path"]) / ("WRF_" + IDi + "_0")
                 log = (run_dir / "init.log").read_text()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
-                    print("Error in initializing simulation {}!".format(cname))
+                    print("Error in initializing simulation!")
                     failed[ind].loc["INIT", variables[0]] = "FAIL"
                     continue
                 log = (run_dir / "rsl.error.0000").read_text()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
-                    print("Error in running simulation {}!".format(cname))
+                    print("Error in running simulation!")
                     failed[ind].loc["RUN", variables[0]] = "FAIL"
                     continue
 
-        # postprocess data and run tests
-        test_results = test_path / "test_results"
-        os.makedirs(test_results, exist_ok=True)
-        for cname, param_comb in param_combs.iterrows():
-            if cname in ["core_param", "composite_idx"]:
-                continue
-            IDi = param_comb["fname"]
-            ind = label + ": " + IDi
-            if (failed.loc[["RUN", "INIT"], ind] == "FAIL").any():
-                continue
-            print("\n\n\n{0}\nPostprocess simulation: {1}, {2}\n{0}\n".format("#" * 50, label, cname))
+                # postprocess data and run tests
+                outpath_c = os.path.join(conf.params["outpath"], IDi) + "_0"
+                start_time = param_comb["start_time"]
+                inst_file = "instout_d01_" + start_time
+                mean_file = "meanout_d01_" + start_time
 
-            err[ind] = ""
+                if "normal" in builds_i:
+                    use_build = "normal"
+                else:
+                    use_build = "debug"
+                if ("no_model_change" in tests) and ("debug" in builds_i) and (build == use_build):
+                    print("Check for differences between debug build and official WRF.")
+                    # replace build with placeholder for later formatting
+                    ID_b = IDi.replace(build, "{}")
+                    f = testing.test_no_model_change(conf.params["outpath"], ID_b, inst_file, mean_file)
+                    failed.loc["no_model_change", variables[0]] = f
 
-            # set budget methods
-            bm = budget_methods
-            tests_i = tests.copy()
+                if build != "normal":
+                    continue
 
-            hor_avg = False
-            if "hor_avg" in label:
-                hor_avg = True
+                print("Postprocess simulation")
 
-            if "dz_out" in label:
-                bm = bm + budget_methods_dzout
-            elif "dz_out" in tests_i:
-                tests_i.remove("dz_out")
+                # set budget methods
+                bm = budget_methods
+                tests_i = tests.copy()
+                hor_avg = False
+                if "hor_avg" in label:
+                    hor_avg = True
 
-            if all(param_comb[i + "_adv_order"] == 2 for i in ["h_sca", "v_sca", "h_mom", "v_mom"]):
-                bm = bm + budget_methods_2nd
-            elif "adv_2nd" in tests_i:
-                tests_i.remove("adv_2nd")
+                if "dz_out" in label:
+                    bm = bm + budget_methods_dzout
+                elif "dz_out" in tests_i:
+                    tests_i.remove("dz_out")
 
-            t_avg = False
-            t_avg_interval = None
-            if "trb " in label:
-                if "w" in tests_i:
-                    tests_i.remove("w")
-                t_avg = True
-                t_avg_interval = int(param_comb["output_streams"][0][1] * 60 / param_comb["dt_f"])
+                if all(param_comb[i + "_adv_order"] == 2 for i in ["h_sca", "v_sca", "h_mom", "v_mom"]):
+                    bm = bm + budget_methods_2nd
+                elif "adv_2nd" in tests_i:
+                    tests_i.remove("adv_2nd")
 
-            outpath_c = os.path.join(conf.params["outpath"], IDi) + "_0"
-            start_time = param_comb["start_time"]
-            inst_file = "instout_d01_" + start_time
-            mean_file = "meanout_d01_" + start_time
+                t_avg = False
+                t_avg_interval = None
+                if "trb " in label:
+                    if "w" in tests_i:
+                        tests_i.remove("w")
+                    t_avg = True
+                    t_avg_interval = int(param_comb["output_streams"][0][1] * 60 / param_comb["dt_f"])
 
-            if ("no_model_change" in tests_i) and ("debug" in builds_i):
-                f = testing.test_no_model_change(conf.params["outpath"], IDi, inst_file, mean_file, builds_i)
-                failed.loc["no_model_change", variables[0]] = f
+                datout, dat_inst, dat_mean = tools.calc_tendencies(
+                    variables, outpath_c, inst_file=inst_file, mean_file=mean_file, budget_methods=bm,
+                    hor_avg=hor_avg, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval,
+                    skip_exist=skip_exist_i, save_output=True, return_model_output=True, chunks=chunks)
 
-            if build != "normal":
-                print("Skip post-processing and tests, because last build is not 'normal'!")
-                continue
+                print("\n{}\nRun tests:\n".format("#" * 10))
+                if rmsf and ("Y=0" in tests_i):
+                    tests_i.remove("Y=0")
+                kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
+                kw["close"] = True  # always close figures
+                failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, label=label,
+                                                    hor_avg=hor_avg, trb_exp=t_avg,
+                                                    chunks=chunks, **kw)
 
-            print("Postprocess data")
-            datout, dat_inst, dat_mean = tools.calc_tendencies(
-                variables, outpath_c, inst_file=inst_file, mean_file=mean_file, budget_methods=bm,
-                hor_avg=hor_avg, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval,
-                skip_exist=skip_exist_i, save_output=True, return_model_output=True, chunks=chunks)
-
-            print("\n\n\n{0}\nRun tests\n{0}\n".format("#" * 50))
-            if rmsf and ("Y=0" in tests_i):
-                tests_i.remove("Y=0")
-            kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
-            kw["close"] = True  # always close figures
-            failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, label=label,
-                                                hor_avg=hor_avg, trb_exp=t_avg,
-                                                chunks=chunks, **kw)
-
-            for var in variables:
-                for test, f in failed_i.loc[var].items():
-                    failed[ind].loc[test, var] = f
-                for test, e in err_i.loc[var].items():
-                    err[ind].loc[test, var] = e
-            failed.to_csv(test_results / ("test_results_" + now + ".csv"))
-            err.to_csv(test_results / ("test_scores_" + now + ".csv"))
+                for var in variables:
+                    for test, f in failed_i.loc[var].items():
+                        failed[ind].loc[test, var] = f
+                    for test, e in err_i.loc[var].items():
+                        err[ind].loc[test, var] = e
+                failed.to_csv(test_results / ("test_results_" + now + ".csv"))
+                err.to_csv(test_results / ("test_scores_" + now + ".csv"))
 
     if restore_init_module:
+        print("\n")
         for build in tools.make_list(builds):
+            print("\nRestore files for build " + build)
             conf, cfile, build_dir = setup_test_sim(build, restore=True)
 
     # assemble and save final test results

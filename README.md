@@ -172,7 +172,7 @@ The model evolution is almost identical to the current official version. However
 
 ## Tests
 ### Test details
-This package includes a test suite for automated testing with `pytest`. Idealized test simulations are run for one hour with a large number of different namelist settings to check all parts of the code including different combinations of `km_opt`, `bl_pbl_physics`, `isfflx`, `use_theta_m`, `output_dry_theta_fluxes`, `output_t_fluxes_small`, `hesselberg_avg`, `*adv_order`, `*adv_opt`, `mp_physics`, and boundary conditions. To check the output of WRFlux for consistency the following tests are carried out for these simulations:
+This package includes a test suite for automated testing with `pytest`. Idealized test simulations are run for one hour with a large number of different namelist settings to check all parts of the code including different combinations of `km_opt`, `bl_pbl_physics`, `isfflx`, `use_theta_m`, `output_dry_theta_fluxes`, `output_t_fluxes_small`, `hesselberg_avg`, `*adv_order`, `*adv_opt`, `mp_physics`, and boundary conditions. The test simulations are based on the idealized LES test case (`em_les`). To check the output of WRFlux for consistency the following tests are carried out for these simulations:
 
 - closure of budget (model tendency = summed forcing) in native and Cartesian grid (e > 0.9993)
 - Cartesian = native advective tendencies if spatial directions are summed up (e > 0.99999)
@@ -196,7 +196,7 @@ For some simulations, horizontal averaging in the along-mountain direction is te
 
 A shorter simulation is run with output at every time step from which turbulent fluxes are calculated explicitly. The thresholds for tests 2 and 3 are reduced in that case.
 
-All test simulations are repeated with a short runtime (2 minutes) in debugging mode (WRF configured with `configure -D`) to detect floating-point exceptions and other issues.
+All test simulations are repeated with a short runtime (2 minutes) in debugging mode (WRF configured with `configure -D`) to detect floating-point exceptions and other issues and with a version very close to the official WRF version (branch [original](https://github.com/matzegoebel/WRFlux/tree/original)) to test for unintended changes of the dynamical core. The only differences to the official version in the latter build are those listed in the section [Changes to the dynamical core](#changes-to-the-dynamical-core) above. All output variables of this build and of the debug build are compared bit-for-bit.
 
 
 ### Installation
@@ -213,8 +213,8 @@ pip install -e .
 Then go back to the directory `wrflux` and run:
 `pip install -e .[test]`
 
-To run the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). Specify the location of these builds in the configuration file `config_test_tendencies.py` in the variable `build_path`.
-The names of the folders of the two builds are specified by the variables `parallel_build` and `debug_build` in the configuration file.
+To run all tests in the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). To check for differences to the official WRF, a parallel build of the [*original* branch](https://github.com/matzegoebel/WRFlux/tree/original) of this repository is required. Specify the location of these builds in the configuration file `config/config_test_tendencies_base.py` in the variable `build_path`.
+The names of the folders of the builds are specified by the variables `parallel_build`, `debug_build`, and `org_build` in the configuration file.
 
 To run the test suite, execute `pytest` in the folder `wrflux/wrflux/test`. Make sure you do not have a python installation activated with an MPI library if you did not compile WRF with it. This would cause a problem when running the test simulations.
 The test results are written to csv tables in the subdirectory `test_results`. For failed tests scatter plots are created in the subdirectory `figures`.

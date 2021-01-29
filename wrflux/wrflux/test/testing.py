@@ -478,7 +478,7 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
 
 # %% run_tests
 
-def run_tests(datout, tests, dat_inst=None, label=None, trb_exp=False,
+def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
               hor_avg=False, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
@@ -492,8 +492,8 @@ def run_tests(datout, tests, dat_inst=None, label=None, trb_exp=False,
         Choices: budget, decomp_sumdir, decomp_sumcomp, dz_out, adv_2nd, w, Y=0, NaN
     dat_inst : xarray DataArray, optional
         WRF instantaneous output needed for w test. The default is None.
-    label : str, optional
-        Label of the current test simulation. The default is None.
+    sim_id : str, optional
+        ID of the current test simulation. The default is None.
     trb_exp : bool, optional
         Turbulent fluxes were calculated explicitly. The default is False.
     hor_avg : bool, optional
@@ -556,8 +556,18 @@ def run_tests(datout, tests, dat_inst=None, label=None, trb_exp=False,
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc / "budget"
-            if (var == "w") and (label == "open BC y hor_avg"):
+            if (var == "w") and ("open BC y hor_avg" in sim_id):
                 kw["thresh"] = 0.99
+            elif (var == "t") and (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1):
+                # reduce threshold for WENO and monotonic advection as
+                # dry theta budget is not perfectly closed
+                if (attrs["SCALAR_ADV_OPT"] >= 3) and (attrs["MOIST_ADV_OPT"] >= 3):
+                    kw["thresh"] = 0.95
+                elif (attrs["SCALAR_ADV_OPT"] >= 3):
+                    kw["thresh"] = 0.7
+                elif attrs["MOIST_ADV_OPT"] == 2:
+                    kw["thresh"] = 0.98
+
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
             if "thresh" in kw:
                 del kw["thresh"]

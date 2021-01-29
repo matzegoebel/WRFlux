@@ -75,7 +75,6 @@ def test_all():
     # Define parameter grid for simulations
     param_grids = {}
     th = {"use_theta_m": [0, 1, 1], "output_dry_theta_fluxes": [False, False, True]}
-    th2 = {"use_theta_m": [0, 1], "output_dry_theta_fluxes": [False, False]}
     o = np.arange(2, 7)
 
     ### param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
@@ -103,8 +102,8 @@ def test_all():
         moist_adv_opt=[0, 1],
         adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(
-        moist_adv_opt=[0, 3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th2)
-    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th2)
+        moist_adv_opt=[0, 1, 3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
+    param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
 
     hm = 0  # flat simulations in boundaries are not periodic
@@ -272,8 +271,8 @@ def run_and_test(param_grids, avg_dims=None):
                 if rmsf and ("Y=0" in tests_i):
                     tests_i.remove("Y=0")
                 kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
-                kw["close"] = True  # always close figures
-                failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, label=label,
+                kw["close"] = False  # always close figures
+                failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, sim_id=ind,
                                                     hor_avg=hor_avg, trb_exp=t_avg,
                                                     chunks=chunks, **kw)
 

@@ -29,9 +29,9 @@ params["run_path"] = str(test_sims / "runs")  # path where run directories of si
 # path where different versions of the compiled WRF model code reside
 build_path = str(test_path.parents[3])
 params["build_path"] = build_path
-serial_build = "WRFlux"  # used if nslots=1
-parallel_build = "WRFlux"  # used if nslots > 1
-debug_build = "WRFlux_debug"  # used for -d option
+params["serial_build"] = "WRFlux"  # used if nslots=1
+params["parallel_build"] = "WRFlux"  # used if nslots > 1
+params["debug_build"] = "WRFlux_debug"  # used for -d option
 org_build = "WRF_org"  # original WRF version for comparison tests
 
 o = np.arange(2, 7)

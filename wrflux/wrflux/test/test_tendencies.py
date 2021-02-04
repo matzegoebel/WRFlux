@@ -28,7 +28,6 @@ test_path = Path(__file__).parent
 # %% settings
 
 variables = ["q", "t", "u", "v", "w"]
-
 # raise if tests fail
 raise_error = True
 # restore module_initialize_ideal.F after running tests
@@ -365,12 +364,12 @@ def setup_test_sim(build, restore=False, random_msf=True):
     conf = importlib.import_module(cfile)
     if build == "debug":
         cfile = cfile + "_debug"
-        build_dir = conf.debug_build
+        build_dir = conf.params["debug_build"]
     elif build == "org":
         cfile = cfile + "_base"
         build_dir = conf.org_build
     else:
-        build_dir = conf.parallel_build
+        build_dir = conf.params["parallel_build"]
     conf = importlib.import_module(cfile)
 
     #  setup module_initialize_ideal.F

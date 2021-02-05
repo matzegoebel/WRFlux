@@ -52,7 +52,8 @@ The other source terms that are output beside resolved and SGS fluxes for `outpu
 - **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both share output variable with pressure gradient tendency)
 
 
-All variables are output to the auxiliary output stream `auxhist24`. The **time-averaging interval** is set by the output interval `auxhist24_interval_m` and `auxhist24_interval_s`.
+All variables are output to the auxiliary output stream `auxhist24`. The **time-averaging interval** is set by the output interval of this stream with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`.
+You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 
 In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add` you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file. Instantaneous fluxes are by default not output.
 

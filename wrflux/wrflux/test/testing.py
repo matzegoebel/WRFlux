@@ -556,7 +556,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc / "budget"
-            if (var == "w") and ("open BC y hor_avg" in sim_id):
+            if (var == "w") and (sim_id is not None) and ("open BC y hor_avg" in sim_id):
                 kw["thresh"] = 0.99
             elif (var == "t") and (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1):
                 # reduce threshold for WENO and monotonic advection as

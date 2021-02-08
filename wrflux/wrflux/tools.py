@@ -815,7 +815,7 @@ def load_data(outpath_wrf, inst_file, mean_file,
     return dat_mean, dat_inst
 
 
-def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None):
+def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg_end=False):
     """
     Load already postprocessed data.
 
@@ -832,6 +832,9 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None):
         Load horizontally averaged output. The default is False.
     avg_dims : str or list of str, optional
         Averaging dimensions if hor_avg=True. The default is None.
+    hor_avg_end : bool, optional
+        Do horizontal average at end of processing step instead of inside.
+        This affects the mean and turbulent components. The default is False.
 
     Returns
     -------
@@ -839,8 +842,10 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None):
         Postprocessed output as nested dictionary.
 
     """
-    if hor_avg:
+    if hor_avg or hor_avg_end:
         avg = "_avg_" + "".join(avg_dims)
+        if hor_avg_end:
+            avg += "_end"
     else:
         avg = ""
     datout = {}
@@ -1711,7 +1716,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
 
 
 def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castesian",
-                    t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None,
+                    t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, hor_avg_end=False,
                     skip_exist=True, chunks=None, save_output=True, return_model_output=False,
                     **load_kw):
     """Load WRF output and start tendency calculations according to the given budget methods.
@@ -1739,6 +1744,9 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
         Averaging dimensions if hor_avg=True. The default is None.
+    hor_avg_end : bool, optional
+        Do horizontal average at end of processing step instead of inside.
+        This affects the mean and turbulent components. The default is False.
     skip_exist : bool, optional
         Skip variables for which postprocessed output is already available. The default is True.
     chunks : dict of integers, optional
@@ -1765,8 +1773,10 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
 
 
     """
-    if hor_avg:
+    if hor_avg or hor_avg_end:
         avg = "_avg_" + "".join(avg_dims)
+        if hor_avg_end:
+            avg += "_end"
     else:
         avg = ""
 
@@ -1794,13 +1804,13 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
                 skip = False
 
     kwargs = dict(budget_methods=budget_methods, t_avg=t_avg, t_avg_interval=t_avg_interval,
-                  hor_avg=hor_avg, avg_dims=avg_dims, skip_exist=skip_exist,
+                  hor_avg=hor_avg, hor_avg_end=hor_avg_end, avg_dims=avg_dims, skip_exist=skip_exist,
                   save_output=save_output, return_model_output=return_model_output, **load_kw)
 
     if skip:
         print("Postprocessed output already available!")
         out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
-                                  avg_dims=avg_dims) for var in variables}
+                                  avg_dims=avg_dims, hor_avg_end=hor_avg_end) for var in variables}
         if return_model_output:
             print("Load model output")
             dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
@@ -1851,7 +1861,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
         if rank == 0:
             print("Load entire postprocessed output")
             out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
-                                      avg_dims=avg_dims) for var in variables}
+                                      avg_dims=avg_dims, hor_avg_end=hor_avg_end) for var in variables}
             if return_model_output:
                 dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
                 out = [out, dat_inst, dat_mean]
@@ -1865,8 +1875,8 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
 
 def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castesian",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
-                         hor_avg=False, avg_dims=None, skip_exist=True, save_output=True,
-                         return_model_output=True, **load_kw):
+                         hor_avg=False, avg_dims=None, hor_avg_end=False, skip_exist=True,
+                         save_output=True, return_model_output=True, **load_kw):
     """Core function of calc_tendencies. Load WRF output and start tendency calculations
        according to the given budget methods. Only process a certain tile, if desired.
 
@@ -1899,6 +1909,9 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
         Averaging dimensions if hor_avg=True. The default is None.
+    hor_avg_end : bool, optional
+        Do horizontal average at end of processing step instead of inside.
+        This affects the mean and turbulent components. The default is False.
     skip_exist : bool, optional
         Skip variables for which postprocessed output is already available. The default is True.
     save_output : bool, optional
@@ -1945,8 +1958,11 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
 
-    if hor_avg:
+    if hor_avg or hor_avg_end:
         avg = "_avg_" + "".join(avg_dims)
+        if hor_avg_end:
+            avg += "_end"
+            hor_avg = False
     else:
         avg = ""
 
@@ -1971,7 +1987,8 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                     skip = False
             if skip:
                 print("Postprocessed output already available!")
-                datout_all[var] = load_postproc(outpath, var, cartesian, hor_avg=hor_avg, avg_dims=avg_dims)
+                datout_all[var] = load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+                                                avg_dims=avg_dims, hor_avg_end=hor_avg_end)
                 continue
 
         # calculate all sources except advection
@@ -2063,9 +2080,13 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
 
         for dn, dat in datout.items():
             warn_duplicate_dim(dat, name=dn)
+            if hor_avg_end:
+                datout[dn] = avg_xy(dat, avg_dims, cyclic=cyclic, **grid[stagger_const])
 
+        for dn, dat in datout.items():
             # add height as coordinate
             if "flux" in dn:
+                grid = datout["grid"]
                 for D in XYZ:
                     z = stagger_like(grid["ZW"], dat[D], cyclic=cyclic, **grid[stagger_const])
                     z = z.assign_attrs(description=z.description + " staggered to {}-flux grid".format(D))

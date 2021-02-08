@@ -560,11 +560,14 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
             if "stag" in d:
                 data = destagger(data, d, ref[d[:d.index("_stag")]], rename=rename)
             else:
+                ds = d + "_stag"
+                if ds not in ref.coords:
+                    continue
                 if (cyclic is not None) and (d in cyclic):
                     cyc = cyclic[d]
                 else:
                     cyc = False
-                data = stagger(data, d, ref[d + "_stag"], rename=rename, cyclic=cyc, **stagger_kw)
+                data = stagger(data, d, ref[ds], rename=rename, cyclic=cyc, **stagger_kw)
 
     return data
 

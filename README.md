@@ -160,7 +160,7 @@ Note the following limitations:
 * For non-periodic boundary conditions, the budget calculation for the boundary grid points does not work.
 * If using WENO or monotonic advection for scalars, energy is not perfectly conserved. Therefore, when the model uses moist theta (`use_theta_m=1`), the dry theta-budget obtained with `output_dry_theta_fluxes=.true.` is not closed. 
 
-WRFlux has a relatively strong impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 50 %.
+WRFlux has a relatively strong impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 25 %.
 
 ### Changes to the dynamical core
 The model evolution is almost identical to the current official version. However, two details in the dynamical core are different:
@@ -220,6 +220,7 @@ The names of the folders of the builds are specified by the variables `parallel_
 To run the test suite, execute `pytest` in the folder `wrflux/wrflux/test`. Make sure you do not have a python installation activated with an MPI library if you did not compile WRF with it. This would cause a problem when running the test simulations.
 The test results are written to csv tables in the subdirectory `test_results`. For failed tests scatter plots are created in the subdirectory `figures`.
 
+Running all tests on four cores takes about 3 hours (further parallelization is not yet supported). If the simulations do not need be repeated because the WRF code has not been changed, only the post-processing is tested. This takes less than 10 minutes.
 
 ## Theory
 
@@ -337,6 +338,6 @@ You are also invited to fix bugs and improve the code yourself. Your changes can
 
 ## Acknowledgments
 
-Thanks to Lukas Umek who provided the code used as starting point for WRFlux.
+Thanks to Lukas Umek who provided the code used as starting point for WRFlux: [https://github.com/lukasumek/WRF_LES_diagnostics](https://github.com/lukasumek/WRF_LES_diagnostics) .
 
 

@@ -41,7 +41,7 @@ here = path.abspath(path.dirname(__file__))
 
 setup(
     name='wrflux',
-    version='0.1',
+    version='1.0.0',
     description='With this package time-averaged tendencies of the WRF model can be retrieved '
     'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
     # ~ long_description=long_description,

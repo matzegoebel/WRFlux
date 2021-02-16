@@ -228,19 +228,19 @@ state   real    w_tend_cor_curv      ikj     dyn_em          1               Z  
 
 #namelist options
 
-rconfig  integer  output_t_fluxes          namelist,dynamics    1         0                    - "output_t_fluxes"   "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
-rconfig  integer  output_q_fluxes          namelist,dynamics    1         0                    - "output_q_fluxes"   "Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
-rconfig  integer  output_u_fluxes          namelist,dynamics    1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
-rconfig  integer  output_v_fluxes          namelist,dynamics    1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
-rconfig  integer  output_w_fluxes          namelist,dynamics    1         0                    - "output_w_fluxes"   "Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
-rconfig  integer  output_t_fluxes_small    namelist,dynamics    1         0                    - "output_t_fluxes_small" "Take into account theta-fluxes from acoustic time-step"
-rconfig  integer  output_t_fluxes_add      namelist,dynamics    1         0                    - "output_t_fluxes_add"   "Output additional theta-fluxes using 2nd order advection and different correction form"
-rconfig  integer  output_q_fluxes_add      namelist,dynamics    1         0                    - "output_q_fluxes_add"   "Output additional moisture fluxes using 2nd order advection and different correction form"
-rconfig  integer  output_u_fluxes_add      namelist,dynamics    1         0                    - "output_u_fluxes_add"   "Output additional u-fluxes advection using 2nd order and different correction form"
-rconfig  integer  output_v_fluxes_add      namelist,dynamics    1         0                    - "output_v_fluxes_add"   "Output additional v-fluxes advection using 2nd order and different correction form"
-rconfig  integer  output_w_fluxes_add      namelist,dynamics    1         0                    - "output_w_fluxes_add"   "Output additional w-fluxes advection using 2nd order and different correction form"
-rconfig  logical  hesselberg_avg           namelist,dynamics    1         .true.               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
-rconfig  logical  output_dry_theta_fluxes  namelist,dynamics    1         .true.               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
+rconfig  integer  output_t_fluxes          namelist,diag        1         0                    - "output_t_fluxes"   "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_q_fluxes          namelist,diag        1         0                    - "output_q_fluxes"   "Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_u_fluxes          namelist,diag        1         0                    - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_v_fluxes          namelist,diag        1         0                    - "output_v_fluxes"   "Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_w_fluxes          namelist,diag        1         0                    - "output_w_fluxes"   "Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
+rconfig  integer  output_t_fluxes_small    namelist,diag        1         0                    - "output_t_fluxes_small" "Take into account theta-fluxes from acoustic time-step"
+rconfig  integer  output_t_fluxes_add      namelist,diag        1         0                    - "output_t_fluxes_add"   "Output additional theta-fluxes using 2nd order advection and different correction form"
+rconfig  integer  output_q_fluxes_add      namelist,diag        1         0                    - "output_q_fluxes_add"   "Output additional moisture fluxes using 2nd order advection and different correction form"
+rconfig  integer  output_u_fluxes_add      namelist,diag        1         0                    - "output_u_fluxes_add"   "Output additional u-fluxes advection using 2nd order and different correction form"
+rconfig  integer  output_v_fluxes_add      namelist,diag        1         0                    - "output_v_fluxes_add"   "Output additional v-fluxes advection using 2nd order and different correction form"
+rconfig  integer  output_w_fluxes_add      namelist,diag        1         0                    - "output_w_fluxes_add"   "Output additional w-fluxes advection using 2nd order and different correction form"
+rconfig  logical  hesselberg_avg           namelist,diag        1         .true.               h "hesselberg_avg"    "Use density-weighted (hesselberg) averaging"
+rconfig  logical  output_dry_theta_fluxes  namelist,diag        1         .true.               h "output_dry_theta_fluxes" "Output fluxes based on dry theta even when the model uses moist theta internally"
 
 #derived from namelist options
 rconfig  logical  output_avgfluxes     derived    1  .false. -    "output_avgfluxes"  "Output averaged fluxes and mean quantities"

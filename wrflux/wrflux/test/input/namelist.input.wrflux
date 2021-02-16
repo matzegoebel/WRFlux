@@ -108,22 +108,7 @@
  non_hydrostatic                     = .true., .true., .true.,
  pert_coriolis                       = .true., .true., .true.,
  use_theta_m                         = 1,
-
  m_opt                                = 1
- hesselberg_avg                       = .true.
- output_dry_theta_fluxes              = .true.
- output_t_fluxes                      = 1
- output_q_fluxes                      = 1
- output_u_fluxes                      = 1
- output_v_fluxes                      = 1
- output_w_fluxes                      = 1
- output_t_fluxes_small                = 0
- output_t_fluxes_add                  = 0
- output_q_fluxes_add                  = 0
- output_u_fluxes_add                  = 0
- output_v_fluxes_add                  = 0
- output_w_fluxes_add                  = 0
-
  /
 
  &bdy_control
@@ -149,4 +134,20 @@
 
  &ideal
  ideal_case = 9
+ /
+
+ &diag
+ hesselberg_avg                       = .true.
+ output_dry_theta_fluxes              = .true.
+ output_t_fluxes                      = 1
+ output_q_fluxes                      = 1
+ output_u_fluxes                      = 1
+ output_v_fluxes                      = 1
+ output_w_fluxes                      = 1
+ output_t_fluxes_small                = 0
+ output_t_fluxes_add                  = 0
+ output_q_fluxes_add                  = 0
+ output_u_fluxes_add                  = 0
+ output_v_fluxes_add                  = 0
+ output_w_fluxes_add                  = 0
  /

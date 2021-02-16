@@ -1781,6 +1781,19 @@ is "h1", so that stream needs to be explicitly requested in the namelist.input f
 
  &diags
  diag_nwp2 = 1
+ output_t_fluxes (max_dom)          0        ! Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
+ output_q_fluxes (max_dom)          0        ! Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
+ output_u_fluxes (max_dom)          0        ! Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
+ output_v_fluxes (max_dom)          0        ! Output v-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
+ output_w_fluxes (max_dom)          0        ! Output w-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
+ output_t_fluxes_small (max_dom)    0        ! Take into account theta-fluxes from acoustic time-step
+ output_t_fluxes_add (max_dom)      0        ! Output additional theta-fluxes using 2nd order advection and different correction form
+ output_q_fluxes_add (max_dom)      0        ! Output additional moisture fluxes using 2nd order advection and different correction form
+ output_u_fluxes_add (max_dom)      0        ! Output additional u-fluxes advection using 2nd order and different correction form
+ output_v_fluxes_add (max_dom)      0        ! Output additional v-fluxes advection using 2nd order and different correction form
+ output_w_fluxes_add (max_dom)      0        ! Output additional w-fluxes advection using 2nd order and different correction form
+ hesselberg_avg (max_dom)           .true.   ! Use density-weighted (hesselberg) averaging
+ output_dry_theta_fluxes (max_dom)  .true.   ! Output fluxes based on dry theta even when the model uses moist theta internally
  /
 
  &time_control

@@ -30,7 +30,7 @@ I'm currently preparing a publication that introduces WRFlux.
 
 ### Online calculations
 During the model run, fluxes, tendencies, and budget variables are averaged over time.
-The online calculations can be controlled in the namelist file or the registry file `Registry/registry.wrflux`.
+The online calculations can be controlled in the namelist file or the registry file [`Registry/registry.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/Registry/registry.wrflux).
 
 The following namelist variables are available:
 
@@ -55,12 +55,15 @@ The other source terms that are output beside resolved and SGS fluxes for `outpu
 All variables are output to the auxiliary output stream `auxhist24`. The **time-averaging interval** is set by the output interval of this stream with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`.
 You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 
+An example namelist file based on the `em_les` test case can be found here:
+[`wrflux/wrflux/test/input/namelist.input.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/input/namelist.input.wrflux)
+
 In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add` you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file. Instantaneous fluxes are by default not output.
 
 
 ### Post-processing
 
-In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulent, and SGS. To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by `tendency_calcs.py`. This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
+In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulent, and SGS. To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by [`tendency_calcs.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/tendency_calcs.py). This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
 
 The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
@@ -214,7 +217,7 @@ pip install -e .
 Then go back to the directory `wrflux` and run:
 `pip install -e .[test]`
 
-To run all tests in the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). To check for differences to the official WRF, a parallel build of the [*original* branch](https://github.com/matzegoebel/WRFlux/tree/original) of this repository is required. Specify the location of these builds in the configuration file `config/config_test_tendencies_base.py` in the variable `build_path`.
+To run all tests in the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). To check for differences to the official WRF, a parallel build of the [*original* branch](https://github.com/matzegoebel/WRFlux/tree/original) of this repository is required. Specify the location of these builds in the configuration file [`config/config_test_tendencies_base.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/config/config_test_tendencies_base.py) in the variable `build_path`.
 The names of the folders of the builds are specified by the variables `parallel_build`, `debug_build`, and `org_build` in the configuration file.
 
 To run the test suite, execute `pytest` in the folder `wrflux/wrflux/test`. Make sure you do not have a python installation activated with an MPI library if you did not compile WRF with it. This would cause a problem when running the test simulations.

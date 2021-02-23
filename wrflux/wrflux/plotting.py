@@ -141,7 +141,8 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         dist = minmax[1] - minmax[0]
         minmax[0] -= 0.03 * dist
         minmax[1] += 0.03 * dist
-        plt.plot(minmax, minmax, c="k")
+        plt.plot(minmax, minmax, c="gray", label="1:1")
+        plt.legend()
         ax.set_xlim(minmax)
         ax.set_ylim(minmax)
 

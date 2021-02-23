@@ -90,7 +90,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     pdatf = pdat[0].stack(s=pdat[0].dims)
 
     # set color
-    cmap = "cool"
+    cmap = "gnuplot"
     if ("bottom_top" in hue) and (not discrete):
         color = -pdatf[hue]
     elif (hue == "Time") and (not discrete):
@@ -103,9 +103,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         except ValueError:
             discrete = True
         if discrete:
-            cmap = plt.get_cmap("tab20", n_hue)
-            if n_hue > 20:
-                raise ValueError("Too many different hue values for cmap tab20!")
+            cmap = plt.get_cmap(cmap, n_hue)
             discrete = True
             # use integer hue variable to prevent error
             color = pdatf["hue"]

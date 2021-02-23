@@ -1604,22 +1604,18 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
     """
     print("Compute Cartesian corrections")
     # decompose cartesian corrections
+    kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
+    rho_stag = stagger_like(rhodm, **kw)
 
     # total
     corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
     if hor_avg:
         corr = avg_xy(corr, avg_dims, cyclic=cyclic)
-        rhodm = avg_xy(rhodm, avg_dims, cyclic=cyclic)
+        rho_stag = avg_xy(rho_stag, avg_dims, cyclic=cyclic)
 
     # mean component
-    kw = dict(ref=var_stag["Z"], cyclic=cyclic, **grid[stagger_const])
-    rho_stag = stagger_like(rhodm, **kw)
     for d, v in zip(xy, ["U", "V"]):
         D = d.upper()
-        if hor_avg and (d in avg_dims):
-            corr.loc["mean", D] = 0
-            continue
-
         if dz_out:
             # alternative corrections: dz multiplied later (after taking derivative)
             corr_d = stagger_like(vmean[D], **kw)

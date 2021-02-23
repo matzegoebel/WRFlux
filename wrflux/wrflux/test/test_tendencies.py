@@ -91,7 +91,7 @@ def test_all():
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
     param_grids["no small fluxes"] = odict(th=th, output_t_fluxes_small=[0])
-    param_grids["PBL scheme with theta moist/dry"] = odict(bl_pbl_physics=[1], th=th)
+    param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],
                                                              adv_order=dict(h_sca_adv_order=2,
                                                                             v_sca_adv_order=2,

@@ -56,6 +56,9 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     """
     failed = False
     err = []
+    fname = None
+    if "fname" in plot_kws:
+        fname = plot_kws.pop("fname")
     for ID in ["native", "cartesian"]:
         if ID not in tend.ID:
             continue
@@ -65,14 +68,19 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
         e = tools.nse(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
+
         if e < thresh:
             log = "test_budget for ID='{}': min. NSE less than {}: {:.5f}\n".format(ID, thresh, e)
             print(log)
             if plot:
                 dat.name = dat.description[:2] + "forcing"
                 ref.name = ref.description
-                plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+                fname_i = fname
+                if fname is not None:
+                    fname_i = "ID=" + ID + "_" + fname
+                plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
             failed = True
+
     return failed, min(err)
 
 
@@ -171,6 +179,8 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     """
     failed = False
     err = []
+    if "fname" in plot_kws:
+        fname = plot_kws.pop("fname")
     for ID in adv.ID.values:
         ref = adv.sel(ID=ID, comp="adv_r")
         dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
@@ -185,7 +195,10 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
             if plot:
                 ref.name = "adv_r"
                 dat.name = "mean + trb_r"
-                plotting.scatter_hue(dat, ref, title=log, **plot_kws)
+                fname_i = fname
+                if fname is not None:
+                    fname_i = "ID=" + ID + "_" + fname
+                plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)
 

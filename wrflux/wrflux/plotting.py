@@ -171,8 +171,8 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     # labels for error stats
     err = abs(dat - ref)
     rmse = (err**2).mean().values**0.5
-    ns = tools.nse(dat, ref)
-    ax.text(0.74, 0.07, "RMSE={0:.2E}\nNSE={1:.7f}".format(rmse, ns.values),
+    ns = tools.R2(dat, ref)
+    ax.text(0.74, 0.07, "RMSE={0:.2E}\nR$^2$={1:.7f}".format(rmse, ns.values),
             horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
     if title is not None:
         fig.suptitle(title)

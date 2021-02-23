@@ -190,11 +190,11 @@ The last test is only done for one simulation.
 All simulations, except for the ones with non-periodic BC, contain a 2D mountain ridge to turn on the effect of the Cartesian corrections.
 Most simulations use random map-scale factors between 0.9 and 1 to make sure these are treated correctly.
 
-The test statistic used is the Nash-Sutcliffe efficiency coefficient (NSE) calculated for data d with respect to the reference r:
+The test statistic used is the coefficient of determination calculated for data d with respect to the reference r:
 
-![](https://latex.codecogs.com/svg.latex?e=1-\frac{\mathrm{MSE}(d,r)}{\mathrm{VAR}(r)}=1-\frac{\overline{(d-r)^2}}{\overline{(r-\bar{r})^2}})
+![](https://latex.codecogs.com/svg.latex?R^2=1-\frac{\mathrm{MSE}(d,r)}{\mathrm{VAR}(r)}=1-\frac{\overline{(d-r)^2}}{\overline{(r-\bar{r})^2}})
 
-The NSE is calculated over time, height, and along-mountain direction. Afterward, the minimum NSE value is taken over the remaining dimensions (cross-valley direction, and potentially flux direction, component (mean, resolved turbulent, or total), and budget method). The tests fail if the NSE is below the threshold given in brackets for the tests in the list. 
+The averaging is over time, height, and along-mountain direction. Afterward, the minimum ![](https://latex.codecogs.com/svg.latex?R^2) value is taken over the remaining dimensions (cross-valley direction, and potentially flux direction, component (mean, resolved turbulent, or total), and budget method). The tests fail if the ![](https://latex.codecogs.com/svg.latex?R^2) score is below the threshold given in brackets for the tests in the list. 
 
 For some simulations, horizontal averaging in the along-mountain direction is tested (with a reduced threshold for the second test).
 

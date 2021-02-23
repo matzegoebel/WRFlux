@@ -389,9 +389,9 @@ def max_error_scaled(dat, ref, dim=None):
     return float(err)
 
 
-def nse(dat, ref, dim=None):
+def R2(dat, ref, dim=None):
     """
-    Nash–Sutcliffe efficiency coefficient.
+    Coefficient of determination for input data with respect to reference data.
 
     Parameters
     ----------
@@ -406,7 +406,7 @@ def nse(dat, ref, dim=None):
     Returns
     -------
     datarray
-        nse.
+        R2.
 
     """
     if dim is not None:
@@ -415,8 +415,8 @@ def nse(dat, ref, dim=None):
     else:
         d = {}
     mse = ((dat - ref)**2).mean(**d)
-    norm = ((ref - ref.mean(**d))**2).mean(**d)
-    return 1 - mse / norm
+    var = ((ref - ref.mean(**d))**2).mean(**d)
+    return 1 - mse / var
 
 
 def warn_duplicate_dim(data, name=None):
@@ -1895,7 +1895,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
         Several methods can be combined in a list.
-        The default is "castesian".
+        The default is "cartesian".
     tile : dict, optional
         Tile to process. Mapping from dimension names to integer-based indexers.
         The default is None.

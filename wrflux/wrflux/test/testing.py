@@ -22,9 +22,9 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     Test closure of budget: tend = forcing.
 
     Only the budget methods "native" and "cartesian" are tested.
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
     Parameters
@@ -34,9 +34,9 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     forcing : xarray DataArray
         Total forcing.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -51,7 +51,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     failed = False
@@ -66,11 +66,11 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
         dat = forcing.sel(ID=ID, drop=True)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+        e = tools.R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
 
         if e < thresh:
-            log = "test_budget for ID='{}': min. NSE less than {}: {:.5f}\n".format(ID, thresh, e)
+            log = "test_budget for ID='{}': min. R2 less than {}: {:.5f}\n".format(ID, thresh, e)
             print(log)
             if plot:
                 dat.name = dat.description[:2] + "forcing"
@@ -90,9 +90,9 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     Test that budget methods "native" and "cartesian" give equal advective tendencies
     in all components if the three spatial directions are summed up.
 
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
 
@@ -103,9 +103,9 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     corr : xarray DataArray
         Cartesian corrections for advective tendencies.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -120,7 +120,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     data = adv.sel(dir="sum")
@@ -128,10 +128,10 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     dat = data.sel(ID="cartesian") + corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
-        log = "test_decomp_sumdir, {}: min. NSE less than {}: {:.7f}".format(dat.description, thresh, err)
+        log = "test_decomp_sumdir, {}: min. R2 less than {}: {:.7f}".format(dat.description, thresh, err)
         print(log)
         if plot:
             dat.name = "cartesian"
@@ -146,9 +146,9 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     """Test that the total advective tendency is indeed the sum of the mean and
     resolved turbulent components in all three spatial directions.
 
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
 
@@ -157,9 +157,9 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     adv : xarray DataArray
         Advective tendencies.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -174,7 +174,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     failed = False
@@ -186,10 +186,10 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
         dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.nse(dat, ref, dim=avg_dims_error).min().values
+        e = tools.R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. NSE less than {}: {:.11f}".format(
+            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.11f}".format(
                 dat.description, ID, thresh, e)
             print(log)
             if plot:
@@ -208,9 +208,9 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     "cartesian" and "cartesian dz_out_z" lead to
     similar advective tendencies in all three directions and components.
 
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
 
@@ -219,9 +219,9 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     adv : xarray DataArray
         Advective tendencies.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -236,7 +236,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     failed = False
@@ -244,9 +244,9 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     dat = adv.sel(ID="cartesian dz_out_z")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
     if err < thresh:
-        log = "test_dz_out, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, err)
+        log = "test_dz_out, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
         if plot:
             dat.name = "dz_out_z"
@@ -261,9 +261,9 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     correct advection order are equal in all three directions and components
     (usually carried out if correct order is equal to 2nd order).
 
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
 
@@ -272,9 +272,9 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     adv : xarray DataArray
         Advective tendencies.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -289,7 +289,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     failed = False
@@ -297,9 +297,9 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     dat = adv.sel(ID="cartesian 2nd")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
     if err < thresh:
-        log = "test_2nd, {} (XYZ): min. NSE less than {}: {:.5f}".format(dat.description, thresh, err)
+        log = "test_2nd, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
         if plot:
             ref.name = "correct order"
@@ -313,9 +313,9 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     """Test that the instantaneous vertical velocity is very similar to the
     instantaneous diagnosed vertical velocity used in the tendency calculations.
 
-    The test fails if the Nash-Sutcliffe efficiency coefficient (NSE)
+    The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
-    NSE calculation is only carried out over these dimensions. Afterwards the minimum NSE
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
     value is taken over the remaining dimensions.
 
 
@@ -324,9 +324,9 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     adv : xarray DataArray
         Advective tendencies.
     avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the NSE. The default is None.
+        Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
-        Threshold value for NSE below which the test fails
+        Threshold value for R2 below which the test fails
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -341,16 +341,16 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     failed : bool
         Test failed.
     err : float
-        Test statistic NSE
+        Test statistic R2
 
     """
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
     ref = dat_inst["W"]
     dat = dat_inst["W_DIAG"]
-    err = tools.nse(dat, ref, dim=avg_dims_error).min().values
+    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
-        log = "test_w: min. NSE less than {}: {:.5f}".format(thresh, err)
+        log = "test_w: min. R2 less than {}: {:.5f}".format(thresh, err)
         print(log)
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
@@ -523,7 +523,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
     failed : pandas DataFrame
         "FAIL" and "pass" labels for all tests and variables.
     err : pandas DataFrame
-        NSE error statistics for performed tests.
+        R2 error statistics for performed tests.
 
     """
     if tests is None:

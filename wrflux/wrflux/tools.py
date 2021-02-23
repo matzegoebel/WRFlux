@@ -1179,6 +1179,10 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     for d, vel in zip(XY, ["u", "v"]):
         dz = dat_mean["DPH_{}_MEAN".format(d)] / g
         dzdt_d = stagger_like(dz, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
+        if hor_avg:
+            dzdt_d = avg_xy(dzdt_d, avg_dims, rho=dat_mean["RHOD_MEAN"],
+                            cyclic=cyclic, **grid[stagger_const])
+
         desc = dzdt_d.description.replace("tendency", "height tendency")
         grid["dzdt_{}".format(d.lower())] = dzdt_d.assign_attrs(description=desc,
                                                                 units="m s-1")
@@ -1512,6 +1516,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         else:
             adv_i["Z"] = -diff(fz, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
 
+        if hor_avg and (comp == "adv_r"):
+            adv_i = avg_xy(adv_i, avg_dims, cyclic=cyclic)
+            fluxes[comp] = avg_xy(fluxes[comp], avg_dims, cyclic=cyclic)
+
         # multiply with g so that we can then divide all tendencies by mu
         adv_i["Z"] = adv_i["Z"] * (-g)
         for d in adv_i.data_vars:
@@ -1521,10 +1529,6 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
                 adv_i[d] = adv_i[d] / grid["MU_STAG_MEAN"]
 
         adv[comp] = adv_i
-
-    if hor_avg:
-        adv["adv_r"] = avg_xy(adv["adv_r"], avg_dims, cyclic=cyclic)
-        fluxes["adv_r"] = avg_xy(fluxes["adv_r"], avg_dims, cyclic=cyclic)
 
     keys = adv.keys()
     adv = xr.concat(adv.values(), "comp")

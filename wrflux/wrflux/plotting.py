@@ -10,6 +10,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from wrflux import tools
+from wrflux.test import testing
 import xarray as xr
 from pathlib import Path
 xr.set_options(arithmetic_join="exact")
@@ -172,8 +173,8 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     # labels for error stats
     err = abs(dat - ref)
     rmse = (err**2).mean().values**0.5
-    ns = tools.R2(dat, ref)
-    ax.text(0.74, 0.07, "RMSE={0:.2E}\nR$^2$={1:.7f}".format(rmse, ns.values),
+    r = testing.R2(dat, ref)
+    ax.text(0.74, 0.07, "RMSE={0:.2E}\nR$^2$={1:.7f}".format(rmse, r.values),
             horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
     if title is not None:
         fig.suptitle(title)

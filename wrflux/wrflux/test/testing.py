@@ -7,13 +7,17 @@ Functions for automatic testing of WRFlux output.
 """
 from wrflux import tools, plotting
 import pandas as pd
+import numpy as np
 import xarray as xr
 import os
 from pathlib import Path
+from functools import partial
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
              "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords",
              "no_model_change"]
+
+
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
@@ -66,7 +70,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
         dat = forcing.sel(ID=ID, drop=True)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.R2(dat, ref, dim=avg_dims_error).min().values
+        e = R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
 
         if e < thresh:
@@ -128,7 +132,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     dat = data.sel(ID="cartesian") + corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
+    err = R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
         log = "test_decomp_sumdir, {}: min. R2 less than {}: {:.7f}".format(dat.description, thresh, err)
@@ -188,7 +192,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
         dat = adv_i.sel(comp="adv_r") - adv_i.sel(comp="mean")
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = tools.R2(dat, ref, dim=avg_dims_error).min().values
+        e = R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
             log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.11f}".format(
@@ -246,7 +250,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     dat = adv.sel(ID="cartesian dz_out_z")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
+    err = R2(dat, ref, dim=avg_dims_error).min().values
     if err < thresh:
         log = "test_dz_out, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
@@ -299,7 +303,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     dat = adv.sel(ID="cartesian 2nd")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
+    err = R2(dat, ref, dim=avg_dims_error).min().values
     if err < thresh:
         log = "test_2nd, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
         print(log)
@@ -349,7 +353,7 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
     ref = dat_inst["W"]
     dat = dat_inst["W_DIAG"]
-    err = tools.R2(dat, ref, dim=avg_dims_error).min().values
+    err = R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
         log = "test_w: min. R2 less than {}: {:.5f}".format(thresh, err)
@@ -399,7 +403,7 @@ def test_nan(datout, cut_bounds=None):
                 v = f
             else:
                 v = "{}/{}".format(f, dv)
-            dnan = tools.find_bad(d[dv])
+            dnan = find_bad(d[dv])
             if (dnan is not None) and (sum(dnan.shape) != 0):
                 print("\nWARNING: found NaNs in {} :\n{}".format(v, dnan.coords))
                 failed = True
@@ -646,6 +650,182 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
 
     return failed, err
 
+
+# %% other functions
+
+def dropna_dims(dat, dims=None, how="all", **kwargs):
+    """
+    Consecutively drop NaNs along given dimensions.
+
+    Parameters
+    ----------
+    dat : xarray dataset or dataarray
+        input data.
+    dims : iterable, optional
+        dimensions to use. The default is None, which takes all dimensions.
+    how : str, optional
+        drop index if "all" or "any" NaNs occur. The default is "all".
+    **kwargs : keyword arguments
+        kwargs for dropna.
+
+    Returns
+    -------
+    dat : xarray dataset or dataarray
+        reduced data.
+
+    """
+    if dims is None:
+        dims = dat.dims
+    for d in dims:
+        dat = dat.dropna(d, how=how, **kwargs)
+
+    return dat
+
+
+def find_bad(dat, nan=True, inf=True):
+    """Drop all indeces of each dimension in DataArray dat that do not contain any NaNs or infs."""
+    # set coordinates for all dims
+    for d in dat.dims:
+        if d not in dat.coords:
+            dat = dat.assign_coords({d: dat[d]})
+
+    nans = False
+    infs = False
+    if nan:
+        nans = dat.isnull()
+    if inf:
+        infs = dat == np.inf
+    invalid = nans | infs
+    invalid = invalid.where(invalid)
+    invalid = dropna_dims(invalid)
+    if invalid.size > 0:
+        dat = dat.loc[invalid.indexes]
+    else:
+        dat = None
+    return dat
+
+
+def R2(dat, ref, dim=None):
+    """
+    Coefficient of determination for input data with respect to reference data.
+
+    Parameters
+    ----------
+    dat : datarray
+        input data.
+    ref : datarray
+        reference data.
+    dim : str or list, optional
+        dimensions along which to calculate the index.
+        The default is None, which means all dimensions.
+
+    Returns
+    -------
+    datarray
+        R2.
+
+    """
+    if dim is not None:
+        dim = tools.make_list(dim)
+        d = dict(dim=tools.correct_dims_stag_list(dim, ref))
+    else:
+        d = {}
+    mse = ((dat - ref)**2).mean(**d)
+    var = ((ref - ref.mean(**d))**2).mean(**d)
+    return 1 - mse / var
+
+
+def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
+               cyclic=None, hor_avg=False, avg_dims=None):
+    """Compute turbulent fluxes explicitly from complete timeseries output.
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    inst : xarray Dataset
+        WRF flux output at every time step.
+    variables : list of str
+        List of variables to process.
+    grid : xarray Dataset
+        Variables related to the model grid.
+    t_avg_interval : integer
+        Interval for time averaging (number of output time steps) if t_avg=True.
+        The default is None.
+    cyclic : dict of booleans for xy or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None.
+    hor_avg : bool, optional
+        Average horizontally. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+
+    Returns
+    -------
+    None.
+
+    """
+    avg_kwargs = {"Time": t_avg_interval, "coord_func": {
+        "Time": partial(tools.select_ind, indeces=-1)}, "boundary": "trim"}
+
+    # define all needed variables
+    all_vars = ["OMZN_MEAN"]
+    for var in variables:
+        for d, vel in zip(tools.XYZ, tools.uvw):
+            all_vars.append(var.upper() + d + "_MEAN")
+            all_vars.append(vel.upper() + "_MEAN")
+
+    # fill all time steps with block average
+    means = dat_mean[all_vars].reindex(Time=inst.Time).bfill("Time")
+
+    for var in variables:
+        var = var.upper()
+        for d, v in zip(["X", "Y", "Z", "Z"], ["U", "V", "W", "OMZN"]):
+            var_d = var + d + "_MEAN"
+            vel = v + "_MEAN"
+
+            if d in ["X", "Y"]:
+                rho = tools.build_mu(inst["MUT_MEAN"], grid, full_levels="bottom_top_stag" in inst[var_d].dims)
+            else:
+                rho = inst["RHOD_MEAN"]
+
+            var_d_m = means[var_d]
+            vel_m = means[vel]
+            if hor_avg:
+                var_d_m = tools.avg_xy(var_d_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const])
+                vel_m = tools.avg_xy(vel_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const])
+
+            # compute perturbations
+            var_pert = inst[var_d] - var_d_m
+            rho_stag_vel = tools.stagger_like(rho, inst[vel],
+                                              cyclic=cyclic, **grid[tools.stagger_const])
+            vel_pert = tools.stagger_like(rho_stag_vel * (inst[vel] - vel_m), var_pert,
+                                          cyclic=cyclic, **grid[tools.stagger_const])
+            # build flux
+            #  rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
+            # vel_stag = stagger_like(rho_stag_vel * inst[vel], var_pert,
+            #                         cyclic=cyclic, **grid[stagger_const])
+            # vel_stag_mean = stagger_like(rho_stag_vel_mean*dat_mean[vel], var_pert,
+            #                              cyclic=cyclic, **grid[stagger_const])
+            # tot_flux = vel_stag * inst[var_d]
+            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean() / rho_stag_mean
+            # mean_flux = vel_stag_mean * dat_mean[var_d] / rho_stag_mean
+            # flux = tot_flux - mean_flux
+            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
+            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
+
+            flux = vel_pert * var_pert
+            flux = flux.coarsen(**avg_kwargs).mean()
+            if hor_avg:
+                flux = tools.avg_xy(flux, avg_dims, cyclic=cyclic)
+                rho = tools.avg_xy(rho, avg_dims, cyclic=cyclic, **grid[tools.stagger_const])
+
+            rho_stag = tools.stagger_like(rho, var_pert, cyclic=cyclic,
+                                          **grid[tools.stagger_const])
+            rho_stag_mean = rho_stag.coarsen(**avg_kwargs).mean()
+            flux = flux / rho_stag_mean
+            dat_mean["F{}{}_TRB_MEAN".format(var, v)] = flux
 
 # TODO: reimplement?
 # def check_bounds(dat_mean, attrs, var):

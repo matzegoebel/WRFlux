@@ -14,7 +14,7 @@ import logging
 import netCDF4
 import sys
 import numpy as np
-
+from wrflux.test import testing
 import os
 from pathlib import Path
 import pandas as pd
@@ -50,13 +50,6 @@ xr.set_options(keep_attrs=True)
 DataArray = xr.core.dataarray.DataArray
 Dataset = xr.core.dataset.Dataset
 
-# directory for figures
-if "FIGURES" in os.environ:
-    figloc = os.environ["FIGURES"]
-else:
-    print("Environment variable FIGURES not available. Saving figures to HOME directory.")
-    figloc = os.environ["HOME"]
-
 # %% constants
 
 dim_dict = dict(x="U", y="V", bottom_top="W", z="W")
@@ -84,8 +77,9 @@ budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv"]
 settings_short_names = {"2nd": "force_2nd_adv"}
 
 all_variables = ["q", "t", "u", "v", "w"]
-# %%open dataset
 
+
+# %%open dataset
 
 def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     """
@@ -107,7 +101,6 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     ds : xarray Dataset
 
     """
-
     try:
         ds = xr.open_dataset(file, cache=False, **kwargs)
     except ValueError as e:
@@ -317,121 +310,6 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         return data.mean(avg_dims_final)
     else:
         return (rho_s * data).mean(avg_dims_final) / rho_s_mean
-
-
-def find_bad(dat, nan=True, inf=True):
-    """Drop all indeces of each dimension in DataArray dat that do not contain any NaNs or infs."""
-    # set coordinates for all dims
-    for d in dat.dims:
-        if d not in dat.coords:
-            dat = dat.assign_coords({d: dat[d]})
-
-    nans = False
-    infs = False
-    if nan:
-        nans = dat.isnull()
-    if inf:
-        infs = dat == np.inf
-    invalid = nans | infs
-    invalid = invalid.where(invalid)
-    invalid = dropna_dims(invalid)
-    if invalid.size > 0:
-        dat = dat.loc[invalid.indexes]
-    else:
-        dat = None
-    return dat
-
-
-def dropna_dims(dat, dims=None, how="all", **kwargs):
-    """
-    Consecutively drop NaNs along given dimensions.
-
-    Parameters
-    ----------
-    dat : xarray dataset or dataarray
-        input data.
-    dims : iterable, optional
-        dimensions to use. The default is None, which takes all dimensions.
-    how : str, optional
-        drop index if "all" or "any" NaNs occur. The default is "all".
-    **kwargs : keyword arguments
-        kwargs for dropna.
-
-    Returns
-    -------
-    dat : xarray dataset or dataarray
-        reduced data.
-
-    """
-    if dims is None:
-        dims = dat.dims
-    for d in dims:
-        dat = dat.dropna(d, how=how, **kwargs)
-
-    return dat
-
-
-def max_error_scaled(dat, ref, dim=None):
-    """
-    Compute maximum squared error of the input data with respect to the reference data
-    and scale by the variance of the reference data. If dim is given the variance and
-    maximum error is computed over these dimensions. Then the maximum of the result is taken.
-
-    Parameters
-    ----------
-    dat : dataarray
-        input data.
-    ref : dataarray
-        reference data.
-    dim : str or sequence of str, optional
-        Dimension(s) over which to calculate variance and maximum error.
-        The default is None, which means all dimensions.
-
-    Returns
-    -------
-    float
-        maximum scaled error.
-
-    """
-    if dim is not None:
-        dim = correct_dims_stag_list(dim, ref)
-
-    err = (dat - ref)**2
-    norm = ((ref - ref.mean(dim=dim))**2).mean(dim=dim)
-    err = err.max(dim=dim) / norm
-    if err.shape != ():
-        err = err.max()
-    return float(err)
-
-
-def R2(dat, ref, dim=None):
-    """
-    Coefficient of determination for input data with respect to reference data.
-
-    Parameters
-    ----------
-    dat : datarray
-        input data.
-    ref : datarray
-        reference data.
-    dim : str or list, optional
-        dimensions along which to calculate the index.
-        The default is None, which means all dimensions.
-
-    Returns
-    -------
-    datarray
-        R2.
-
-    """
-    if dim is not None:
-        dim = make_list(dim)
-        d = dict(dim=correct_dims_stag_list(dim, ref))
-    else:
-        d = {}
-    mse = ((dat - ref)**2).mean(**d)
-    var = ((ref - ref.mean(**d))**2).mean(**d)
-    return 1 - mse / var
 
 
 def warn_duplicate_dim(data, name=None):
@@ -999,8 +877,8 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
         dt_out = float(inst.Time[1] - inst.Time[0]) / 1e9
         if round(dt_out) == attrs["DT"]:
             print("Compute turbulent fluxes explicitly")
-            trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
-                       cyclic=cyclic, hor_avg=hor_avg, avg_dims=avg_dims)
+            testing.trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
+                               cyclic=cyclic, hor_avg=hor_avg, avg_dims=avg_dims)
 
     # restrict instantaneous data to time steps contained in averaged data
     dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
@@ -1019,100 +897,6 @@ def build_mu(mut, grid, full_levels=False):
     else:
         mu = grid["C1H"] * mut + grid["C2H"]
     return mu
-
-
-def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
-               cyclic=None, hor_avg=False, avg_dims=None):
-    """Compute turbulent fluxes explicitly from complete timeseries output.
-
-    Parameters
-    ----------
-    dat_mean : xarray Dataset
-        WRF time-averaged output.
-    inst : xarray Dataset
-        WRF flux output at every time step.
-    variables : list of str
-        List of variables to process.
-    grid : xarray Dataset
-        Variables related to the model grid.
-    t_avg_interval : integer
-        Interval for time averaging (number of output time steps) if t_avg=True.
-        The default is None.
-    cyclic : dict of booleans for xy or None, optional
-        Defines which dimensions have periodic boundary conditions.
-        Use periodic boundary conditions to fill lateral boundary points.
-        The default is None.
-    hor_avg : bool, optional
-        Average horizontally. The default is False.
-    avg_dims : str or list of str, optional
-        Averaging dimensions if hor_avg=True. The default is None.
-
-    Returns
-    -------
-    None.
-
-    """
-    avg_kwargs = {"Time": t_avg_interval, "coord_func": {
-        "Time": partial(select_ind, indeces=-1)}, "boundary": "trim"}
-
-    # define all needed variables
-    all_vars = ["OMZN_MEAN"]
-    for var in variables:
-        for d, vel in zip(XYZ, uvw):
-            all_vars.append(var.upper() + d + "_MEAN")
-            all_vars.append(vel.upper() + "_MEAN")
-
-    # fill all time steps with block average
-    means = dat_mean[all_vars].reindex(Time=inst.Time).bfill("Time")
-
-    for var in variables:
-        var = var.upper()
-        for d, v in zip(["X", "Y", "Z", "Z"], ["U", "V", "W", "OMZN"]):
-            var_d = var + d + "_MEAN"
-            vel = v + "_MEAN"
-
-            if d in ["X", "Y"]:
-                rho = build_mu(inst["MUT_MEAN"], grid, full_levels="bottom_top_stag" in inst[var_d].dims)
-            else:
-                rho = inst["RHOD_MEAN"]
-
-            var_d_m = means[var_d]
-            vel_m = means[vel]
-            if hor_avg:
-                var_d_m = avg_xy(var_d_m, avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
-                vel_m = avg_xy(vel_m, avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
-
-            # compute perturbations
-            var_pert = inst[var_d] - var_d_m
-            rho_stag_vel = stagger_like(rho, inst[vel],
-                                        cyclic=cyclic, **grid[stagger_const])
-            vel_pert = stagger_like(rho_stag_vel * (inst[vel] - vel_m), var_pert,
-                                    cyclic=cyclic, **grid[stagger_const])
-            # build flux
-            #  rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
-            # vel_stag = stagger_like(rho_stag_vel * inst[vel], var_pert,
-            #                         cyclic=cyclic, **grid[stagger_const])
-            # vel_stag_mean = stagger_like(rho_stag_vel_mean*dat_mean[vel], var_pert,
-            #                              cyclic=cyclic, **grid[stagger_const])
-            # tot_flux = vel_stag * inst[var_d]
-            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean() / rho_stag_mean
-            # mean_flux = vel_stag_mean * dat_mean[var_d] / rho_stag_mean
-            # flux = tot_flux - mean_flux
-            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
-            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
-
-            flux = vel_pert * var_pert
-            flux = flux.coarsen(**avg_kwargs).mean()
-            if hor_avg:
-                flux = avg_xy(flux, avg_dims, cyclic=cyclic)
-                rho = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
-
-            rho_stag = stagger_like(rho, var_pert,
-                                    cyclic=cyclic, **grid[stagger_const])
-            rho_stag_mean = rho_stag.coarsen(**avg_kwargs).mean()
-            flux = flux / rho_stag_mean
-            dat_mean["F{}{}_TRB_MEAN".format(var, v)] = flux
-
 
 # %% WRF tendencies
 

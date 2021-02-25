@@ -1008,12 +1008,12 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     zw_inst = (dat_inst["PH"] + dat_inst["PHB"]) / g
     dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
     dzdd["T"] = zw_inst.diff("Time") / dt
-    for d in [*XY, "T"]:
-        dzdd[d] = stagger_like(dzdd[d], ref, ignore=["bottom_top_stag"], cyclic=cyclic)
+    dzdd = stagger_like(dzdd, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
     dzdd = remove_deprecated_dims(dzdd)
     grid["dzdd"] = dzdd.to_array("dir").assign_attrs(
-        description="derivative of geopotential height with respect to x, y, and t")
-    for d, vel in zip(XY, ["u", "v"]):
+        description="derivative of instantaneous geopotential height "
+                    "with respect to x, y, and t")
+    for d in XY:
         dz = dat_mean["DPH_{}_MEAN".format(d)] / g
         dzdt_d = stagger_like(dz, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
         if hor_avg:
@@ -1264,8 +1264,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             corr_new = rhod8z * stagger_like(corr_new, rhod8z, cyclic=cyclic, **grid[stagger_const])
             corr.loc["X"] = corr_new["X"]
             corr.loc["Y"] = corr_new["Y"]
-        corr_t = dat_mean[VAR + "Z_MEAN"]
-        corr_t = rhod8z * stagger_like(corr_t, rhod8z, cyclic=cyclic, **grid[stagger_const])
+        corr_t = rhod8z * dat_mean[VAR + "Z_MEAN"]
         corr.loc["T"] = corr_t
 
     #  mean advective fluxes
@@ -1464,9 +1463,12 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
             corr_d = stagger_like(vmean[D], **kw)
         else:
             corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
-        corr.loc["mean", D] = corr_d * rho_stag * var_stag["Z"]
-    dzdt = stagger_like(grid["dzdd"].loc["T"], **kw)
-    corr.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
+        corr.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
+    if dz_out:
+        corr.loc["mean", "T"] = corr.loc["adv_r", "T"]
+    else:
+        dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
+        corr.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
 
     # resolved turbulent component as residual
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]

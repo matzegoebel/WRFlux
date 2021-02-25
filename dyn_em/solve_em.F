@@ -807,7 +807,7 @@ BENCH_START(rk_tend_tim)
        CALL rk_tendency ( config_flags, rk_step                                                                &
                          ,grid%ru_tend, grid%rv_tend, rw_tend, ph_tend, t_tend                                 &
                          ,ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf                                      &
-                         ,grid%thd_save, grid%dph_x, grid%dph_y                                                &
+                         ,grid%th_save, grid%dph_x, grid%dph_y                                                 &
                          ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
                          ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
                          ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
@@ -4773,7 +4773,7 @@ BENCH_END(bc_2d_tim)
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
               &   grid%u_save, grid%v_save, grid%w_2, w_save, grid%ru, grid%rv, ww1,                &
-              &   grid%t_save, grid%thd_save, th_phy, moist(:,:,:,P_QV),                            &
+              &   grid%th_save, th_phy, moist(:,:,:,P_QV),                                          &
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                       &
               &   grid%dph_x, grid%dph_y,                                                           &
               &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                 &

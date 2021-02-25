@@ -189,7 +189,7 @@ END SUBROUTINE rk_step_prep
 SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          ru_tend, rv_tend, rw_tend, ph_tend, t_tend,      &
                          ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
-                         thd_save, dph_x, dph_y,                          &
+                         th_save, dph_x, dph_y,                           &
                          u_tend_pg,u_tend_cor_curv,                       &
                          v_tend_pg,v_tend_cor_curv,                       &
                          w_tend_pg,w_tend_cor_curv,                       &
@@ -275,7 +275,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                           w_save, &
                                                          ph_save, &
                                                           t_save, &
-                                                        thd_save, &
+                                                        th_save,  &
                                        u_tend_pg,u_tend_cor_curv, &
                                        v_tend_pg,v_tend_cor_curv, &
                                        w_tend_pg,w_tend_cor_curv, &
@@ -356,7 +356,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL    :: kdift, khdq, kvdq, cfn, cfn1, cf1, cf2, cf3
    INTEGER :: i,j,k
    INTEGER :: time_step
-   LOGICAL :: output_fluxes, advect_thdry
+   LOGICAL :: output_fluxes
 
 !<DESCRIPTION>
 !
@@ -548,29 +548,26 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
-      IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_tres_fluxes) THEN
-        output_fluxes = .true.
-      ELSE
-        output_fluxes = .false.
-      ENDIF
+   IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_tres_fluxes) THEN
+      output_fluxes = .true.
 
-      IF (output_fluxes .and. config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
-          !output dry theta fluxes if desired:
-          !repeat advection routines with dry theta without saving the tendency
-
-          advect_thdry = .true.
-          !update dry theta
-          DO j = jms,jme
-          DO k = kms,kme
-          DO i = ims,ime
-            thd_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
-            t_tend_dummy(i,k,j) = 0
-          ENDDO
-          ENDDO
-          ENDDO
+      !repeat advection routines with full (dry/moist) theta without saving the tendency
+      t_tend_dummy(:,:,:) = 0
+      IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
+         !convert to dry theta
+         DO j = jms,jme
+         DO k = kms,kme
+         DO i = ims,ime
+            th_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
+         ENDDO
+         ENDDO
+         ENDDO
       ELSE
-          advect_thdry = .false.
+         th_save(:,:,:) = t(:,:,:)
       ENDIF
+   ELSE
+      output_fluxes = .false.
+   ENDIF
 
 ! 11/2016 ERM: Use WENO for theta flux on 3rd RK step if using WENO_SCALAR or WENOPD_SCALAR
 ! to be consistent with other scalar fluxes
@@ -580,8 +577,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                  .or. config_flags%moist_adv_opt == WENOPD_SCALAR     &
                        )  .and. (rk_step == 3) ) THEN
 
-        IF (advect_thdry) THEN
-           CALL advect_scalar_weno ( thd_save, thd_save, t_tend_dummy, &
+        IF (output_fluxes) THEN
+           CALL advect_scalar_weno ( th_save, th_save, t_tend_dummy, &
                                     ftx, fty, ftz, output_fluxes,  &
                                     ru, rv, ww,                    &
                                     c1h, c2h, mut, time_step,      &
@@ -592,12 +589,11 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                     ids, ide, jds, jde, kds, kde,  &
                                     ims, ime, jms, jme, kms, kme,  &
                                     its, ite, jts, jte, kts, kte  )
-           output_fluxes = .false.
         ENDIF
 ! also use weno for monotonic scalar option so that the h_ and z_tendency arrays are not needed
 
         CALL advect_scalar_weno ( t, t, t_tend, ftx, fty, ftz,  &
-                                 output_fluxes, ru, rv, ww,     &
+                                 .false., ru, rv, ww,           &
                                  c1h, c2h, mut, time_step,      &
                                  config_flags,                  &
                                  msfux, msfuy, msfvx, msfvy,    &
@@ -609,8 +605,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ELSE
 
 
-     IF (advect_thdry) THEN
-        CALL advect_scalar ( thd_save, thd_save, t_tend_dummy, &
+     IF (output_fluxes) THEN
+        CALL advect_scalar ( th_save, th_save, t_tend_dummy, &
                              ftx, fty, ftz, output_fluxes, &
                              ru, rv, ww,                   &
                              c1h, c2h,                     &
@@ -621,11 +617,10 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                              ids, ide, jds, jde, kds, kde, &
                              ims, ime, jms, jme, kms, kme, &
                              its, ite, jts, jte, kts, kte )
-        output_fluxes = .false.
      ENDIF
 
      CALL advect_scalar ( t, t, t_tend, ftx, fty, ftz,  &
-                          output_fluxes, ru, rv, ww,    &
+                          .false., ru, rv, ww,          &
                           c1h, c2h,                     &
                           mut, time_step, config_flags, &
                           msfux, msfuy, msfvx, msfvy,   &

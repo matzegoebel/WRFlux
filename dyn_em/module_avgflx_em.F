@@ -378,7 +378,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & u_save, v_save, w_2, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,                   &
+       & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, th_phy, Q,                            &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -445,7 +445,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_save, v_save, w_2, w_save, ru, rv, ww,  &
-         t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy, alt,  &
+         th_save, th_phy, Q, ph_1, ph_2, phb, zx, zy, alt,  &
          ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -661,25 +661,14 @@ CONTAINS
 
           !determine staggered variables from total fluxes
           IF (config_flags%output_tres_fluxes) THEN
-            IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
-              call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
-                                             ftx_adv, fty_adv, ftz_adv,&
-                                             ru(i,k,j), rv(i,k,j), ww(i,k,j), thd_save, &
-                                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
-                                             .false., .false., .false.,                &
-                                             i, j, k,                             &
-                                             ids, ide, jds, jde, kds, kde,        &
-                                             ims, ime, jms, jme, kms, kme         )
-            ELSE
-              call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
-                                             ftx_adv, fty_adv, ftz_adv,&
-                                             ru(i,k,j), rv(i,k,j), ww(i,k,j), t_save, &
-                                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
-                                            .false., .false., .false.,                &
-                                             i, j, k,                             &
-                                             ids, ide, jds, jde, kds, kde,        &
-                                             ims, ime, jms, jme, kms, kme         )
-            ENDIF
+            call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
+                                           ftx_adv, fty_adv, ftz_adv,&
+                                           ru(i,k,j), rv(i,k,j), ww(i,k,j), th_save, &
+                                           cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
+                                           .false., .false., .false.,                &
+                                           i, j, k,                             &
+                                           ids, ide, jds, jde, kds, kde,        &
+                                           ims, ime, jms, jme, kms, kme         )
 
             ftz_adv(i,k,j) = rw_diag(i,k,j)*thetaz
             IF (config_flags%output_t_fluxes_small == 1) THEN
@@ -706,19 +695,11 @@ CONTAINS
 
             IF (config_flags%output_t_fluxes_add == 1) THEN
               !2nd order fluxes
-              IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
-                thetax2 = 0.5*(thd_save(i-1,k,j) + thd_save(i,k,j))
-                thetay2 = 0.5*(thd_save(i,k,j-1) + thd_save(i,k,j))
-                call stagger_z(thetaz2, thd_save(i,:,j),           &
-                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                               k, kms, kme, kde                   )
-              ELSE
-                thetax2 = 0.5*(t_save(i-1,k,j) + t_save(i,k,j))
-                thetay2 = 0.5*(t_save(i,k,j-1) + t_save(i,k,j))
-                call stagger_z(thetaz2, t_save(i,:,j),             &
-                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                               k, kms, kme, kde                   )
-              ENDIF
+              thetax2 = 0.5*(th_save(i-1,k,j) + th_save(i,k,j))
+              thetay2 = 0.5*(th_save(i,k,j-1) + th_save(i,k,j))
+              call stagger_z(thetaz2, th_save(i,:,j),           &
+                             cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
+                             k, kms, kme, kde                   )
               ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
               rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
               FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j)+ (ru(i,k,j)*thetax2 ) )/count_p1*fqx_dfac

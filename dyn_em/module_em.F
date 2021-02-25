@@ -558,12 +558,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
          DO j = jms,jme
          DO k = kms,kme
          DO i = ims,ime
-            th_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
+            th_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j))
          ENDDO
          ENDDO
          ENDDO
       ELSE
-         th_save(:,:,:) = t(:,:,:)
+         th_save(:,:,:) = t(:,:,:) + t0
       ENDIF
    ELSE
       output_fluxes = .false.

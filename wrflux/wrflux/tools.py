@@ -1217,7 +1217,6 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             var_stag[d] = stagger_like(dat_mean["{}_MEAN".format(VAR)],
                                        dat_mean[f], cyclic=cyclic, **grid[stagger_const])
         if VAR == "T":
-            var_stag = var_stag - 300
             if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
                 raise ValueError(
                     "Averaged moist potential temperature not available to build "
@@ -1535,6 +1534,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
                 vard = (dat_inst["T"] + 300) * (1 + rvovrd * dat_inst["QVAPOR"]) - 300
         else:
             vard = dat_inst["T"]
+        vard = vard + 300
     elif var == "q":
         vard = dat_inst["QVAPOR"]
     else:

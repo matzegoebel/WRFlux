@@ -179,11 +179,13 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     """
     failed = False
     err = []
+    fname = None
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in adv.ID.values:
-        ref = adv.sel(ID=ID, comp="adv_r")
-        dat = adv.sel(ID=ID, comp=["mean", "trb_r"]).sum("comp")
+        adv_i = adv.sel(ID=ID)
+        ref = adv_i.sel(comp="trb_r")
+        dat = adv_i.sel(comp="adv_r") - adv_i.sel(comp="mean")
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
         e = tools.R2(dat, ref, dim=avg_dims_error).min().values
@@ -193,8 +195,8 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
                 dat.description, ID, thresh, e)
             print(log)
             if plot:
-                ref.name = "adv_r"
-                dat.name = "mean + trb_r"
+                ref.name = "trb_r"
+                dat.name = "adv_r - mean"
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
@@ -492,7 +494,7 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
 # %% run_tests
 
 def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
-              hor_avg=False, chunks=None, **kw):
+              hor_avg=False, avg_dims=None, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
 
@@ -511,6 +513,8 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         Turbulent fluxes were calculated explicitly. The default is False.
     hor_avg : bool, optional
         Horizontal averaging was used in postprocessing. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
     chunks : dict of integers, optional
         Mapping from dimension "x" and/or "y" to chunk sizes used in postprocessing.
         If given, the boundaries in the chunking directions are pruned.
@@ -555,6 +559,10 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         for n, dat in datout_v.items():
             if "dim_coords" in tests:
                 test_dim_coords(dat, dat_inst, v, n, failed)
+            if hor_avg:
+                for avg_dim in avg_dims:
+                    for stag in ["", "_stag"]:
+                        assert avg_dim + stag not in dat.dims
             datout_lim[v][n] = tools.loc_data(dat, iloc=iloc)
 
     fpath = Path(__file__).parent
@@ -606,7 +614,10 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
 
         if ("dz_out" in tests) and (var != "q"):  # TODOm: why so bad for q?
             kw["figloc"] = figloc / "dz_out"
-            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv, **kw)
+            adv_i = adv
+            if hor_avg:
+                adv_i = adv_i.sel(dir=[d for d in adv.dir.values if d.lower() not in avg_dims])
+            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv_i, **kw)
 
         if "adv_2nd" in tests:
             kw["figloc"] = figloc / "adv_2nd"

@@ -22,6 +22,7 @@ import importlib
 import numpy as np
 import datetime
 from pathlib import Path
+from config import config_test_tendencies_base as conf
 now = datetime.datetime.now().isoformat()[:16]
 test_path = Path(__file__).parent
 
@@ -32,11 +33,16 @@ variables = ["q", "t", "u", "v", "w"]
 raise_error = True
 # restore module_initialize_ideal.F after running tests
 restore_init_module = True
+recompile = True  # recompile WRF if necessary: should be set to True
+
 # What to do if simulation output already exists: Skip run ('s'), overwrite ('o'),
 # restart ('r') or backup files ('b').
 exist = "s"
 # skip postprocessing if data already exists
 skip_exist = False
+
+save_results = True  # save test results to csv tables
+
 # builds to run simulations with
 builds = ["org", "debug", "normal"]
 # Change mapscale factors from 1 to random values around 1 to mimic real-case runs:
@@ -76,11 +82,13 @@ def test_all():
     th = {"use_theta_m": [0, 1, 1], "output_dry_theta_fluxes": [False, False, True]}
     o = np.arange(2, 7)
 
-    ### param_grids["2nd"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     param_grids["dz_out no_debug msf=1"] = odict(runID="dz_out")
-    param_grids["trb no_debug msf=1"] = odict(timing=dict(
+    param_grids["dz_out no_debug msf=1 hor_avg"] = odict(runID="dz_out")
+    param_grids["trb no_debug msf=1"] = odict(output_t_fluxes_small=0, timing=dict(
         end_time=["2018-06-20_12:30:00"],
-        output_streams=[{24: ["meanout", 2. / 60.], 0: ["instout", 10.]}]))
+        output_streams=[{24: ["meanout", conf.params["dt_f"] / 60.],
+                          0: ["instout", 10.]}]))
     param_grids["trb no_debug hor_avg msf=1"] = param_grids["trb no_debug msf=1"]
     param_grids["hor_avg no_debug msf=1"] = odict(runID="hor_avg_msf=1")  # for Y=0 test
     param_grids["hor_avg no_debug"] = odict()
@@ -93,11 +101,13 @@ def test_all():
     param_grids["no small fluxes"] = odict(th=th, output_t_fluxes_small=[0])
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],
+                                                             output_t_fluxes_small=0,
                                                              adv_order=dict(h_sca_adv_order=2,
                                                                             v_sca_adv_order=2,
                                                                             h_mom_adv_order=2,
                                                                             v_mom_adv_order=2))
     param_grids["simple and positive-definite advection"] = odict(
+        output_t_fluxes_small=0,
         moist_adv_opt=[0, 1],
         adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(
@@ -270,9 +280,9 @@ def run_and_test(param_grids, avg_dims=None):
                 if rmsf and ("Y=0" in tests_i):
                     tests_i.remove("Y=0")
                 kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
-                kw["close"] = False  # always close figures
+                kw["close"] = True  # always close figures
                 failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, sim_id=ind,
-                                                    hor_avg=hor_avg, trb_exp=t_avg,
+                                                    hor_avg=hor_avg, avg_dims=avg_dims, trb_exp=t_avg,
                                                     chunks=chunks, **kw)
 
                 for var in variables:
@@ -280,8 +290,9 @@ def run_and_test(param_grids, avg_dims=None):
                         failed[ind].loc[test, var] = f
                     for test, e in err_i.loc[var].items():
                         err[ind].loc[test, var] = e
-                failed.to_csv(test_results / ("test_results_" + now + ".csv"))
-                err.to_csv(test_results / ("test_scores_" + now + ".csv"))
+                if save_results:
+                    failed.to_csv(test_results / ("test_results_" + now + ".csv"))
+                    err.to_csv(test_results / ("test_scores_" + now + ".csv"))
 
     if restore_init_module:
         print("\n")
@@ -305,10 +316,11 @@ def run_and_test(param_grids, avg_dims=None):
     err = err.where(~err.isnull(), "")
     failed = failed.where(failed != "").dropna(how="all").dropna(axis=1, how="all")
     failed = failed.where(~failed.isnull(), "")
-    failed.to_csv(test_results / ("test_results_" + now + ".csv"))
-    err.to_csv(test_results / ("test_scores_" + now + ".csv"))
-    failed_short.to_csv(test_results / ("test_results_failsonly_" + now + ".csv"))
-    err_short.to_csv(test_results / ("test_scores_failsonly_" + now + ".csv"))
+    if save_results:
+        failed.to_csv(test_results / ("test_results_" + now + ".csv"))
+        err.to_csv(test_results / ("test_scores_" + now + ".csv"))
+        failed_short.to_csv(test_results / ("test_results_failsonly_" + now + ".csv"))
+        err_short.to_csv(test_results / ("test_scores_failsonly_" + now + ".csv"))
 
     if (failed_short != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
@@ -376,7 +388,7 @@ def setup_test_sim(build, restore=False, random_msf=True):
     fname = "module_initialize_ideal.F"
     wrf_path = Path(conf.params["build_path"]) / build_dir
     fpath = wrf_path / "dyn_em" / fname
-    recompile = True
+    recomp = recompile
     if restore:
         m = "Restore"
         os.rename(str(fpath) + ".org", fpath)
@@ -389,14 +401,14 @@ def setup_test_sim(build, restore=False, random_msf=True):
         test_file_path = (input_path / (testf + fname))
         test_file = test_file_path.read_text()
         if test_file == org_file:
-            recompile = False
+            recomp = False
         else:
             m = "Copy"
             fpath_org = Path(str(fpath) + ".org")
             if not fpath_org.exists():
                 shutil.copy(fpath, fpath_org)
             shutil.copy(test_file_path, fpath)
-    if recompile:
+    if recomp:
         print(m + " module_initialize_ideal.F and recompile")
         os.chdir(wrf_path)
         err = os.system(str(wrf_path / "compile") + " em_les > log 2> err")

@@ -106,7 +106,7 @@ if rank == 0:
     )
 
     failed, err = testing.run_tests(datout, tests, dat_inst=dat_inst, hor_avg=hor_avg,
-                                    chunks=chunks, **kw)
+                                    avg_dims=avg_dims, chunks=chunks, **kw)
 
     # %% plotting
 

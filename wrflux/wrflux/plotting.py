@@ -191,6 +191,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         except ValueError:
             fig.savefig(str(fpath) + ".png", dpi=300, bbox_inches="tight")
 
+    plt.show()
     if close:
         plt.close()
 

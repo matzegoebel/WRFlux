@@ -378,7 +378,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,         &
+       & u_save, v_save, w_2, w_save, ru, rv, ww, t_save, thd_save, th_phy, Q,                   &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -444,7 +444,7 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
-         u_2, u_save, v_2, v_save, w_2, w_save, ru, rv, ww,  &
+         u_save, v_save, w_2, w_save, ru, rv, ww,  &
          t_save, thd_save, th_phy, Q, ph_1, ph_2, phb, zx, zy, alt,  &
          ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
@@ -961,8 +961,8 @@ CONTAINS
           ENDIF
 
           !average wind speed
-          U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + u_2(i,k,j)*rhox  )/count_p1/rhox_mean
-          V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + v_2(i,k,j)*rhoy  )/count_p1/rhoy_mean
+          U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + ru(i,k,j) )/count_p1*fqx_dfac
+          V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + rv(i,k,j) )/count_p1*fqy_dfac
           ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + w_2(i,k,j)*rhoz  )/count_p1/rhoz_mean
           WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j)*msfty(i,j))/count_p1
           WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/count_p1/rhoz_mean

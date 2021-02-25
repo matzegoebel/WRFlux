@@ -83,6 +83,7 @@ budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv"]
 # abbreviations for settings
 settings_short_names = {"2nd": "force_2nd_adv"}
 
+all_variables = ["q", "t", "u", "v", "w"]
 # %%open dataset
 
 
@@ -172,7 +173,7 @@ def make_list(o):
     return o
 
 
-def coarsen_avg(data, dim, interval, rho=None, cyclic=None,
+def coarsen_avg(data, dim, interval, rho=None, mu=None, cyclic=None,
                 stagger_kw=None, rho_weighted_vars=None, **avg_kwargs):
     """
     Coarsen and average dataset over the given dimension.
@@ -189,6 +190,8 @@ def coarsen_avg(data, dim, interval, rho=None, cyclic=None,
         averaging interval.
     rho : dataarray, optional
         If given, use to do density-weighted average. The default is None.
+    mu : dataarray, optional
+        If given, use to do mu-weighted average for fluxes. The default is None.
     cyclic : dict of booleans for xy or None, optional
         Defines which dimensions have periodic boundary conditions.
         If rho is given and needs to be staggered, use periodic boundary conditions
@@ -218,11 +221,20 @@ def coarsen_avg(data, dim, interval, rho=None, cyclic=None,
     if stagger_kw is None:
         stagger_kw = {}
 
+    fluxes = ["F{}{}_ADV_MEAN".format(var.upper(), D) for D in XY for var in all_variables]
+    var_stag = ["{}{}_MEAN".format(var.upper(), D) for D in XY for var in all_variables]
+    mean_vel = ["U_MEAN", "V_MEAN"]
+    mu_weighted_vars = fluxes + mean_vel + var_stag
     out = xr.Dataset()
     for var in data.data_vars:
         if (rho is not None) and (var in rho_weighted_vars):
+            if var in mu_weighted_vars:
+                # use mu instead of rho for weighting
+                rho_i = build_mu(mu, data, full_levels="bottom_top_stag" in data[var].dims)
+            else:
+                rho_i = rho
             # density-weighted average
-            rho_s = stagger_like(rho, data[var], cyclic=cyclic, **stagger_kw)
+            rho_s = stagger_like(rho_i, data[var], cyclic=cyclic, **stagger_kw)
             rho_s_mean = rho_s.coarsen(**avg_kwargs).mean()
             out[var] = (rho_s * data[var]).coarsen(**avg_kwargs).mean() / rho_s_mean
         else:
@@ -272,7 +284,10 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         if cyclic is None:
             cyclic = {"x": False, "y": False}
         for d in rho_s.dims:
+            if d not in data.dims:
+                raise ValueError("Density in avg_xy contains dimension {} not present in data!".format(d))
             if (d not in rho.dims) and ("bottom_top" not in d) and (not cyclic[d[0]]):
+                # avoid NaNs at the boundaries
                 rho_s = rho_s.ffill(d)
                 rho_s = rho_s.bfill(d)
         rho_s_mean = avg_xy(rho_s, avg_dims, cyclic=cyclic)
@@ -572,7 +587,8 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
     return data
 
 
-def stagger(data, dim, new_coord, FNM=0.5, FNP=0.5, rename=True, cyclic=False, **interp_const):
+def stagger(data, dim, new_coord, FNM=0.5, FNP=0.5, rename=True, cyclic=False,
+            fill_nearest=False, **interp_const):
     """
     Stagger WRF output data in given dimension by averaging neighbouring grid points.
 
@@ -593,6 +609,9 @@ def stagger(data, dim, new_coord, FNM=0.5, FNP=0.5, rename=True, cyclic=False, *
     cyclic : bool, optional
         use periodic boundary conditions to fill lateral boundary points.
         The default is False.
+    fill_nearest : bool, optional
+        If cyclic=False, use nearest neighbour to fill missing values.
+        The default is False.
     **interp_const : dict
         vertical extrapolation constants
 
@@ -608,12 +627,14 @@ def stagger(data, dim, new_coord, FNM=0.5, FNP=0.5, rename=True, cyclic=False, *
         data_stag = 0.5 * (data + data.roll({dim: 1}, roll_coords=False))
 
     data_stag = post_stagger(data_stag, dim, new_coord, rename=rename,
-                             data=data, cyclic=cyclic, **interp_const)
+                             data=data, cyclic=cyclic, fill_nearest=fill_nearest,
+                             **interp_const)
 
     return data_stag
 
 
-def post_stagger(data_stag, dim, new_coord, rename=True, data=None, cyclic=False, **interp_const):
+def post_stagger(data_stag, dim, new_coord, rename=True, data=None, cyclic=False,
+                 fill_nearest=False, **interp_const):
     """
     After staggering: rename dimension, assign new coordinate and fill boundary values.
 
@@ -631,6 +652,9 @@ def post_stagger(data_stag, dim, new_coord, rename=True, data=None, cyclic=False
         unstaggered data for vertical extrapolation.
     cyclic : bool, optional
         use periodic boundary conditions to fill lateral boundary points.
+        The default is False.
+    fill_nearest : bool, optional
+        If cyclic=False, use nearest neighbour to fill missing values.
         The default is False.
     **interp_const : dict
         vertical extrapolation constants
@@ -660,6 +684,10 @@ def post_stagger(data_stag, dim, new_coord, rename=True, data=None, cyclic=False
     elif cyclic:
         # set second boundary point equal to first
         data_stag.loc[{dim_s: c[-1]}] = data_stag.loc[{dim_s: c[0]}]
+    elif fill_nearest:
+        # fill with neighbouring values
+        data_stag.loc[{dim_s: c[0]}] = data_stag.loc[{dim_s: c[1]}]
+        data_stag.loc[{dim_s: c[-1]}] = data_stag.loc[{dim_s: c[-2]}]
     else:
         # also set first boundary point to NaN
         data_stag.loc[{dim_s: c[0]}] = np.nan
@@ -964,8 +992,8 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
         inst = dat_mean.copy()
         print("Average dat_mean over {} output steps".format(t_avg_interval))
         dat_mean = coarsen_avg(dat_mean, dim="Time", interval=t_avg_interval,
-                               rho=dat_mean["RHOD_MEAN"], cyclic=cyclic,
-                               stagger_kw=grid[stagger_const])
+                               rho=inst["RHOD_MEAN"], mu=inst["MUT_MEAN"],
+                               cyclic=cyclic, stagger_kw=grid[stagger_const])
 
         # compute resolved turbulent fluxes explicitly if output contains all timesteps
         dt_out = float(inst.Time[1] - inst.Time[0]) / 1e9
@@ -1028,7 +1056,7 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
         "Time": partial(select_ind, indeces=-1)}, "boundary": "trim"}
 
     # define all needed variables
-    all_vars = ["RHOD_MEAN", "OMZN_MEAN"]
+    all_vars = ["OMZN_MEAN"]
     for var in variables:
         for d, vel in zip(XYZ, uvw):
             all_vars.append(var.upper() + d + "_MEAN")
@@ -1036,29 +1064,54 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
 
     # fill all time steps with block average
     means = dat_mean[all_vars].reindex(Time=inst.Time).bfill("Time")
-    if hor_avg:
-        means = avg_xy(means, avg_dims, rho=means["RHOD_MEAN"],
-                       cyclic=cyclic, **grid[stagger_const])
+
     for var in variables:
         var = var.upper()
-        for d, vel in zip(["X", "Y", "Z", "Z"], ["U", "V", "W", "OMZN"]):
+        for d, v in zip(["X", "Y", "Z", "Z"], ["U", "V", "W", "OMZN"]):
             var_d = var + d + "_MEAN"
-            vel_m = vel + "_MEAN"
+            vel = v + "_MEAN"
+
+            if d in ["X", "Y"]:
+                rho = build_mu(inst["MUT_MEAN"], grid, full_levels="bottom_top_stag" in inst[var_d].dims)
+            else:
+                rho = inst["RHOD_MEAN"]
+
+            var_d_m = means[var_d]
+            vel_m = means[vel]
+            if hor_avg:
+                var_d_m = avg_xy(var_d_m, avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+                vel_m = avg_xy(vel_m, avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+
             # compute perturbations
-            var_pert = inst[var_d] - means[var_d]
-            vel_pert = stagger_like(inst[vel_m] - means[vel_m], var_pert,
+            var_pert = inst[var_d] - var_d_m
+            rho_stag_vel = stagger_like(rho, inst[vel],
+                                        cyclic=cyclic, **grid[stagger_const])
+            vel_pert = stagger_like(rho_stag_vel * (inst[vel] - vel_m), var_pert,
                                     cyclic=cyclic, **grid[stagger_const])
-            # stagger density
-            rho_stag = stagger_like(inst["RHOD_MEAN"], var_pert,
-                                    cyclic=cyclic, **grid[stagger_const])
-            rho_stag_mean = stagger_like(dat_mean["RHOD_MEAN"], var_pert,
-                                         cyclic=cyclic, **grid[stagger_const])
             # build flux
-            flux = rho_stag * vel_pert * var_pert
-            flux = flux.coarsen(**avg_kwargs).mean() / rho_stag_mean
+            #  rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
+            # vel_stag = stagger_like(rho_stag_vel * inst[vel], var_pert,
+            #                         cyclic=cyclic, **grid[stagger_const])
+            # vel_stag_mean = stagger_like(rho_stag_vel_mean*dat_mean[vel], var_pert,
+            #                              cyclic=cyclic, **grid[stagger_const])
+            # tot_flux = vel_stag * inst[var_d]
+            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean() / rho_stag_mean
+            # mean_flux = vel_stag_mean * dat_mean[var_d] / rho_stag_mean
+            # flux = tot_flux - mean_flux
+            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
+            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
+
+            flux = vel_pert * var_pert
+            flux = flux.coarsen(**avg_kwargs).mean()
             if hor_avg:
                 flux = avg_xy(flux, avg_dims, cyclic=cyclic)
-            dat_mean["F{}{}_TRB_MEAN".format(var, vel)] = flux
+                rho = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
+
+            rho_stag = stagger_like(rho, var_pert,
+                                    cyclic=cyclic, **grid[stagger_const])
+            rho_stag_mean = rho_stag.coarsen(**avg_kwargs).mean()
+            flux = flux / rho_stag_mean
+            dat_mean["F{}{}_TRB_MEAN".format(var, v)] = flux
 
 
 # %% WRF tendencies
@@ -1140,9 +1193,9 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
 
     # density and dry air mass
-    mu = grid["C2H"] + grid["C1H"] * (dat_inst["MU"] + dat_inst["MUB"])
+    mu = build_mu(dat_inst["MU"] + dat_inst["MUB"], grid)
     dat_inst["MU_STAG"] = mu
-    grid["MU_STAG_MEAN"] = grid["C2H"] + grid["C1H"] * dat_mean["MUT_MEAN"]
+    grid["MU_STAG_MEAN"] = build_mu(dat_mean["MUT_MEAN"], grid)
     rhodm = dat_mean["RHOD_MEAN"]
     if var in uvw:
         rhodm = stagger(rhodm, dim_stag, dat_inst[dim_stag + "_stag"],
@@ -1220,6 +1273,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sources = avg_xy(sources, avg_dims, cyclic=cyclic)
         sgs = avg_xy(sgs, avg_dims, cyclic=cyclic)
         sgsflux = avg_xy(sgsflux, avg_dims, cyclic=cyclic)
+        grid["dzdd"] = avg_xy(grid["dzdd"], avg_dims, rho=dat_mean["RHOD_MEAN"],
+                              cyclic=cyclic, **grid[stagger_const])
         grid = avg_xy(grid, avg_dims, cyclic=cyclic)
 
     sources = sources.to_array("comp")
@@ -1394,13 +1449,6 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         w = dat_mean["OMZN_MEAN"]
     vmean = xr.Dataset({"X": dat_mean["U_MEAN"], "Y": dat_mean["V_MEAN"], "Z": w})
 
-    if hor_avg:
-        var_stag = avg_xy(var_stag, avg_dims,
-                          rho=dat_mean["RHOD_MEAN"], cyclic=cyclic, **grid[stagger_const])
-        for k in vmean.keys():
-            vmean[k] = avg_xy(vmean[k], avg_dims, rho=dat_mean["RHOD_MEAN"],
-                              cyclic=cyclic, **grid[stagger_const])
-
     if not all([f in dat_mean for f in fluxnames]):
         raise ValueError("Fluxes not available!")
     tot_flux = dat_mean[fluxnames]
@@ -1433,21 +1481,33 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             corr_new = rhod8z * stagger_like(corr_new, rhod8z, cyclic=cyclic, **grid[stagger_const])
             corr.loc["X"] = corr_new["X"]
             corr.loc["Y"] = corr_new["Y"]
-        corr_t = dat_mean[VAR + "_MEAN"]
+        corr_t = dat_mean[VAR + "Z_MEAN"]
         corr_t = rhod8z * stagger_like(corr_t, rhod8z, cyclic=cyclic, **grid[stagger_const])
         corr.loc["T"] = corr_t
 
     #  mean advective fluxes
     mean_flux = xr.Dataset()
     for d in XYZ:
+        if d in ["X", "Y"]:
+            rho = build_mu(dat_mean["MUT_MEAN"], grid, full_levels="bottom_top_stag" in vmean[d].dims)
+        else:
+            rho = dat_mean["RHOD_MEAN"]
+
+        if hor_avg:# TODO: use normal rho for var_stag...?
+            var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+            vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+            rho = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
+
         if hor_avg and (d.lower() in avg_dims):
             # mean fluxes are zero in averaging dimension
             mean_flux[d] = 0.
         else:
-            vel_stag = stagger_like(vmean[d], ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
+            rho_stag = stagger_like(rho, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
+            vel_stag = stagger_like(rho_stag * vmean[d], ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
             if (VAR == "W") and (d in XY):
                 vel_stag[{"bottom_top_stag": 0}] = 0
-            mean_flux[d] = var_stag[d] * vel_stag
+            rho_stag = stagger_like(rho, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
+            mean_flux[d] = var_stag[d] * vel_stag / rho_stag
 
     fluxes = {"adv_r": tot_flux, "mean": mean_flux}
     try:

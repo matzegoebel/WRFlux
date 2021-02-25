@@ -100,6 +100,8 @@ params["v_sca_adv_order"] = 3
 params["h_mom_adv_order"] = 5
 params["v_mom_adv_order"] = 3
 
+params["phi_adv_z"] = 2
+
 # indices for output streams and their respective name and output interval (minutes, floats allowed)
 # 0 is the standard output stream
 params["output_streams"] = {24: ["meanout", 1.], 0: ["instout", 1.]}

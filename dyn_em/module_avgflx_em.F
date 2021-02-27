@@ -699,9 +699,9 @@ CONTAINS
                              k, kms, kme, kde                   )
               ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
               rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-              FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j)+ (ru(i,k,j)*thetax2 ) )/count_p1*fqx_dfac
-              FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j)+ (rv(i,k,j)*thetay2 ) )/count_p1*fqy_dfac
-              FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j)+ (rw_diag(i,k,j)*thetaz2))/count_p1/rhoz_mean_flx
+              FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j)+ (ru(i,k,j)*thetax2 + ftx_small(i,k,j)) )/count_p1*fqx_dfac
+              FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j)+ (rv(i,k,j)*thetay2 + fty_small(i,k,j)) )/count_p1*fqy_dfac
+              FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j)+ (rw_diag(i,k,j)*thetaz2 + ftz_small(i,k,j)*msfty(i,j)/(-g)))/count_p1/rhoz_mean_flx
               FTX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTX_CORR_MEAN_DZOUT(i,k,j) + ru8z*thetaz )/count_p1
               FTY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTY_CORR_MEAN_DZOUT(i,k,j) + rv8z*thetaz )/count_p1
               FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu(i,k,j)*thetaz2 )/count_p1

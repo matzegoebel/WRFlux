@@ -33,13 +33,14 @@ variables = ["q", "t", "u", "v", "w"]
 raise_error = True
 # restore module_initialize_ideal.F after running tests
 restore_init_module = True
-recompile = True  # recompile WRF if necessary: should be set to True
 
 # What to do if simulation output already exists: Skip run ('s'), overwrite ('o'),
 # restart ('r') or backup files ('b').
 exist = "s"
 # skip postprocessing if data already exists
 skip_exist = False
+# no running of simulations only postprocessing
+skip_running = True
 
 save_results = True  # save test results to csv tables
 
@@ -172,11 +173,10 @@ def run_and_test(param_grids, avg_dims=None):
 
         for build in tools.make_list(builds_i):
             print("\n\n\n{0}\n{0}\nbuild: {1}\n{0}\n{0}\n".format("#" * 50, build))
-            # setup module_initialize_ideal.F
             rmsf = random_msf
             if "msf=1" in label:
                 rmsf = False
-            conf, cfile, build_dir = setup_test_sim(build, random_msf=rmsf)
+            conf, cfile = load_config(build)
 
             if runID is None:
                 runID_i = conf.runID
@@ -185,22 +185,26 @@ def run_and_test(param_grids, avg_dims=None):
             runID_i += "_" + build
 
             param_grid_i = param_grid.copy()
-
             param_combs = grid_combinations(param_grid_i, conf.params, param_names=conf.param_names,
                                             runID=runID_i)
-            # delete parameters not available in original WRF
-            if build == "org":
-                for p in ["output_dry_theta_fluxes", "hesselberg_avg", "output_t_fluxes_small"]:
-                    if p in param_combs:
-                        del param_combs[p]
 
-            # initialize simulations
-            combs, output = capture_submit(init=True, exist=exist, build=build_dir, config_file=cfile,
-                                           param_combs=param_combs)
-            # run simulations
-            combs, output = capture_submit(init=False, wait=True, build=build_dir, pool_jobs=True,
-                                           exist=exist, config_file=cfile, param_combs=param_combs)
-            print("\n\n")
+            if not skip_running:
+                # setup module_initialize_ideal.F
+                build_dir = setup_test_sim(build, random_msf=rmsf)
+
+                # delete parameters not available in original WRF
+                if build == "org":
+                    for p in ["output_dry_theta_fluxes", "hesselberg_avg", "output_t_fluxes_small"]:
+                        if p in param_combs:
+                            del param_combs[p]
+
+                # initialize simulations
+                combs, output = capture_submit(init=True, exist=exist, build=build_dir, config_file=cfile,
+                                               param_combs=param_combs)
+                # run simulations
+                combs, output = capture_submit(init=False, wait=True, build=build_dir, pool_jobs=True,
+                                               exist=exist, config_file=cfile, param_combs=param_combs)
+                print("\n\n")
 
             # check if all simulations were successful
             for cname, param_comb in param_combs.iterrows():
@@ -294,11 +298,11 @@ def run_and_test(param_grids, avg_dims=None):
                     failed.to_csv(test_results / ("test_results_" + now + ".csv"))
                     err.to_csv(test_results / ("test_scores_" + now + ".csv"))
 
-    if restore_init_module:
+    if restore_init_module and (not skip_running):
         print("\n")
         for build in tools.make_list(builds):
             print("\nRestore files for build " + build)
-            conf, cfile, build_dir = setup_test_sim(build, restore=True)
+            setup_test_sim(build, restore=True)
 
     # assemble and save final test results
     for ind in failed.keys():
@@ -346,6 +350,32 @@ def capture_submit(*args, **kwargs):
     return combs, output
 
 
+def load_config(build):
+    """Load config module for given build.
+
+    Parameters
+    ----------
+    build : str
+        WRF build: 'normal', 'debug', or 'org'.
+
+    Returns
+    -------
+    conf : module
+        Configuration module for test simulations.
+    cfile : str
+        Path to conf.
+    """
+    cfile = "wrflux.test.config.config_test_tendencies"
+    conf = importlib.import_module(cfile)
+    if build == "debug":
+        cfile = cfile + "_debug"
+    elif build == "org":
+        cfile = cfile + "_base"
+    conf = importlib.import_module(cfile)
+
+    return conf, cfile
+
+
 def setup_test_sim(build, restore=False, random_msf=True):
     """Setup test simulation.
 
@@ -365,30 +395,22 @@ def setup_test_sim(build, restore=False, random_msf=True):
 
     Returns
     -------
-    conf : module
-        Configuration module for test simulations.
-    cfile : str
-        Path to conf.
     build_dir : str
         WRF build directory.
     """
-    cfile = "wrflux.test.config.config_test_tendencies"
-    conf = importlib.import_module(cfile)
+    conf, cfile = load_config(build)
     if build == "debug":
-        cfile = cfile + "_debug"
         build_dir = conf.params["debug_build"]
     elif build == "org":
-        cfile = cfile + "_base"
         build_dir = conf.org_build
     else:
         build_dir = conf.params["parallel_build"]
-    conf = importlib.import_module(cfile)
 
     #  setup module_initialize_ideal.F
     fname = "module_initialize_ideal.F"
     wrf_path = Path(conf.params["build_path"]) / build_dir
     fpath = wrf_path / "dyn_em" / fname
-    recomp = recompile
+    recompile = True
     if restore:
         m = "Restore"
         os.rename(str(fpath) + ".org", fpath)
@@ -401,14 +423,14 @@ def setup_test_sim(build, restore=False, random_msf=True):
         test_file_path = (input_path / (testf + fname))
         test_file = test_file_path.read_text()
         if test_file == org_file:
-            recomp = False
+            recompile = False
         else:
             m = "Copy"
             fpath_org = Path(str(fpath) + ".org")
             if not fpath_org.exists():
                 shutil.copy(fpath, fpath_org)
             shutil.copy(test_file_path, fpath)
-    if recomp:
+    if recompile:
         print(m + " module_initialize_ideal.F and recompile")
         os.chdir(wrf_path)
         err = os.system(str(wrf_path / "compile") + " em_les > log 2> err")
@@ -443,7 +465,7 @@ def setup_test_sim(build, restore=False, random_msf=True):
                 print("Restore namelist file")
                 os.rename(fpath_org, fpath)
 
-    return conf, cfile, build_dir
+    return build_dir
 
 
 # %%main

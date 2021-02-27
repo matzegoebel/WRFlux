@@ -38,7 +38,6 @@ The following namelist variables are available:
  								  0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
 - **`output_{t,q,u,v,w}_fluxes_add`** (default: 0): if 1, output additional fluxes using 2nd order advection and different correction forms for comparison (see [Theory/Alternative Corrections](#alternative-corrections)).
 - **`output_dry_theta_fluxes`** (default: .true.): if .true., output fluxes based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
-- **`output_t_fluxes_small`** (default: 0): if 1, take into account theta-fluxes from acoustic time-step (slightly better budget closure unless `output_dry_theta_fluxes=.true.` and `use_theta_m=1`).
 - **`hesselberg_avg`** (default: .true.): if .true., budget variables are averaged with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
 
 SGS fluxes include horizontal and vertical fluxes from the diffusion module depending on `km_opt` and vertical fluxes from the boundary layer scheme.
@@ -118,6 +117,7 @@ The SGS fluxes are taken directly out of the diffusion routines in `module_diffu
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
 This recalculated w is almost identical to the prognostic w. Only the last component in the equation is calculated in a slightly different way to be more consistent with the vertical advection in the native coordinate system (see also next section). The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
+For potential temperature, fluxes from the acoustic step (`module_small_step_em.F`) are added.
 
 When decomposing the resolved flux into mean and resolved turbulent components in the post-processing (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)), the turbulent component is calculated as a residual of the other two components. The same is done for the resolved advective tendency.
 

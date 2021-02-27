@@ -86,7 +86,7 @@ def test_all():
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     param_grids["dz_out no_debug msf=1"] = odict(runID="dz_out")
     param_grids["dz_out no_debug msf=1 hor_avg"] = odict(runID="dz_out")
-    param_grids["trb no_debug msf=1"] = odict(output_t_fluxes_small=0, timing=dict(
+    param_grids["trb no_debug msf=1"] = odict(timing=dict(
         end_time=["2018-06-20_12:30:00"],
         output_streams=[{24: ["meanout", conf.params["dt_f"] / 60.],
                           0: ["instout", 10.]}]))
@@ -99,16 +99,14 @@ def test_all():
     param_grids["hessel"] = odict(hesselberg_avg=[False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
-    param_grids["no small fluxes"] = odict(th=th, output_t_fluxes_small=[0])
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],
-                                                             output_t_fluxes_small=0,
+                                                             moist_adv_opt=[0, 1],
                                                              adv_order=dict(h_sca_adv_order=2,
                                                                             v_sca_adv_order=2,
                                                                             h_mom_adv_order=2,
                                                                             v_mom_adv_order=2))
     param_grids["simple and positive-definite advection"] = odict(
-        output_t_fluxes_small=0,
         moist_adv_opt=[0, 1],
         adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(
@@ -194,7 +192,7 @@ def run_and_test(param_grids, avg_dims=None):
 
                 # delete parameters not available in original WRF
                 if build == "org":
-                    for p in ["output_dry_theta_fluxes", "hesselberg_avg", "output_t_fluxes_small"]:
+                    for p in ["output_dry_theta_fluxes", "hesselberg_avg"]:
                         if p in param_combs:
                             del param_combs[p]
 

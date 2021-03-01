@@ -971,7 +971,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                          c1h, c2h, c1f, c2f,                  &
                          c3h, c4h, c3f, c4f,                  &
                          uam, vam, wwam, t, t_1,              &
-                         t_ave, th_phy, ft, mu_tend,          &
+                         t_ave, th_save, ft, mu_tend,         &
                          rdx, rdy, dts, epssm,                &
                          dnw, fnm, fnp, rdnw,                 &
                          msfux, msfuy, msfvx, msfvx_inv,      &
@@ -997,7 +997,7 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
                                               v_1, &
                                               t_1, &
                                               ft,  &
-                                              th_phy
+                                              th_save
   REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),      &
             INTENT(INOUT) ::                          &
                                               ww,     &
@@ -1194,15 +1194,15 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
        DO j=j_start, j_end+1
        DO k=1,k_end
        DO i=i_start, i_end+1
-         ftx(i,k,j) = u(i,k,j)*0.5*(th_phy(i,k,j) + th_phy(i-1,k,j) )
-         fty(i,k,j) = v(i,k,j)*0.5*(th_phy(i,k,j) + th_phy(i,k,j-1) )
+         ftx(i,k,j) = u(i,k,j)*0.5*(th_save(i,k,j) + th_save(i-1,k,j) )
+         fty(i,k,j) = v(i,k,j)*0.5*(th_save(i,k,j) + th_save(i,k,j-1) )
        ENDDO
        ENDDO
        ENDDO
        DO j=j_start, j_end
        DO k=2,k_end
        DO i=i_start, i_end
-         wdtn(i,k,j) = ww(i,k,j)*(fnm(k)*th_phy(i,k,j) + fnp(k)*th_phy(i,k-1,j))
+         wdtn(i,k,j) = ww(i,k,j)*(fnm(k)*th_save(i,k,j) + fnp(k)*th_save(i,k-1,j))
        ENDDO
        ENDDO
        ENDDO

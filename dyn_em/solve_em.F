@@ -1329,7 +1329,7 @@ BENCH_START(advance_mu_t_tim)
                           grid%c1h, grid%c2h, grid%c1f, grid%c2f,                       &
                           grid%c3h, grid%c4h, grid%c3f, grid%c4f,                       &
                           grid%ru_m, grid%rv_m, grid%ww_m,                              &
-                          grid%t_2, grid%t_save, t_2save, th_phy, t_tend,               &
+                          grid%t_2, grid%t_save, t_2save, grid%th_save, t_tend,         &
                           mu_tend,                                                      &
                           grid%rdx, grid%rdy, dts_rk, grid%epssm,                       &
                           grid%dnw, grid%fnm, grid%fnp, grid%rdnw,                      &

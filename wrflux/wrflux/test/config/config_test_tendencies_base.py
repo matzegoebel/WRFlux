@@ -42,10 +42,10 @@ params["end_time"] = "2018-06-20_12:02:00"  # format %Y-%m-%d_%H:%M:%S
 params["n_rep"] = 1  # number of repetitions for each configuration
 
 # horizontal grid
-params["dx"] = 500  # horizontal grid spacing x-direction(m)
+params["dx"] = 200  # horizontal grid spacing x-direction(m)
 params["dy"] = None  # horizontal grid spacing y-direction (m), if None: dy = dx
-params["lx"] = 10000  # minimum horizontal extent in east west (m)
-params["ly"] = 10000  # minimum horizontal extent in north south (m)
+params["lx"] = 4000  # minimum horizontal extent in east west (m)
+params["ly"] = 4000  # minimum horizontal extent in north south (m)
 
 # control vertical grid creation (see vertical_grid.py for details on the different methods)
 params["ztop"] = 3000  # top of domain (m)
@@ -55,7 +55,7 @@ params["nz"] = None  # number of vertical levels
 params["dz0"] = 60  # height of first model level (m)
 # if nz is None and for vgrid_method=0 only: specify maximum vertical grid spacing instead of nz;
 # either float or "dx" to make it equal to dx
-params["dzmax"] = 300
+params["dzmax"] = 200
 # method for creating vertical grid as defined in vertical_grid.py
 # if None: do not change eta_levels
 params["vgrid_method"] = 1
@@ -64,7 +64,7 @@ params["dt_f"] = 2  # time step (s), if None calculated as dt = 6 s/m *dx/1000; 
 params["spec_hfx"] = None
 
 params["input_sounding"] = "wrflux"  # name of input sounding to use (final name is then created: input_sounding_$name)
-params["hm"] = 500  # mountain height (m)
+params["hm"] = 200  # mountain height (m)
 
 # other standard namelist parameters
 params["mp_physics"] = 0

@@ -1526,12 +1526,12 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
             # get or calculate moist theta
             if "THM" in dat_inst:
-                vard = dat_inst["THM"]
+                vard = dat_inst["THM"] + 300
             else:
-                vard = (dat_inst["T"] + 300) * (1 + rvovrd * dat_inst["QVAPOR"]) - 300
+                vard = (dat_inst["T"] + 300) * (1 + rvovrd * dat_inst["QVAPOR"])
         else:
-            vard = dat_inst["T"]
-        vard = vard + 300
+            vard = dat_inst["T"] + 300
+
     elif var == "q":
         vard = dat_inst["QVAPOR"]
     else:

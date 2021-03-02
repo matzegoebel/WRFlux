@@ -40,7 +40,7 @@ exist = "s"
 # skip postprocessing if data already exists
 skip_exist = False
 # no running of simulations only postprocessing
-skip_running = True
+skip_running = False
 
 save_results = True  # save test results to csv tables
 

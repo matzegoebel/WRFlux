@@ -296,9 +296,10 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
 
         # cut boundary points depending whether lateral BC are periodic or not
         if (cyclic is None) or (not cyclic[d]):
-            data = loc_data(data, iloc={d: slice(1, -1)})
-            if rho is not None:
-                rho_s = loc_data(rho_s, iloc={d: slice(1, -1)})
+            for di in [d, ds]:
+                data = loc_data(data, iloc={di: slice(1, -1)})
+                if rho is not None:
+                    rho_s = loc_data(rho_s, iloc={di: slice(1, -1)})
         elif ds in data.dims:
             #  for periodic BC only cut upper boundary in staggered dimension
             data = data[{ds: slice(0, -1)}]

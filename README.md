@@ -30,7 +30,7 @@ I'm currently preparing a publication that introduces WRFlux.
 
 ### Online calculations
 During the model run, fluxes, tendencies, and budget variables are averaged over time.
-The online calculations can be controlled in the namelist file or the registry file [`Registry/registry.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/Registry/registry.wrflux).
+The online calculations can be controlled in the namelist file or the registry file [`Registry/registry.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/Registry/registry.wrflux). The calculations do not affect the model evolution.
 
 The following namelist variables are available:
 
@@ -116,7 +116,8 @@ The SGS fluxes are taken directly out of the diffusion routines in `module_diffu
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
-This recalculated w is almost identical to the prognostic w. Only the last component in the equation is calculated in a slightly different way to be more consistent with the vertical advection in the native coordinate system (see also next section). The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
+This recalculated w is almost identical to the prognostic w, since we adapted the vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification will be published as a namelist option (`phi_adv_z`) in WRF's next major release (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/)).
+The vertical component of the diagnostic w equation is still calculated in a slightly different way than in the geopotential equation to be more consistent with the vertical advection of other variables. The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
 For potential temperature, fluxes from the acoustic step (`module_small_step_em.F`) are added.
 
 When decomposing the resolved flux into mean and resolved turbulent components in the post-processing (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)), the turbulent component is calculated as a residual of the other two components. The same is done for the resolved advective tendency.
@@ -165,15 +166,6 @@ Note the following limitations:
 
 WRFlux has a relatively strong impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 25 %.
 
-### Changes to the dynamical core
-The model evolution is almost identical to the current official version. However, two details in the dynamical core are different:
-
-1. The vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) is adapted to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification is currently under review and will probably be published in WRF's next major release (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/)). The modification makes the vertical advection of geopotential more consistent with the vertical advection of other variables and thereby reduces the differences between prognostic w and w diagnosed from the [equation](#w_eq) in the theory section to a minimum.
-2. The conversion of the non-local flux from dry to moist theta for `km_opt=5` uses the moisture at each level instead of the surface moisture. In effect, the modification in [PR 1352](https://github.com/wrf-model/WRF/pull/1352) is not adopted, because it is not correct, in my opinion. My arguments for this standpoint are discussed in [PR 1259](https://github.com/wrf-model/WRF/pull/1259). The differences between the two approaches are, however, hardly noticeable in practice.
-
-
-
-
 ## Tests
 ### Test details
 This package includes a test suite for automated testing with `pytest`. Idealized test simulations are run for one hour with a large number of different namelist settings to check all parts of the code including different combinations of `km_opt`, `bl_pbl_physics`, `isfflx`, `use_theta_m`, `output_dry_theta_fluxes`, `output_t_fluxes_small`, `hesselberg_avg`, `*adv_order`, `*adv_opt`, `mp_physics`, and boundary conditions. The test simulations are based on the idealized LES test case (`em_les`). To check the output of WRFlux for consistency the following tests are carried out for these simulations:
@@ -200,7 +192,7 @@ For some simulations, horizontal averaging in the along-mountain direction is te
 
 A shorter simulation is run with output at every time step from which turbulent fluxes are calculated explicitly. The thresholds for tests 2 and 3 are reduced in that case.
 
-All test simulations are repeated with a short runtime (2 minutes) in debugging mode (WRF configured with `configure -D`) to detect floating-point exceptions and other issues and with a version very close to the official WRF version (branch [original](https://github.com/matzegoebel/WRFlux/tree/original)) to test for unintended changes of the dynamical core. The only differences to the official version in the latter build are those listed in the section [Changes to the dynamical core](#changes-to-the-dynamical-core) above. All output variables of this build and of the debug build are compared bit-for-bit.
+All test simulations are repeated with a short runtime (2 minutes) in debugging mode (WRF configured with `configure -D`) to detect floating-point exceptions and other issues and with the official WRF version to test for unintended changes of the model dynamics. The only differences to the official version in the latter build are those listed in the section [Changes to the dynamical core](#changes-to-the-dynamical-core) above. All output variables of this build and of the debug build are compared bit-for-bit.
 
 
 ### Installation
@@ -217,7 +209,7 @@ pip install -e .
 Then go back to the directory `wrflux` and run:
 `pip install -e .[test]`
 
-To run all tests in the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). To check for differences to the official WRF, a parallel build of the [*original* branch](https://github.com/matzegoebel/WRFlux/tree/original) of this repository is required. Specify the location of these builds in the configuration file [`config/config_test_tendencies_base.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/config/config_test_tendencies_base.py) in the variable `build_path`.
+To run all tests in the test suite you need to have two parallel builds of WRFlux, one with and one without the debugging option (compiled with `configure -D`). To check for differences to the official WRF, a parallel build of the [*original* branch](https://github.com/matzegoebel/WRFlux/tree/original) of this repository is required. This branch always contains the same WRF version as WRFlux is based on. Specify the location of these builds in the configuration file [`config/config_test_tendencies_base.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/config/config_test_tendencies_base.py) in the variable `build_path`.
 The names of the folders of the builds are specified by the variables `parallel_build`, `debug_build`, and `org_build` in the configuration file.
 
 To run the test suite, execute `pytest` in the folder `wrflux/wrflux/test`. Make sure you do not have a python installation activated with an MPI library if you did not compile WRF with it. This would cause a problem when running the test simulations.

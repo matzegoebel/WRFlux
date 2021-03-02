@@ -229,7 +229,7 @@ def coarsen_avg(data, dim, interval, rho=None, mu=None, cyclic=None,
             # density-weighted average
             rho_s = stagger_like(rho_i, data[var], cyclic=cyclic, **stagger_kw)
             rho_s_mean = rho_s.coarsen(**avg_kwargs).mean()
-            out[var] = (rho_s * data[var]).coarsen(**avg_kwargs).mean() / rho_s_mean
+            out[var] = (data[var] * rho_s).coarsen(**avg_kwargs).mean() / rho_s_mean
         else:
             out[var] = data[var].coarsen(**avg_kwargs).mean()
 
@@ -309,7 +309,7 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
     if rho is None:
         return data.mean(avg_dims_final)
     else:
-        return (rho_s * data).mean(avg_dims_final) / rho_s_mean
+        return (data * rho_s).mean(avg_dims_final) / rho_s_mean
 
 
 def warn_duplicate_dim(data, name=None):
@@ -1345,7 +1345,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
             # flux derivative
             dx = grid["D" + D]
-            adv_i[D] = -diff(fac * flux[D] / mf_flx, ds, dat_mean[d], cyclic=cyc) * mf["X"] * mf["Y"] / dx
+            adv_i[D] = -diff(flux[D] * fac / mf_flx, ds, dat_mean[d], cyclic=cyc) * mf["X"] * mf["Y"] / dx
 
         # vertical flux
         fz = rhod8z_m * flux["Z"]

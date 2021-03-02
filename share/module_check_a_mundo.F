@@ -2784,6 +2784,7 @@
       INTEGER :: numsoiltemp , nummosaictemp
       INTEGER :: i
 
+      LOGICAL ::  output_res, change_phi_adv_z
 
 !-----------------------------------------------------------------------
 ! Set the namelist urban dimensions if sf_urban_physics > 0  
@@ -3108,6 +3109,24 @@
             ENDIF
          ENDIF
       ENDDO
+
+      ! turn on new option for vertical phi advection
+      output_res = .false.
+      change_phi_adv_z = .false.
+      DO i = 1, model_config_rec % max_dom
+         IF (model_config_rec%output_res_fluxes(i)) THEN
+            output_res = .true.
+         ENDIF
+         IF (model_config_rec%phi_adv_z(i) .ne. 2) THEN
+            change_phi_adv_z = .true.
+         ENDIF
+      ENDDO
+      IF (output_res .and. change_phi_adv_z) THEN
+         CALL wrf_debug ( 0, 'WARNING: Setting phi_adv_z=2 to get the diagnostic vertical velocity'// &
+                             ' in WRFlux consistent with the prognostic one.')
+         model_config_rec%phi_adv_z(:) = 2
+      ENDIF
+
    END SUBROUTINE set_physics_rconfigs
 
 !=======================================================================

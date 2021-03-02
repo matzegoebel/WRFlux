@@ -34,20 +34,6 @@ params["parallel_build"] = "WRFlux"  # used if nslots > 1
 params["debug_build"] = "WRFlux_debug"  # used for -d option
 org_build = "WRF_org"  # original WRF version for comparison tests
 
-o = np.arange(2, 7)
-# names of parameter values for output filenames
-# either dictionaries or lists (not for composite parameters)
-param_names = {"th": ["thd", "thm", "thdm"],
-               "h_adv_order": [2, 3],
-               "v_adv_order": [2, 3],
-               "adv_order": o,
-               "bc": ["open"],
-               "timing": ["short"],
-               "open_x": [True],
-               "open_y": [True],
-               "symm_x": [True],
-               "symm_y": [True]}
-
 # Fill dictionary params with default values to be used for parameters not present in param_grid
 
 params["start_time"] = "2018-06-20_12:00:00"  # format %Y-%m-%d_%H:%M:%S

@@ -22,8 +22,8 @@ tex_names = {"t": "\\theta", "q": "q_\\mathrm{v}",
 # %%
 
 
-def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=False,
-                discrete=False, iloc=None, loc=None, savefig=False, fname=None, figloc=None,
+def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=True,
+                discrete=True, cmap="gnuplot", iloc=None, loc=None, savefig=False, fname=None, figloc=None,
                 close=False, title=None, **kwargs):
     """Scatter plot of dat vs. ref with coloring based on hue variable.
 
@@ -41,9 +41,11 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         if necessary. The default is "bottom_top".
     ignore_missing_hue : bool, optional
         If hue variable is not available, use default instead of raising an exception.
-        The default is False.
+        The default is True.
     discrete : bool, optional
-        Use discrete color map to facilitate discrimination of close values. The default is False.
+        Use discrete colorbar with labels for all coordinate values.
+    cmap : bool, optional
+        Colormap for the plot. The default is 'gnuplot'.
     loc : dict, optional
         Mapping for label based indexing before plotting. The default is None.
     iloc : dict, optional
@@ -80,7 +82,6 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     if ignore_missing_hue:
         if ((hue not in pdat.dims) and (hue + "_stag" not in pdat.dims)):
             hue = "bottom_top"
-            discrete = False
     if (hue not in pdat.dims) and (hue + "_stag" in pdat.dims):
         hue = hue + "_stag"
 
@@ -91,7 +92,6 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
     pdatf = pdat[0].stack(s=pdat[0].dims)
 
     # set color
-    cmap = "gnuplot"
     if ("bottom_top" in hue) and (not discrete):
         color = -pdatf[hue]
     elif (hue == "Time") and (not discrete):

@@ -1275,23 +1275,27 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         else:
             rho = dat_mean["RHOD_MEAN"]
 
-        if hor_avg:# TODO: use normal rho for var_stag...?
+        rho_m = rho
+        if hor_avg and (d.lower() not in avg_dims):  # TODO: use normal rho for var_stag...?
+            # average horizontally, but only if current dimension is not averaging dimension
             var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
-            rho = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
+            rho_m = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
+
+        rho_stag = stagger_like(rho_m, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
+        vel_stag = stagger_like(vmean[d] * rho_stag, ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
+        if (VAR == "W") and (d in XY):
+            vel_stag[{"bottom_top_stag": 0}] = 0
+        rho_stag = stagger_like(rho_m, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
+        mean_flux[d] = var_stag[d] * vel_stag / rho_stag
 
         if hor_avg and (d.lower() in avg_dims):
-            # mean fluxes are zero in averaging dimension
-            mean_flux[d] = 0.
-        else:
-            rho_stag = stagger_like(rho, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
-            vel_stag = stagger_like(rho_stag * vmean[d], ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
-            if (VAR == "W") and (d in XY):
-                vel_stag[{"bottom_top_stag": 0}] = 0
-            rho_stag = stagger_like(rho, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
-            mean_flux[d] = var_stag[d] * vel_stag / rho_stag
+            # now average over dimension that has been skipped before
+            var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+            vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
 
     fluxes = {"adv_r": tot_flux, "mean": mean_flux}
+
     try:
         # use explicit resolved turbulent fluxes if present
         trb_flux = xr.Dataset()
@@ -1310,19 +1314,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
     # advective tendency from fluxes
     for comp, flux in fluxes.items():
         adv_i = xr.Dataset()
-        mf = mapfac
-        rhod8z_m = rhod8z
-        if (comp in ["trb_r", "mean"]) and hor_avg:
-            mf = avg_xy(mapfac, avg_dims, cyclic=cyclic)
-            rhod8z_m = avg_xy(rhod8z, avg_dims, cyclic=cyclic)
         # horizontal fluxes first
         for d in xy:
             D = d.upper()
             cyc = cyclic[d]
-            if hor_avg and (d in avg_dims) and (comp in ["trb_r", "mean"]):
-                # mean and turbulent fluxes are zero in avg_dims
-                adv_i[D] = 0.
-                continue
             if d in flux[D].dims:
                 ds = d
                 d = d + "_stag"
@@ -1331,12 +1326,14 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
 
             # determine correct mapscale factors and density to multiply with flux
             mf_flx = mapfac["F" + D]
+            mf = mapfac
             if dz_out:
                 # only need density not dry air mass
                 fac = dat_mean["RHOD_MEAN"]
             else:
                 fac = dat_mean["MUT_MEAN"]
-            if (comp in ["trb_r", "mean"]) and hor_avg:
+            if (comp in ["trb_r", "mean"]) and hor_avg and (d not in avg_dims):
+                mf = avg_xy(mapfac, avg_dims, cyclic=cyclic)
                 mf_flx = avg_xy(mf_flx, avg_dims, cyclic=cyclic)
                 fac = avg_xy(fac, avg_dims, cyclic=cyclic)
             if not dz_out:
@@ -1348,7 +1345,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
             adv_i[D] = -diff(flux[D] * fac / mf_flx, ds, dat_mean[d], cyclic=cyc) * mf["X"] * mf["Y"] / dx
 
         # vertical flux
-        fz = rhod8z_m * flux["Z"]
+        rhod8z_m = rhod8z
+        if (comp in ["trb_r", "mean"]) and hor_avg:
+            rhod8z_m = avg_xy(rhod8z, avg_dims, cyclic=cyclic)
+        fz = flux["Z"] * rhod8z_m
         if VAR == "W":
             adv_i["Z"] = -diff(fz, "bottom_top", grid["ZNW"]) / grid["DN"]
             # set sfc and top point correctly
@@ -1358,7 +1358,7 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
         else:
             adv_i["Z"] = -diff(fz, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
 
-        if hor_avg and (comp == "adv_r"):
+        if hor_avg:
             adv_i = avg_xy(adv_i, avg_dims, cyclic=cyclic)
             fluxes[comp] = avg_xy(fluxes[comp], avg_dims, cyclic=cyclic)
 
@@ -1380,16 +1380,10 @@ def adv_tend(dat_mean, VAR, grid, mapfac, cyclic, attrs, hor_avg=False, avg_dims
     flux["comp"] = list(fluxes.keys())
 
     # calculate resolved turbulent fluxes and tendencies as residual
-    if not trb_exp:
-        flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
-        adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
-        for d in flux.data_vars:
-            flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
-            adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]
-    elif hor_avg:
-        # assign fluxes in averaged dimension to turbulent component
-        for d in avg_dims:
-            d = d.upper()
+    flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
+    adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
+    for d in flux.data_vars:
+        if (hor_avg and (d.lower() in avg_dims)) or (not trb_exp):
             flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
             adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]
 

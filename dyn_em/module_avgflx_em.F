@@ -378,7 +378,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
-       & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, th_phy, Q,                            &
+       & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, Q,                                    &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -445,7 +445,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_save, v_save, w_2, w_save, ru, rv, ww,  &
-         th_save, th_phy, Q, ph_1, ph_2, phb, zx, zy, alt,  &
+         th_save, Q, ph_1, ph_2, phb, zx, zy, alt, &
          ftx_small, fty_small, ftz_small,  &
          fqx_adv, fqy_adv, fqz_adv,        &
          fux_adv, fuy_adv, fuz_adv,        &
@@ -676,10 +676,10 @@ CONTAINS
 
             !build averages
             IF (k .lt. kde) THEN
-              T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_phy(i,k,j)*rhom )/count_p1/rho_mean
+              T_MEAN(i,k,j) = (local_count*T_MEAN(i,k,j) + th_save(i,k,j)*rhom )/count_p1/rho_mean
               TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/count_p1/rhox_mean
               TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/count_p1/rhoy_mean
-              TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + (th_phy(i,k,j) - t0)**2 )/count_p1
+              TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + (th_save(i,k,j) - t0)**2 )/count_p1
               FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv(i,k,j) )/count_p1*fqx_dfac
               FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv(i,k,j) )/count_p1*fqy_dfac
             ENDIF

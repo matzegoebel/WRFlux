@@ -97,18 +97,18 @@ def test_all():
                    "symm_y": [True]}
 
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
-    param_grids["dz_out no_debug msf=1"] = odict(runID="dz_out")
-    param_grids["dz_out no_debug msf=1 hor_avg"] = odict(runID="dz_out")
-    param_grids["trb no_debug msf=1"] = odict(timing=dict(
+    param_grids["dz_out no_debug"] = odict(msf=1)
+    param_grids["dz_out no_debug hor_avg"] = odict(msf=1)
+    param_grids["trb no_debug"] = odict(msf=1, timing=dict(
         end_time=["2018-06-20_12:30:00"],
         output_streams=[{24: ["meanout", conf.params["dt_f"] / 60.],
                           0: ["instout", 10.]}]))
-    param_grids["trb no_debug hor_avg msf=1"] = param_grids["trb no_debug msf=1"]
-    param_grids["hor_avg no_debug msf=1"] = odict(runID="hor_avg_msf=1")  # for Y=0 test
+    param_grids["trb no_debug hor_avg"] = param_grids["trb no_debug"].copy()
+    param_grids["hor_avg no_debug msf=1"] = odict(msf=1)  # for Y=0 test
     param_grids["hor_avg no_debug"] = odict()
-    param_grids["chunking xy no_debug"] = odict(runID="chunking", chunks={"x": 10, "y": 10})
-    param_grids["chunking x no_debug"] = odict(runID="chunking", chunks={"x": 10})
-    param_grids["chunking x hor_avg no_debug"] = param_grids["chunking x no_debug"]
+    param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
+    param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
+    param_grids["chunking x hor_avg no_debug"] = param_grids["chunking x no_debug"].copy()
     param_grids["hessel"] = odict(hesselberg_avg=[False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
@@ -131,16 +131,16 @@ def test_all():
                                      hm=hm, spec_hfx=[0.2], input_sounding="free"))
     param_grids["open BC y"] = odict(open_y=dict(open_ys=[True], open_ye=[True], periodic_y=[False],
                                      hm=hm, spec_hfx=[0.2], input_sounding="free"))
-    param_grids["open BC y hor_avg"] = param_grids["open BC y"]
+    param_grids["open BC y hor_avg"] = param_grids["open BC y"].copy()
     param_grids["symmetric BC x"] = odict(symm_x=dict(symmetric_xs=[True], symmetric_xe=[True], periodic_x=[False],
                                           hm=hm, spec_hfx=[0.2], input_sounding="free"))
     param_grids["symmetric BC y"] = odict(symm_y=dict(symmetric_ys=[True], symmetric_ye=[True], periodic_y=[False],
                                           hm=hm, spec_hfx=[0.2], input_sounding="free"))
-    param_grids["symmetric BC y hor_avg"] = param_grids["symmetric BC y"]
+    param_grids["symmetric BC y hor_avg"] = param_grids["symmetric BC y"].copy()
 
-    failed, failed_short, err, err_short, err_short_dict = run_and_test(param_grids, param_names, avg_dims=["y"])
+    failed, failed_short, err, err_short = run_and_test(param_grids, param_names, avg_dims=["y"])
 
-    return failed, failed_short, err, err_short, err_short_dict
+    return failed, failed_short, err, err_short
 
 
 # %% run_and_test
@@ -153,10 +153,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     index = pd.MultiIndex.from_product([tests, variables])
     err = pd.DataFrame(index=index)
 
-    skip_exist_i = skip_exist
-    if (exist != "s") and (not skip_running):
-        # if simulation is repeated, also repeat postprocessing
-        skip_exist_i = False
 
     test_results = test_path / "test_results"
     os.makedirs(test_results, exist_ok=True)
@@ -168,20 +164,27 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         builds_i = builds.copy()
         if "no_debug" in label:
             builds_i = [b for b in builds if b not in ["debug", "org"]]
-        if "runID" in param_grid:
-            runID = param_grid.pop("runID")
-        else:
-            runID = None
         if "chunks" in param_grid:
             chunks = param_grid.pop("chunks")
         else:
             chunks = None
+        rmsf = random_msf
+        if ("msf" in param_grid.keys()) and (param_grid["msf"] == 1):
+            rmsf = False
+            del param_grid["msf"]
+            runID = "pytest_msf=1"
+        else:
+            runID = None
+
+        skip_exist_i = skip_exist
+        if ((exist != "s") and (not skip_running)) or (len(param_grid) == 0):
+            # if simulation is repeated or param_grid is empty (focus on different postprocessing options),
+            # also repeat postprocessing
+            skip_exist_i = False
 
         for build in tools.make_list(builds_i):
             print("\n\n\n{0}\n{0}\nbuild: {1}\n{0}\n{0}\n".format("#" * 50, build))
-            rmsf = random_msf
-            if "msf=1" in label:
-                rmsf = False
+
             conf, cfile = load_config(build)
 
             if runID is None:
@@ -292,7 +295,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
                 kw["close"] = True  # always close figures
                 failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, sim_id=ind,
-                                                    hor_avg=hor_avg, avg_dims=avg_dims, trb_exp=t_avg,
+                                                    hor_avg=hor_avg, trb_exp=t_avg,
                                                     chunks=chunks, **kw)
 
                 for var in variables:
@@ -321,11 +324,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     err_short = err.where(failed == "FAIL")
     err_short = err_short.where(~err_short.isnull(), "")
     err_short = err_short.where(err_short != "").dropna(how="all").dropna(axis=1, how="all")
-    err_short_dict = {}
-    for test in err_short.index.levels[0]:
-        if test in err_short.index:
-            e = err_short.loc[test].dropna(how="all").dropna(axis=1, how="all")
-            err_short_dict[test] = e.where(~e.isnull(), "").T
     err_short = err_short.where(~err_short.isnull(), "")
     err = err.where(err != "").dropna(how="all").dropna(axis=1, how="all")
     err = err.where(~err.isnull(), "")
@@ -343,7 +341,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         if raise_error:
             raise RuntimeError(message)
 
-    return failed, failed_short, err, err_short, err_short_dict
+    return failed, failed_short, err, err_short
 
 
 # %% misc
@@ -481,4 +479,13 @@ def setup_test_sim(build, restore=False, random_msf=True):
 
 # %%main
 if __name__ == "__main__":
-    failed, failed_short, err, err_short, err_short_dict = test_all()
+    failed, failed_short, err, err_short = test_all()
+
+    err_dict = {}
+    err_short_dict = {}
+    for e_df, e_dict in zip([err, err_short], [err_dict, err_short_dict]):
+        for test in e_df.index.levels[0]:
+            if test in e_df.index:
+                e = e_df.loc[test]
+                e = e.where(e != "").dropna(how="all").dropna(axis=1, how="all")
+                e_dict[test] = e.where(~e.isnull(), "").T

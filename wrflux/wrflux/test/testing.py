@@ -418,14 +418,15 @@ def test_y0(adv, thresh=(1e-5, 5e-2)):
     compared to the given thresholds for the two budget methods "native" and "cartesian".
     """
     failed = False
-    dims = [d for d in adv.dims if d not in ["dir", "ID"]]
-    f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).mean(dims)
-    for ID, thresh in zip(["native", "cartesian"], thresh):
-        fi = f.loc[ID].values
-        if fi > thresh:
-            print("test_y0 failed for ID={}!: mean(|adv_y/adv_x|) = {} > {}".format(ID, fi, thresh))
-            failed = True
-    return failed, f.values
+    dims = [d for d in adv.dims if d not in ["dir", "ID", "comp"]]
+    f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).median(dims)
+    for ID, thresh_i in zip(["native", "cartesian"], thresh):
+        for comp in f.comp.values:
+            fi = f.sel(ID=ID, comp=comp).values
+            if fi > thresh_i:
+                print("test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(ID, comp, fi, thresh_i))
+                failed = True
+    return failed, f.max("comp").values
 
 
 def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
@@ -483,8 +484,8 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
         _, dat_inst[build] = tools.load_data(outpath_c, inst_file=inst_file, mean_file=mean_file)
 
     # check that the right output was loaded
-    assert "W_DIAG" in dat_inst["debug"]
-    assert "W_DIAG" not in dat_inst["org"]
+    assert "OUTPUT_DRY_THETA_FLUXES" in dat_inst["debug"].attrs
+    assert "OUTPUT_DRY_THETA_FLUXES" not in dat_inst["org"].attrs
 
     for v in dat_inst["org"].variables:
         try:
@@ -498,7 +499,7 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
 # %% run_tests
 
 def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
-              hor_avg=False, avg_dims=None, chunks=None, **kw):
+              hor_avg=False, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
 
@@ -517,8 +518,6 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         Turbulent fluxes were calculated explicitly. The default is False.
     hor_avg : bool, optional
         Horizontal averaging was used in postprocessing. The default is False.
-    avg_dims : str or list of str, optional
-        Averaging dimensions if hor_avg=True. The default is None.
     chunks : dict of integers, optional
         Mapping from dimension "x" and/or "y" to chunk sizes used in postprocessing.
         If given, the boundaries in the chunking directions are pruned.
@@ -554,6 +553,14 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
     if attrs["PERIODIC_Y"] == 0:
         if "Y=0" in tests:
             tests.remove("Y=0")
+
+    if hor_avg:
+        avg_dims = []
+        dat = datout[variables[0]]["adv"]
+        for d in tools.xy:
+            if (d not in dat.dims) and (d + "_stag" not in dat.dims):
+                avg_dims.append(d)
+
     # for w test: cut first time step
     dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
 

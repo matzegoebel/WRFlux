@@ -356,7 +356,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL    :: kdift, khdq, kvdq, cfn, cfn1, cf1, cf2, cf3
    INTEGER :: i,j,k
    INTEGER :: time_step
-   LOGICAL :: output_fluxes
+   LOGICAL :: output_fluxes, advect_thdry
 
 !<DESCRIPTION>
 !
@@ -548,22 +548,24 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
    ENDIF
 !  theta flux divergence
+   advect_thdry = .false.
    IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_tres_fluxes) THEN
       output_fluxes = .true.
 
       !repeat advection routines with full (dry/moist) theta without saving the tendency
-      t_tend_dummy(:,:,:) = 0
       IF (config_flags%output_dry_theta_fluxes .and. (config_flags%use_theta_m .eq. 1)) THEN
          !convert to dry theta
+         advect_thdry = .true.
+         t_tend_dummy(:,:,:) = 0
          DO j = jms,jme
          DO k = kms,kme
          DO i = ims,ime
-            th_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j))
+            th_save(i,k,j) = (t(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
          ENDDO
          ENDDO
          ENDDO
       ELSE
-         th_save(:,:,:) = t(:,:,:) + t0
+         th_save(:,:,:) = t(:,:,:)
       ENDIF
    ELSE
       output_fluxes = .false.
@@ -577,9 +579,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                  .or. config_flags%moist_adv_opt == WENOPD_SCALAR     &
                        )  .and. (rk_step == 3) ) THEN
 
-        IF (output_fluxes) THEN
+        IF (advect_thdry) THEN
            CALL advect_scalar_weno ( th_save, th_save, t_tend_dummy, &
-                                    ftx, fty, ftz, output_fluxes,  &
+                                    ftx, fty, ftz, .true.,         &
                                     ru, rv, ww,                    &
                                     c1h, c2h, mut, time_step,      &
                                     config_flags,                  &
@@ -589,11 +591,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                     ids, ide, jds, jde, kds, kde,  &
                                     ims, ime, jms, jme, kms, kme,  &
                                     its, ite, jts, jte, kts, kte  )
+           output_fluxes = .false.
         ENDIF
 ! also use weno for monotonic scalar option so that the h_ and z_tendency arrays are not needed
 
         CALL advect_scalar_weno ( t, t, t_tend, ftx, fty, ftz,  &
-                                 .false., ru, rv, ww,           &
+                                 output_fluxes, ru, rv, ww,     &
                                  c1h, c2h, mut, time_step,      &
                                  config_flags,                  &
                                  msfux, msfuy, msfvx, msfvy,    &
@@ -605,9 +608,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ELSE
 
 
-     IF (output_fluxes) THEN
+     IF (advect_thdry) THEN
         CALL advect_scalar ( th_save, th_save, t_tend_dummy, &
-                             ftx, fty, ftz, output_fluxes, &
+                             ftx, fty, ftz, .true.,        &
                              ru, rv, ww,                   &
                              c1h, c2h,                     &
                              mut, time_step, config_flags, &
@@ -617,10 +620,11 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                              ids, ide, jds, jde, kds, kde, &
                              ims, ime, jms, jme, kms, kme, &
                              its, ite, jts, jte, kts, kte )
+        output_fluxes = .false.
      ENDIF
 
      CALL advect_scalar ( t, t, t_tend, ftx, fty, ftz,  &
-                          .false., ru, rv, ww,          &
+                          output_fluxes, ru, rv, ww,    &
                           c1h, c2h,                     &
                           mut, time_step, config_flags, &
                           msfux, msfuy, msfvx, msfvy,   &

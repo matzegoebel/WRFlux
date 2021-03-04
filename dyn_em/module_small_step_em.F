@@ -1210,15 +1210,15 @@ SUBROUTINE advance_mu_t( ww, ww_1, u, u_1, v, v_1,            &
        DO j=j_start, j_end+1
        DO k=1,k_end
        DO i=i_start, i_end+1
-          ftx(i,k,j) = u(i,k,j)*0.5*(t_1(i,k,j) + t_1(i-1,k,j) + 2*t0)
-          fty(i,k,j) = v(i,k,j)*0.5*(t_1(i,k,j) + t_1(i,k,j-1) + 2*t0)
+          ftx(i,k,j) = u(i,k,j)*0.5*(t_1(i,k,j) + t_1(i-1,k,j))
+          fty(i,k,j) = v(i,k,j)*0.5*(t_1(i,k,j) + t_1(i,k,j-1))
        ENDDO
        ENDDO
        ENDDO
        DO j=j_start, j_end
        DO k=2,k_end
        DO i=i_start, i_end
-          wdtn(i,k,j)= ww(i,k,j)*(fnm(k)*t_1(i,k,j) + fnp(k)*t_1(i,k-1,j) + t0)
+          wdtn(i,k,j)= ww(i,k,j)*(fnm(k)*t_1(i,k,j) + fnp(k)*t_1(i,k-1,j))
        ENDDO
        ENDDO
        ENDDO

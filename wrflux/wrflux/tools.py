@@ -1484,8 +1484,9 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
 
     # apply corrections to horizontal advection and total tendency
     for i, d in enumerate(XY):
-        adv.loc[d] = adv.loc[d] + dcorr_dz[:, i]
-    tend = tend - dcorr_dz.sel(comp="adv_r", dir="T", drop=True)
+        adv.loc[d] = adv.loc[d] + dcorr_dz.sel(dir=d)
+    dcorr_dz.loc[:, "T"] = - dcorr_dz.loc[:, "T"]
+    tend = tend + dcorr_dz.sel(comp="adv_r", dir="T", drop=True)
 
     return adv, tend, dcorr_dz
 

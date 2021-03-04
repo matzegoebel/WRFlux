@@ -129,7 +129,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     """
     data = adv.sel(dir="sum")
     ref = data.sel(ID="native")
-    dat = data.sel(ID="cartesian") + corr.sel(ID="cartesian", dir="T")
+    dat = data.sel(ID="cartesian") - corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     err = R2(dat, ref, dim=avg_dims_error).min().values

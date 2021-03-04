@@ -978,7 +978,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
 
     # density and dry air mass
-    mu = build_mu(dat_inst["MU"] + dat_inst["MUB"], grid)
+    mut = dat_inst["MU"] + dat_inst["MUB"]
+    mu = build_mu(mut, grid)
     dat_inst["MU_STAG"] = mu
     grid["MU_STAG_MEAN"] = build_mu(dat_mean["MUT_MEAN"], grid)
     rhodm = dat_mean["RHOD_MEAN"]
@@ -986,8 +987,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         rhodm = stagger(rhodm, dim_stag, dat_inst[dim_stag + "_stag"],
                         cyclic=cyclic[dim_stag], **grid[stagger_const])
         if var == "w":
-            dat_inst["MU_STAG"] = grid["C2F"] + grid["C1F"] * (dat_inst["MU"] + dat_inst["MUB"])
-            grid["MU_STAG_MEAN"] = grid["C2F"] + grid["C1F"] * dat_mean["MUT_MEAN"]
+            dat_inst["MU_STAG"] = build_mu(mut, grid, full_levels=True)
+            grid["MU_STAG_MEAN"] = build_mu(dat_mean["MUT_MEAN"], grid, full_levels=True)
         else:
             dat_inst["MU_STAG"] = stagger(dat_inst["MU_STAG"], dim_stag,
                                           dat_inst[dim_stag + "_stag"], cyclic=cyclic[dim_stag])
@@ -1540,9 +1541,12 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
 
     # couple variable to rho/mu
     if dz_out:
-        rvar = vard * dat_inst["RHOD_STAG"]
+        rho = dat_inst["RHOD_STAG"]
+        rho_m = grid["RHOD_STAG_MEAN"]
     else:
-        rvar = vard * dat_inst["MU_STAG"]
+        rho = dat_inst["MU_STAG"]
+        rho_m = grid["MU_STAG_MEAN"]
+    rvar = vard * rho
 
     # total tendency
     dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
@@ -1551,10 +1555,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     if hor_avg:
         total_tend = avg_xy(total_tend, avg_dims, cyclic=cyclic)
 
-    if dz_out:
-        total_tend = total_tend / grid["RHOD_STAG_MEAN"]
-    else:
-        total_tend = total_tend / grid["MU_STAG_MEAN"]
+    total_tend = total_tend / rho_m
 
     return total_tend
 

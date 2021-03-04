@@ -557,7 +557,7 @@ CONTAINS
           rzxu(i,k,j) = -rho8w(i,k,j)*dph_x(i,k,j)/g
           rzyv(i,k,j) = -rho8w(i,k,j)*dph_y(i,k,j)/g
           rw_diag(i,k,j) = rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-g)
-          w_diag(i,k,j) = rw_diag(i,k,j)/rho8w(i,k,j)
+          w_diag(i,k,j) = (rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)) / rho8w(i,k,j)
         ENDDO
         ENDDO
         ENDDO
@@ -939,10 +939,10 @@ CONTAINS
           ENDIF
 
           !average wind speed
-          U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + ru(i,k,j) )/count_p1*fqx_dfac
-          V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + rv(i,k,j) )/count_p1*fqy_dfac
+          U_MEAN(i,k,j) = (local_count*U_MEAN(i,k,j) + ru_m(i,k,j) )/count_p1*fqx_dfac
+          V_MEAN(i,k,j) = (local_count*V_MEAN(i,k,j) + rv_m(i,k,j) )/count_p1*fqy_dfac
           ZWIND_MEAN(i,k,j) = (local_count*ZWIND_MEAN(i,k,j) + w_2(i,k,j)*rhoz  )/count_p1/rhoz_mean
-          WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww(i,k,j)*msfty(i,j))/count_p1
+          WW_MEAN(i,k,j) = (local_count*WW_MEAN(i,k,j) + ww_m(i,k,j)*msfty(i,j))/count_p1
           WD_MEAN(i,k,j) = (local_count*WD_MEAN(i,k,j) + w_diag(i,k,j)*rhoz )/count_p1/rhoz_mean
           DPH_X_MEAN(i,k,j) = (local_count*DPH_X_MEAN(i,k,j) + dph_x(i,k,j)*rhoz )/count_p1/rhoz_mean
           DPH_Y_MEAN(i,k,j) = (local_count*DPH_Y_MEAN(i,k,j) + dph_y(i,k,j)*rhoz )/count_p1/rhoz_mean

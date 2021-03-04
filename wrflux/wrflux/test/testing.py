@@ -14,7 +14,7 @@ from pathlib import Path
 from functools import partial
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
-             "dz_out", "adv_2nd", "w", "Y=0", "NaN", "dim_coords",
+             "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
              "no_model_change"]
 
 
@@ -364,6 +364,87 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     return failed, err
 
 
+def test_mass(tend_mass, div, avg_dims_error=None, thresh=0.999995, loc=None, iloc=None, plot=True, **plot_kws):
+    """Test closure of continuity equation.
+
+    The tendency of dry air mass is compared to the calculated mass divergence.
+    This test is necessary, since in the tendency calculations the vertical component
+    is calculated as residual to improve the budget closure which leads to automatic
+    closure of the continuity equation.
+    This test ensures that the residual calculation does not introduce large errors.
+    For the dz_out type formulations, the continuity equation cannot be well closed.
+    Therefore, we only compare the individual components with the standard Cartesian
+    formulation.
+    The test fails if the coefficient of determination
+    is below the given threshold. If avg_dims_error is given, the averaging in the
+    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
+    value is taken over the remaining dimensions.
+
+    Parameters
+    ----------
+    tend_mass : xarray DataArray
+        Components of continuity equation.
+    div : xarray DataArray
+        Mass divergence: sum of XYZ components of tend_mass.
+    avg_dims_error : str or list of str, optional
+        Dimensions over which to calculate the R2. The default is None.
+    thresh : float, optional
+        Threshold value for R2 below which the test fails
+    loc : dict, optional
+        Mapping for label based indexing before running the test. The default is None.
+    iloc : dict, optional
+        Mapping for integer-location based indexing before running the test. The default is None.
+    plot : bool, optional
+        Create scatter plot if test fails. The default is True.
+    **plot_kws :
+        keyword arguments passed to plotting.scatter_hue.
+
+    Returns
+    -------
+    failed : bool
+        Test failed.
+    err : float
+        Test statistic R2
+
+    """
+    dat = div
+    ref = tend_mass.sel(dir="T")
+    failed = False
+    err = []
+    fname = None
+    if "fname" in plot_kws:
+        fname = plot_kws.pop("fname")
+    for ID in dat.ID.values:
+        if "dz_out" in ID:
+            # compare individual components instead of sum
+            ref_i = tend_mass.sel(ID="cartesian")
+            dat_i = tend_mass.sel(ID=ID)
+        else:
+            dat_i = dat.sel(ID=ID)
+            ref_i = ref.sel(ID=ID)
+        dat_i = tools.loc_data(dat_i, loc=loc, iloc=iloc)
+        ref_i = tools.loc_data(ref_i, loc=loc, iloc=iloc)
+        e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
+        err.append(e)
+        if e < thresh:
+            log = "test_mass for ID={}: min. R2 less than {}: {:.5f}".format(ID, thresh, e)
+            print(log)
+            if plot:
+                if "dz_out" in ID:
+                    dat_i.name = ID
+                    ref_i.name = "Cartesian"
+                else:
+                    dat_i.name = "Mass divergence"
+                    ref_i.name = "Mass tendency"
+
+                fname_i = fname
+                if fname is not None:
+                    fname_i = "ID=" + ID + "_" + fname
+                plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
+            failed = True
+    return failed, min(err)
+
+
 def test_nan(datout, cut_bounds=None):
     """Test for NaN and inf values in postprocessed data.
     If invalid values occur, print reduced dataset to show their locations.
@@ -638,6 +719,26 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
             # only do test once: for last variable
             kw["figloc"] = figloc / "w"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
+
+        if ("mass" in tests) and (var == "t"):
+            # only do test once: for last variable
+            kw["figloc"] = figloc / "mass"
+            if "avg_dims_error" in kw:
+                avg_dims_error = kw.pop("avg_dims_error")
+                avg_dims_error_x = avg_dims_error.copy()
+                if "x" not in avg_dims_error:
+                    avg_dims_error_x.append("x")
+            else:
+                avg_dims_error = None
+                avg_dims_error_x = None
+            tend_mass = datout_v["tend_mass"]
+            # build mass divergence
+            div = tend_mass.sel(dir=tools.XYZ).sum("dir")
+            if hor_avg:
+                # remove averaging directions for dz_out comparisons
+                tend_mass = tend_mass.sel(dir=[d for d in tend_mass.dir.values if d.lower() not in avg_dims])
+            failed_i["mass"], err_i["mass"] = test_mass(tend_mass, div, avg_dims_error=avg_dims_error_x, **kw)
+            kw["avg_dims_error"] = avg_dims_error
 
         if "NaN" in tests:
             failed_i["NaN"] = test_nan(datout_v)

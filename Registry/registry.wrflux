@@ -13,10 +13,10 @@ state   real    ww_mean            ikj    dyn_em            1               Z   
 state   real    wd_mean            ikj    dyn_em            1               Z               h{24} "WD_MEAN"             "time-averaged diagnosed z-wind component"   "m s-1"
 state   real    zwind_mean         ikj    dyn_em            1               Z               h{24} "ZWIND_MEAN"          "time-averaged prognosed z-wind component"   "m s-1"
 
-state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry/moist potential temperature" "K"
-state   real    tx_mean            ikj    dyn_em            1               X               h{24} "TX_MEAN"             "time-averaged dry/moist potential temperature staggered in x-direction depending on advection order" "K"
-state   real    ty_mean            ikj    dyn_em            1               Y               h{24} "TY_MEAN"             "time-averaged dry/moist potential temperature staggered in y-direction depending on advection order" "K"
-state   real    tz_mean            ikj    dyn_em            1               Z               h{24} "TZ_MEAN"             "time-averaged dry/moist potential temperature staggered in z-direction depending on advection order" "K"
+state   real    t_mean             ikj    dyn_em            1               -               h{24} "T_MEAN"              "time-averaged dry/moist potential temperature perturbation (from T0=300 K)" "K"
+state   real    tx_mean            ikj    dyn_em            1               X               h{24} "TX_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in x-direction depending on advection order" "K"
+state   real    ty_mean            ikj    dyn_em            1               Y               h{24} "TY_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in y-direction depending on advection order" "K"
+state   real    tz_mean            ikj    dyn_em            1               Z               h{24} "TZ_MEAN"             "time-averaged dry/moist potential temperature perturbation (from T0=300 K) staggered in z-direction depending on advection order" "K"
 
 state   real    q_mean             ikj    dyn_em            1               -               h{24} "Q_MEAN"              "time-averaged water vapor mixing ratio" ""
 state   real    qx_mean            ikj    dyn_em            1               X               h{24} "QX_MEAN"             "time-averaged water vapor mixing ratio staggered in x-direction depending on advection order" "K"
@@ -37,9 +37,10 @@ state   real    wz_mean            ikj    dyn_em            1               -   
 
 
 # mean fluxes
-state   real    ftx_adv_mean       ikj    dyn_em            1               X               h{24} "FTX_ADV_MEAN"            "time-averaged advective dry/moist theta flux in x direction"   "K m s-1"
-state   real    fty_adv_mean       ikj    dyn_em            1               Y               h{24} "FTY_ADV_MEAN"            "time-averaged advective dry/moist theta flux in y direction"   "K m s-1"
-state   real    ftz_adv_mean       ikj    dyn_em            1               Z               h{24} "FTZ_ADV_MEAN"            "time-averaged advective dry/moist theta flux in z direction"   "K m s-1"
+state   real    ftx_adv_mean       ikj    dyn_em            1               X               h{24} "FTX_ADV_MEAN"            "time-averaged advective dry/moist theta (T-300 K) flux in x direction"   "K m s-1"
+state   real    fty_adv_mean       ikj    dyn_em            1               Y               h{24} "FTY_ADV_MEAN"            "time-averaged advective dry/moist theta (T-300 K) flux in y direction"   "K m s-1"
+state   real    ftz_adv_mean       ikj    dyn_em            1               Z               h{24} "FTZ_ADV_MEAN"            "time-averaged advective dry/moist theta (T-300 K) flux in z direction"   "K m s-1"
+
 state   real    fqx_adv_mean       ikj    dyn_em            1               X               h{24} "FQX_ADV_MEAN"            "time-averaged advective moisture flux in x direction"   "m s-1"
 state   real    fqy_adv_mean       ikj    dyn_em            1               Y               h{24} "FQY_ADV_MEAN"            "time-averaged advective moisture flux in y direction"   "m s-1"
 state   real    fqz_adv_mean       ikj    dyn_em            1               Z               h{24} "FQZ_ADV_MEAN"            "time-averaged advective moisture flux in z direction"   "m s-1"
@@ -56,9 +57,9 @@ state   real    fwx_adv_mean       ikj    dyn_em            1               XZ  
 state   real    fwy_adv_mean       ikj    dyn_em            1               YZ              h{24} "FWY_ADV_MEAN"            "time-averaged advective w-momentum flux in y direction"   "m2 s-2"
 state   real    fwz_adv_mean       ikj    dyn_em            1               -               h{24} "FWZ_ADV_MEAN"            "time-averaged advective w-momentum flux in z direction"   "m2 s-2"
 
-state   real    ftx_adv_mean_2nd        ikj    dyn_em       1               X               h{24} "FTX_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in x direction using 2nd-order scheme"                  "K m s-1"
-state   real    fty_adv_mean_2nd        ikj    dyn_em       1               Y               h{24} "FTY_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in y direction using 2nd-order scheme"                  "K m s-1"
-state   real    ftz_adv_mean_2nd        ikj    dyn_em       1               Z               h{24} "FTZ_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta flux in z direction using 2nd-order scheme"                  "K m s-1"
+state   real    ftx_adv_mean_2nd        ikj    dyn_em       1               X               h{24} "FTX_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta (T-300 K) flux in x direction using 2nd-order scheme"                  "K m s-1"
+state   real    fty_adv_mean_2nd        ikj    dyn_em       1               Y               h{24} "FTY_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta (T-300 K) flux in y direction using 2nd-order scheme"                  "K m s-1"
+state   real    ftz_adv_mean_2nd        ikj    dyn_em       1               Z               h{24} "FTZ_ADV_MEAN_2ND"        "time-averaged advective dry/moist theta (T-300 K) flux in z direction using 2nd-order scheme"                  "K m s-1"
 
 state   real    fqx_adv_mean_2nd        ikj    dyn_em       1               X               h{24} "FQX_ADV_MEAN_2ND"        "time-averaged advective moisture flux in x direction using 2nd-order scheme"                  "m s-1"
 state   real    fqy_adv_mean_2nd        ikj    dyn_em       1               Y               h{24} "FQY_ADV_MEAN_2ND"        "time-averaged advective moisture flux in y direction using 2nd-order scheme"                  "m s-1"
@@ -82,7 +83,7 @@ state   real    fwz_adv_mean_2nd        ikj    dyn_em       1               -   
 state   real    w_diag               ikj      dyn_em         1               Z               - "W_DIAG"            "instantaneous diagnosed velocity" "m s-1"
 state   real    dph_x                ikj      dyn_em         1               Z               - "DPH_X"             "instantaneous advective geopotential tendency in x-direction" "m2 s-3"
 state   real    dph_y                ikj      dyn_em         1               Z               - "DPH_Y"             "instantaneous advective geopotential tendency in y-direction" "m2 s-3"
-state   real    th_save              ikj      dyn_em         1               -               - "TH_SAVE"           "instantaneous dry/moist potential temperature (depending on output_dry_theta_fluxes and use_theta_m)" "K"
+state   real    th_save              ikj      dyn_em         1               -               - "TH_SAVE"           "instantaneous dry/moist potential temperature perturbation (T-300 K) (depending on output_dry_theta_fluxes and use_theta_m)" "K"
 
 #variances
 
@@ -91,13 +92,13 @@ state   real    qq_mean              ikj      dyn_em         1               -  
 
 #instantaneous resolved fluxes
 
-state   real    ftx_adv              ikj      dyn_em         1               X               - "FTX_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    fty_adv              ikj      dyn_em         1               Y               - "FTY_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in y direction"   "Pa K m s-1"
-state   real    ftz_adv              ikj      dyn_em         1               Z               - "FTZ_ADV"            "instantaneous mu-coupled advective dry/moist theta flux in eta direction" "Pa K s-1"
+state   real    ftx_adv              ikj      dyn_em         1               X               - "FTX_ADV"            "instantaneous mu-coupled advective dry/moist theta (T-300 K) flux in x direction"   "Pa K m s-1"
+state   real    fty_adv              ikj      dyn_em         1               Y               - "FTY_ADV"            "instantaneous mu-coupled advective dry/moist theta (T-300 K) flux in y direction"   "Pa K m s-1"
+state   real    ftz_adv              ikj      dyn_em         1               Z               - "FTZ_ADV"            "instantaneous mu-coupled advective dry/moist theta (T-300 K) flux in eta direction" "Pa K s-1"
 
-state   real    ftx_small            ikj      dyn_em         1               X               - "FTX_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in x direction"   "Pa K m s-1"
-state   real    fty_small            ikj      dyn_em         1               Y               - "FTY_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in y direction"   "Pa  K m s-1"
-state   real    ftz_small            ikj      dyn_em         1               Z               - "FTZ_SMALL"          "instantaneous mu-coupled small step dry/moist theta flux in eta direction" "Pa K s-1"
+state   real    ftx_small            ikj      dyn_em         1               X               - "FTX_SMALL"          "instantaneous mu-coupled small step dry/moist theta (T-300 K) flux in x direction"   "Pa K m s-1"
+state   real    fty_small            ikj      dyn_em         1               Y               - "FTY_SMALL"          "instantaneous mu-coupled small step dry/moist theta (T-300 K) flux in y direction"   "Pa  K m s-1"
+state   real    ftz_small            ikj      dyn_em         1               Z               - "FTZ_SMALL"          "instantaneous mu-coupled small step dry/moist theta (T-300 K) flux in eta direction" "Pa K s-1"
 
 state   real    fqx_adv              ikj      dyn_em         1               X               - "FQX_ADV"            "instantaneous mu-coupled advective moisture flux in x direction"   "Pa m s-1"
 state   real    fqy_adv              ikj      dyn_em         1               Y               - "FQY_ADV"            "instantaneous mu-coupled advective moisture flux in y direction"   "Pa m s-1"
@@ -116,9 +117,9 @@ state   real    fwy_adv              ikj      dyn_em         1               YZ 
 state   real    fwz_adv              ikj      dyn_em         1               -               - "FWZ_ADV"            "instantaneous mu-coupled advective z-momentum flux in eta direction" "Pa m s-2"
 
 # corrections for transformation to Cartesian system
-state   real    ftx_corr          ikj    dyn_em         1               Z               h{24} "FTX_CORR"           "time-averaged correction flux for theta advection in x direction"  "kg m-2 K s-1"
-state   real    fty_corr          ikj    dyn_em         1               Z               h{24} "FTY_CORR"           "time-averaged correction flux for theta advection in y direction"  "kg m-2 K s-1"
-state   real    corr_dtdt         ikj    dyn_em         1               Z               h{24} "CORR_DTDT"          "time-averaged correction flux for theta tendency"  "kg m-2 K s-1"
+state   real    ftx_corr          ikj    dyn_em         1               Z               h{24} "FTX_CORR"           "time-averaged correction flux for theta (T-300 K) advection in x direction"  "kg m-2 K s-1"
+state   real    fty_corr          ikj    dyn_em         1               Z               h{24} "FTY_CORR"           "time-averaged correction flux for theta (T-300 K) advection in y direction"  "kg m-2 K s-1"
+state   real    corr_dtdt         ikj    dyn_em         1               Z               h{24} "CORR_DTDT"          "time-averaged correction flux for theta (T-300 K) tendency"  "kg m-2 K s-1"
 
 state   real    fqx_corr          ikj    dyn_em         1               Z               h{24} "FQX_CORR"           "time-averaged correction flux for Q advection in x direction"  "kg m-2 s-1"
 state   real    fqy_corr          ikj    dyn_em         1               Z               h{24} "FQY_CORR"           "time-averaged correction flux for Q advection in y direction"  "kg m-2 s-1"
@@ -136,11 +137,11 @@ state   real    fwx_corr          ikj    dyn_em         1               -       
 state   real    fwy_corr          ikj    dyn_em         1               -               h{24} "FWY_CORR"           "time-averaged correction flux for w advection in y direction"  "kg m-1 s-2"
 state   real    corr_dwdt         ikj    dyn_em         1               -               h{24} "CORR_DWDT"          "time-averaged correction flux for w tendency"  "kg m-1 s-2"
 
-state   real    ftx_corr_dzout    ikj    dyn_em         1               Z               h{24} "FTX_CORR_DZOUT"     "time-averaged correction flux for theta advection in x direction without dzdx"  "kg m-2 K s-1"
-state   real    fty_corr_dzout    ikj    dyn_em         1               Z               h{24} "FTY_CORR_DZOUT"     "time-averaged correction flux for theta advection in y direction without dzdy"  "kg m-2 K s-1"
-state   real    ftx_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTX_CORR_2ND"       "time-averaged correction flux for 2nd-order theta advection in x direction"  "kg m-2 K s-1"
-state   real    fty_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTY_CORR_2ND"       "time-averaged correction flux for 2nd-order theta advection in y direction"  "kg m-2 K s-1"
-state   real    corr_dtdt_2nd     ikj    dyn_em         1               Z               h{24} "CORR_DTDT_2ND"      "time-averaged correction flux for 2nd-order theta tendency"  "kg m-2 K s-1"
+state   real    ftx_corr_dzout    ikj    dyn_em         1               Z               h{24} "FTX_CORR_DZOUT"     "time-averaged correction flux for theta (T-300 K) advection in x direction without dzdx"  "kg m-2 K s-1"
+state   real    fty_corr_dzout    ikj    dyn_em         1               Z               h{24} "FTY_CORR_DZOUT"     "time-averaged correction flux for theta (T-300 K) advection in y direction without dzdy"  "kg m-2 K s-1"
+state   real    ftx_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTX_CORR_2ND"       "time-averaged correction flux for 2nd-order theta (T-300 K) advection in x direction"  "kg m-2 K s-1"
+state   real    fty_corr_2nd      ikj    dyn_em         1               Z               h{24} "FTY_CORR_2ND"       "time-averaged correction flux for 2nd-order theta (T-300 K) advection in y direction"  "kg m-2 K s-1"
+state   real    corr_dtdt_2nd     ikj    dyn_em         1               Z               h{24} "CORR_DTDT_2ND"      "time-averaged correction flux for 2nd-order theta (T-300 K) tendency"  "kg m-2 K s-1"
 
 state   real    fqx_corr_dzout    ikj    dyn_em         1               Z               h{24} "FQX_CORR_DZOUT"     "time-averaged correction flux for moisture advection in x direction without dzdx"  "kg m-2 s-1"
 state   real    fqy_corr_dzout    ikj    dyn_em         1               Z               h{24} "FQY_CORR_DZOUT"     "time-averaged correction flux for moisture advection in y direction without dzdy"  "kg m-2 s-1"

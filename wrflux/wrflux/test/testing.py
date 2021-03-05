@@ -351,7 +351,7 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
 
     """
     dat_inst = tools.loc_data(dat_inst, loc=loc, iloc=iloc)
-    ref = dat_inst["W"]
+    ref = dat_inst["W_SAVE"]
     dat = dat_inst["W_DIAG"]
     err = R2(dat, ref, dim=avg_dims_error).min().values
     failed = False

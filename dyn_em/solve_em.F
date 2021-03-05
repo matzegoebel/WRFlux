@@ -815,7 +815,7 @@ BENCH_START(rk_tend_tim)
                          ,grid%fux_adv, grid%fuy_adv, grid%fuz_adv                                             &
                          ,grid%fvx_adv, grid%fvy_adv, grid%fvz_adv                                             &
                          ,grid%fwx_adv, grid%fwy_adv, grid%fwz_adv, moist(:,:,:,P_QV)                          &
-                         ,mu_tend, grid%u_save, grid%v_save, w_save, ph_save                                   &
+                         ,mu_tend, grid%u_save, grid%v_save, grid%w_save, ph_save                              &
                          ,grid%t_save, mu_save, grid%rthften                                                   &
                          ,grid%ru, grid%rv, grid%rw, grid%ww                                                   &
                          ,grid%u_2, grid%v_2, grid%w_2, grid%t_2, grid%ph_2                                    &
@@ -872,7 +872,7 @@ BENCH_START(relax_bdy_dry_tim)
 
          CALL relax_bdy_dry ( config_flags,                                &
                               grid%u_save, grid%v_save, ph_save, grid%t_save,             &
-                              w_save, mu_tend, grid%c1h, grid%c2h, grid%c1f, grid%c2f, &
+                              grid%w_save, mu_tend, grid%c1h, grid%c2h, grid%c1f, grid%c2f, &
                               grid%ru, grid%rv, grid%ph_2, grid%t_2,                           &
                               grid%w_2, grid%mu_2, grid%mut,                              &
                               grid%u_bxs,grid%u_bxe,grid%u_bys,grid%u_bye, &
@@ -900,7 +900,7 @@ BENCH_START(relax_bdy_dry_tim)
 
        CALL rk_addtend_dry( grid%ru_tend,  grid%rv_tend,  rw_tend,  ph_tend,  t_tend,  &
                             ru_tendf, rv_tendf, rw_tendf, ph_tendf, t_tendf, &
-                            grid%u_save, grid%v_save, w_save, ph_save, grid%t_save, &
+                            grid%u_save, grid%v_save, grid%w_save, ph_save, grid%t_save, &
                             mu_tend, mu_tendf, rk_step,                      &
                             grid%c1h, grid%c2h,                              &
                             grid%h_diabatic, grid%mut, grid%msftx,           &
@@ -1027,7 +1027,7 @@ BENCH_START(small_step_prep_tim)
                              grid%mut, grid%muts, grid%mudf,                          &
                              grid%c1h, grid%c2h, grid%c1f, grid%c2f,                  &
                              grid%c3h, grid%c4h, grid%c3f, grid%c4f,                  &
-                             grid%u_save, grid%v_save, w_save,                        &
+                             grid%u_save, grid%v_save, grid%w_save,                   &
                              grid%t_save, ph_save, mu_save,                           &
                              grid%ww, ww1,                                            &
                              c2a, grid%pb, grid%p, grid%alt,                          &
@@ -1431,7 +1431,7 @@ BENCH_END(spec_bdy_t_tim)
 
 BENCH_START(advance_w_tim)
          IF ( config_flags%non_hydrostatic ) THEN
-           CALL advance_w( grid%w_2, rw_tend, grid%ww, w_save,         &
+           CALL advance_w( grid%w_2, rw_tend, grid%ww, grid%w_save,    &
                            grid%u_2, grid%v_2,                         &
                            grid%mu_2, grid%mut, muave, grid%muts,      &
                            grid%c1h, grid%c2h, grid%c1f, grid%c2f,     &
@@ -1687,7 +1687,7 @@ BENCH_START(small_step_finish_tim)
                                grid%mut, grid%muts, grid%muu, grid%muus, grid%muv, grid%muvs,  & 
                                grid%c1h, grid%c2h, grid%c1f, grid%c2f, &
                                grid%c3h, grid%c4h, grid%c3f, grid%c4f, &
-                               grid%u_save, grid%v_save, w_save,           &
+                               grid%u_save, grid%v_save, grid%w_save,  &
                                grid%t_save, ph_save, mu_save,         &
                                grid%msfux,grid%msfuy, grid%msfvx,grid%msfvy, grid%msftx,grid%msfty, &
                                grid%h_diabatic,                       &
@@ -1760,7 +1760,7 @@ BENCH_START(small_step_finish_tim)
                                   grid%j_start(ij), grid%j_end(ij),     &
                                   k_start    , k_end                    )
 
-            CALL set_physical_bc3d( w_save, 'w', config_flags,          &
+            CALL set_physical_bc3d( grid%w_save, 'w', config_flags,     &
                                   ids, ide, jds, jde, kds, kde,         &
                                   ims, ime, jms, jme, kms, kme,         &
                                   ips, ipe, jps, jpe, kps, kpe,         &
@@ -4772,7 +4772,7 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg,grid%u_tend_cor_curv,                                              &
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
-              &   grid%u_save, grid%v_save, grid%w_2, w_save, grid%ru, grid%rv, ww1,                &
+              &   grid%u_save, grid%v_save, grid%w_2, grid%w_save, grid%ru, grid%rv, ww1,           &
               &   grid%th_save, moist(:,:,:,P_QV),                                                  &
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                       &
               &   grid%dph_x, grid%dph_y,                                                           &

@@ -213,7 +213,7 @@ state    real   ww_m           ikj     dyn_em      1         Z      r         "w
 i1       real   wwp            ikj     dyn_em      1         Z                                          
 i1       real   rw_tend        ikj     dyn_em      1         Z                                          
 i1       real   rw_tendf       ikj     dyn_em      1         Z                                          
-i1       real   w_save         ikj     dyn_em      1         Z                                          
+state    real   w_save         ikj     dyn_em      1         Z      -         "W_SAVE"
 state    real   w_subs         |       dyn_em      1         -      i3rh      "W_SUBS" "large-scale vertical velocity" "m s-1"
 state    real   w_subs_tend    |       dyn_em      1         -      i3rh      "W_SUBS_TEND" "tendency large-scale vertical velocity" "m s-1"
 

@@ -30,21 +30,19 @@ SOFTWARE.
 from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
-from os import path
-
-here = path.abspath(path.dirname(__file__))
+from pathlib import Path
+here = Path(__file__)
 
 # Get the long description from the README file
-#TODOm
-# ~ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-    # ~ long_description = f.read()
+with open(here.parents[1] / 'README.md', encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name='wrflux',
     version='1.0.0',
     description='With this package time-averaged tendencies of the WRF model can be retrieved '
     'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
-    # ~ long_description=long_description,
+    long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/matzegoebel/wrflux',
     author='Matthias Göbel',

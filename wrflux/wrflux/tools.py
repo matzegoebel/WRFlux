@@ -782,6 +782,7 @@ def get_budget_method(budget_method):
         budget_method = "native"
         budget_method_list = []
     else:
+        budget_method = budget_method.strip()
         budget_method_list = budget_method.split(" ")
 
     for i, key in enumerate(budget_method_list):
@@ -1915,7 +1916,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
             datout_c = {}
             # get config dict for current budget method
             c, budget_method = get_budget_method(budget_method)
-            print("\n" + budget_method)
+            print("\nBudget method: " + budget_method)
             dz_out = False
             if c["dz_out_x"] or c["dz_out_z"]:
                 dz_out = True

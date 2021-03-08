@@ -649,6 +649,17 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
     for v, datout_v in datout.items():
         datout_lim[v] = {}
         for n, dat in datout_v.items():
+            if "ID" in dat.dims:
+                # remove theta_pert label from budget method IDs
+                IDs = []
+                for ID in dat.ID.values:
+                    ID = ID.split(" ")
+                    if "theta_pert" in ID:
+                        ID.remove("theta_pert")
+                        if len(ID) == 0:
+                            ID = ["native"]
+                    IDs.append(" ".join(ID))
+                dat["ID"] = IDs
             if "dim_coords" in tests:
                 test_dim_coords(dat, dat_inst, v, n, failed)
             if hor_avg:

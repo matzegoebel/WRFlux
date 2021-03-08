@@ -111,6 +111,7 @@ def test_all():
     param_grids["chunking x hor_avg no_debug"] = param_grids["chunking x no_debug"].copy()
     param_grids["hessel"] = odict(hesselberg_avg=[False])
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
+    param_grids["theta - 300K"] = odict(th=th, theta_pert=True)
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],
@@ -162,19 +163,23 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         # initialize and run simulations
 
         builds_i = builds.copy()
+        runID = None
         if "no_debug" in label:
             builds_i = [b for b in builds if b not in ["debug", "org"]]
         if "chunks" in param_grid:
             chunks = param_grid.pop("chunks")
         else:
             chunks = None
+        if "theta_pert" in param_grid:
+            theta_pert = param_grid.pop("theta_pert")
+            runID = "pytest_theta_pert"
+        else:
+            theta_pert = False
         rmsf = random_msf
         if ("msf" in param_grid.keys()) and (param_grid["msf"] == 1):
             rmsf = False
             del param_grid["msf"]
             runID = "pytest_msf=1"
-        else:
-            runID = None
 
         skip_exist_i = skip_exist
         if ((exist != "s") and (not skip_running)) or (len(param_grid) == 0):
@@ -275,6 +280,9 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     bm = bm + budget_methods_2nd
                 elif "adv_2nd" in tests_i:
                     tests_i.remove("adv_2nd")
+
+                if theta_pert:
+                    bm = [b + " theta_pert" for b in bm]
 
                 t_avg = False
                 t_avg_interval = None

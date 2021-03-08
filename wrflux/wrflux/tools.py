@@ -72,7 +72,7 @@ outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr", 
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv"]
+budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv", "theta_pert"]
 # abbreviations for settings
 settings_short_names = {"2nd": "force_2nd_adv"}
 
@@ -1161,9 +1161,8 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
 
 
 def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
-             hor_avg=False, avg_dims=None,
-             cartesian=True, force_2nd_adv=False,
-             dz_out_x=False, dz_out_z=False):
+             hor_avg=False, avg_dims=None, cartesian=True, force_2nd_adv=False,
+             dz_out_x=False, dz_out_z=False, theta_pert=False):
     """Compute advective tendencies decomposed into mean and resolved turbulent.
 
     Also return Cartesian corrections, but do not apply them yet.
@@ -1201,6 +1200,9 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         In Cartesian correction terms: take derivatives of z out of vertical derivative.
         Use variable correctly staggered in the vertical (depending on advection order).
         The default is True.
+    theta_pert : bool, optional
+        Compute budget for WRF's prognostic variable theta perturbation = theta - 300K
+        instead of full theta. The default is False.
 
     Returns
     -------
@@ -1421,7 +1423,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
             flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
             adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]
 
-        if VAR == "T":
+        if (VAR == "T") and (not theta_pert):
             # add advection of constant base state
             for comp in ["adv_r", "mean"]:
                 flux[d].loc[comp] = flux[d].loc[comp] + 300 * flux[d].loc["mass"]
@@ -1433,8 +1435,8 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     return flux, adv, vmean, var_stag, corr, tend_mass
 
 
-def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv, tend,
-                          tend_mass, cyclic=None, dz_out=False, hor_avg=False, avg_dims=None):
+def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv, tend, tend_mass,
+                          cyclic=None, dz_out=False, theta_pert=False, hor_avg=False, avg_dims=None):
     """
     Compute cartesian corrections and apply them to advective and total tendencies.
 
@@ -1467,6 +1469,9 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
     dz_out : bool, optional
         In Cartesian correction terms: take derivatives of z out of vertical derivative.
         The default is False.
+    theta_pert : bool, optional
+        Compute budget for WRF's prognostic variable theta perturbation = theta - 300K
+        instead of full theta. The default is False.
     hor_avg : bool, optional
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
@@ -1536,11 +1541,12 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
                                            cyclic=cyclic, **grid[stagger_const])
     if VAR == "T":
         mass_corr = dcorr_dz.sel(comp="mass")
-        for comp in ["adv_r", "mean"]:
-            # add correction for constant base state
-            dcorr_dz.loc[comp] = dcorr_dz.loc[comp] + 300 * mass_corr
-            # finish residual calculation started in adv_tend
-            adv.loc["Z", comp] = adv.loc["Z", comp] - 300 * mass_corr.sum("dir")
+        if not theta_pert:
+            for comp in ["adv_r", "mean"]:
+                # add correction for constant base state
+                dcorr_dz.loc[comp] = dcorr_dz.loc[comp] + 300 * mass_corr
+                # finish residual calculation started in adv_tend
+                adv.loc["Z", comp] = adv.loc["Z", comp] - 300 * mass_corr.sum("dir")
         dcorr_dz = dcorr_dz.reindex(comp=adv.comp.values)
         # corrections to continuity equation
         mass_corr.loc["T"] = - mass_corr.loc["T"]
@@ -1557,7 +1563,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
 
 
 def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
-                   hor_avg=False, avg_dims=None, cyclic=None):
+                   theta_pert=False, hor_avg=False, avg_dims=None, cyclic=None):
     """Compute total tendency.
 
     Parameters
@@ -1573,6 +1579,9 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     dz_out : bool, optional
         In Cartesian correction terms: take derivatives of z out of vertical derivative.
         The default is False.
+    theta_pert : bool, optional
+        Compute budget for WRF's prognostic variable theta perturbation = theta - 300K
+        instead of full theta. The default is False.
     hor_avg : bool, optional
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
@@ -1593,12 +1602,13 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
             # get or calculate moist theta
             if "THM" in dat_inst:
-                vard = dat_inst["THM"] + 300
+                vard = dat_inst["THM"]
             else:
-                vard = (dat_inst["T"] + 300) * (1 + rvovrd * dat_inst["QVAPOR"])
+                vard = (dat_inst["T"] + 300) * (1 + rvovrd * dat_inst["QVAPOR"]) - 300
         else:
-            vard = dat_inst["T"] + 300
-
+            vard = dat_inst["T"]
+        if not theta_pert:
+            vard = vard + 300
     elif var == "q":
         vard = dat_inst["QVAPOR"]
     else:
@@ -1913,6 +1923,9 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
 
         # total and advective tendencies
         for budget_method in budget_methods:
+            budget_method = budget_method.strip()
+            if (var != "t") and ("theta_pert" in budget_method):
+                budget_method = budget_method.replace("theta_pert", "")
             datout_c = {}
             # get config dict for current budget method
             c, budget_method = get_budget_method(budget_method)
@@ -1926,12 +1939,14 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                     raise ValueError("dz_out_x and dz_out_z cannot be used at the same time!")
 
             total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
+                                        theta_pert=c["theta_pert"],
                                         hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
             # advective tendency
             dat = adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
                            hor_avg=hor_avg, avg_dims=avg_dims,
                            cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
-                           dz_out_x=c["dz_out_x"], dz_out_z=c["dz_out_z"])
+                           dz_out_x=c["dz_out_x"], dz_out_z=c["dz_out_z"],
+                           theta_pert=c["theta_pert"])
             if dat is None:
                 continue
             else:
@@ -1943,6 +1958,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castes
                 out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
                                             total_tend, tend_mass, cyclic, dz_out=dz_out,
+                                            theta_pert=c["theta_pert"],
                                             hor_avg=hor_avg, avg_dims=avg_dims)
                 datout_c["adv"], datout_c["tend"], datout_c["corr"], tend_mass = out
             # add all forcings

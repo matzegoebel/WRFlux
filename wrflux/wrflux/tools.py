@@ -1047,7 +1047,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
             # convert sources from dry to moist theta
             sources = sources * (1 + rvovrd * dat_mean["Q_MEAN"])
-            sources["mp"] = sources["mp"] + dat_mean["Q_TEND_MP_MEAN"] * rvovrd * dat_mean["T_MEAN"]
+            sources["mp"] = sources["mp"] + dat_mean["Q_TEND_MP_MEAN"] * rvovrd * (dat_mean["T_MEAN"] + 300)
     elif var == "q":
         sources["mp"] = dat_mean["Q_TEND_MP_MEAN"]
     else:

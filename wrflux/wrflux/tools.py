@@ -1280,7 +1280,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
     #  mean advective fluxes
     mean_flux = xr.Dataset()
-    mom_flux = vmean.copy()
+    mass_flux = vmean.copy()
     for d in XYZ:
         if d in ["X", "Y"]:
             rho = build_mu(dat_mean["MUT_MEAN"], grid, full_levels="bottom_top_stag" in vmean[d].dims)
@@ -1308,8 +1308,8 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
     fluxes = {"adv_r": tot_flux, "mean": mean_flux}
     if VAR == "T":
-        # momentum flux for advection of constant base state
-        fluxes["mom"] = mom_flux
+        # mass flux for advection of constant base state
+        fluxes["mass"] = mass_flux
     if ("trb_exp" in attrs) and (attrs["trb_exp"] == 1):
         # use explicit resolved turbulent fluxes if present
         trb_flux = xr.Dataset()
@@ -1404,12 +1404,12 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         if hor_avg:
             rho_tend = avg_xy(rho_tend, avg_dims, cyclic=cyclic)
         rho_tend = rho_tend / rhom
-        tend_mass = adv.sel(comp="mom", drop=True)
+        tend_mass = adv.sel(comp="mass", drop=True)
         tend_mass = tend_mass.reindex(dir=[*adv.dir.values, "T"])
         tend_mass.loc[{"dir": "T"}] = rho_tend.transpose(*tend_mass[0].dims)
         tend_mass = tend_mass * grid["RHOD_STAG_MEAN"]
         # calculate vertical term as residual
-        adv.loc["Z", "mom"] = - adv.loc["X", "mom"] - adv.loc["Y", "mom"] + rho_tend
+        adv.loc["Z", "mass"] = - adv.loc["X", "mass"] - adv.loc["Y", "mass"] + rho_tend
 
     # calculate resolved turbulent fluxes and tendencies as residual
     if not trb_exp:
@@ -1423,8 +1423,8 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         if VAR == "T":
             # add advection of constant base state
             for comp in ["adv_r", "mean"]:
-                flux[d].loc[comp] = flux[d].loc[comp] + 300 * flux[d].loc["mom"]
-                adv.loc[d, comp] = adv.loc[d, comp] + 300 * adv.loc[d, "mom"]
+                flux[d].loc[comp] = flux[d].loc[comp] + 300 * flux[d].loc["mass"]
+                adv.loc[d, comp] = adv.loc[d, comp] + 300 * adv.loc[d, "mass"]
 
     flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
     adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
@@ -1495,7 +1495,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
     corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
 
     if VAR == "T":
-        corr = corr.reindex(comp=[*corr.comp.values, "mom"])
+        corr = corr.reindex(comp=[*corr.comp.values, "mass"])
 
     # mean component
     for d, v in zip(xy, ["U", "V"]):
@@ -1507,16 +1507,16 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
             corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
         corr.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
         if VAR == "T":
-            corr.loc["mom", D] = rho_stag * corr_d
+            corr.loc["mass", D] = rho_stag * corr_d
     if dz_out:
         corr.loc["mean", "T"] = corr.loc["adv_r", "T"]
         if VAR == "T":
-            corr.loc["mom", "T"] = rho_stag
+            corr.loc["mass", "T"] = rho_stag
     else:
         dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
         corr.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
         if VAR == "T":
-            corr.loc["mom", "T"] = rho_stag * dzdt
+            corr.loc["mass", "T"] = rho_stag * dzdt
 
     # resolved turbulent component as residual
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
@@ -1534,17 +1534,17 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         dcorr_dz = dcorr_dz * stagger_like(grid["dzdd"], dcorr_dz,
                                            cyclic=cyclic, **grid[stagger_const])
     if VAR == "T":
-        mom = dcorr_dz.sel(comp="mom")
+        mass_corr = dcorr_dz.sel(comp="mass")
         for comp in ["adv_r", "mean"]:
             # add correction for constant base state
-            dcorr_dz.loc[comp] = dcorr_dz.loc[comp] + 300 * mom
+            dcorr_dz.loc[comp] = dcorr_dz.loc[comp] + 300 * mass_corr
             # finish residual calculation started in adv_tend
-            adv.loc["Z", comp] = adv.loc["Z", comp] - 300 * mom.sum("dir")
+            adv.loc["Z", comp] = adv.loc["Z", comp] - 300 * mass_corr.sum("dir")
         dcorr_dz = dcorr_dz.reindex(comp=adv.comp.values)
         # corrections to continuity equation
-        mom.loc["T"] = - mom.loc["T"]
+        mass_corr.loc["T"] = - mass_corr.loc["T"]
         for D in dcorr_dz.dir:
-            tend_mass.loc[D] = tend_mass.loc[D] + mom.loc[D] * grid["RHOD_STAG_MEAN"]
+            tend_mass.loc[D] = tend_mass.loc[D] + mass_corr.loc[D] * grid["RHOD_STAG_MEAN"]
 
     # apply corrections to horizontal advection and total tendency
     for i, d in enumerate(XY):

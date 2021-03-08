@@ -879,6 +879,7 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
         # compute resolved turbulent fluxes explicitly if output contains all timesteps
         dt_out = float(inst.Time[1] - inst.Time[0]) / 1e9
         if round(dt_out) == attrs["DT"]:
+            attrs["trb_exp"] = 1
             print("Compute turbulent fluxes explicitly")
             testing.trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
                                cyclic=cyclic, hor_avg=hor_avg, avg_dims=avg_dims)
@@ -1309,7 +1310,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     if VAR == "T":
         # momentum flux for advection of constant base state
         fluxes["mom"] = mom_flux
-    try:
+    if ("trb_exp" in attrs) and (attrs["trb_exp"] == 1):
         # use explicit resolved turbulent fluxes if present
         trb_flux = xr.Dataset()
         if cartesian:
@@ -1320,7 +1321,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
             trb_flux[d] = dat_mean["F{}{}_TRB_MEAN".format(VAR, vel)]
         fluxes["trb_r"] = trb_flux
         trb_exp = True
-    except KeyError:
+    else:
         trb_exp = False
 
     adv = {}

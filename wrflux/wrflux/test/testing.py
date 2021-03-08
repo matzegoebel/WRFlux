@@ -364,14 +364,16 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     return failed, err
 
 
-def test_mass(tend_mass, div, avg_dims_error=None, thresh=0.999995, loc=None, iloc=None, plot=True, **plot_kws):
+def test_mass(tend_mass, avg_dims_error=None,
+              thresh=1., loc=None, iloc=None, plot=True, **plot_kws):
     """Test closure of continuity equation.
 
-    The tendency of dry air mass is compared to the calculated mass divergence.
-    This test is necessary, since in the tendency calculations the vertical component
+    In the tendency calculations the vertical component of the continuity equation
     is calculated as residual to improve the budget closure which leads to automatic
     closure of the continuity equation.
-    This test ensures that the residual calculation does not introduce large errors.
+    This test ensures that this residual calculation does not produce larger changes
+    in the vertical component by comparing the residual calculation with the
+    explicit calculation which uses the vertical velocity.
     For the dz_out type formulations, the continuity equation cannot be well closed.
     Therefore, we only compare the individual components with the standard Cartesian
     formulation.
@@ -384,8 +386,6 @@ def test_mass(tend_mass, div, avg_dims_error=None, thresh=0.999995, loc=None, il
     ----------
     tend_mass : xarray DataArray
         Components of continuity equation.
-    div : xarray DataArray
-        Mass divergence: sum of XYZ components of tend_mass.
     avg_dims_error : str or list of str, optional
         Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
@@ -407,35 +407,26 @@ def test_mass(tend_mass, div, avg_dims_error=None, thresh=0.999995, loc=None, il
         Test statistic R2
 
     """
-    dat = div
-    ref = tend_mass.sel(dir="T")
+    ref = tend_mass.sel(dir="Z")
+    dat = tend_mass.sel(dir="T") - tend_mass.sel(dir="X") - tend_mass.sel(dir="Y")
     failed = False
     err = []
     fname = None
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in dat.ID.values:
-        if "dz_out" in ID:
-            # compare individual components instead of sum
-            ref_i = tend_mass.sel(ID="cartesian")
-            dat_i = tend_mass.sel(ID=ID)
-        else:
-            dat_i = dat.sel(ID=ID)
-            ref_i = ref.sel(ID=ID)
+        dat_i = dat.sel(ID=ID)
+        ref_i = ref.sel(ID=ID)
         dat_i = tools.loc_data(dat_i, loc=loc, iloc=iloc)
         ref_i = tools.loc_data(ref_i, loc=loc, iloc=iloc)
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "test_mass for ID={}: min. R2 less than {}: {:.5f}".format(ID, thresh, e)
+            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.5f}".format(ID, thresh, e)
             print(log)
             if plot:
-                if "dz_out" in ID:
-                    dat_i.name = ID
-                    ref_i.name = "Cartesian"
-                else:
-                    dat_i.name = "Mass divergence"
-                    ref_i.name = "Mass tendency"
+                dat_i.name = "Residual calculation"
+                ref_i.name = "Calculation with vertical velocity"
 
                 fname_i = fname
                 if fname is not None:
@@ -734,22 +725,9 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         if ("mass" in tests) and (var == "t"):
             # only do test once: for last variable
             kw["figloc"] = figloc / "mass"
-            if "avg_dims_error" in kw:
-                avg_dims_error = kw.pop("avg_dims_error")
-                avg_dims_error_x = avg_dims_error.copy()
-                if "x" not in avg_dims_error:
-                    avg_dims_error_x.append("x")
-            else:
-                avg_dims_error = None
-                avg_dims_error_x = None
-            tend_mass = datout_v["tend_mass"]
-            # build mass divergence
-            div = tend_mass.sel(dir=tools.XYZ).sum("dir")
-            if hor_avg:
-                # remove averaging directions for dz_out comparisons
-                tend_mass = tend_mass.sel(dir=[d for d in tend_mass.dir.values if d.lower() not in avg_dims])
-            failed_i["mass"], err_i["mass"] = test_mass(tend_mass, div, avg_dims_error=avg_dims_error_x, **kw)
-            kw["avg_dims_error"] = avg_dims_error
+            failed_i["mass"], err_i["mass"] = test_mass(datout_v["tend_mass"], **kw)
+            if "thresh" in kw:
+                del kw["thresh"]
 
         if "NaN" in tests:
             failed_i["NaN"] = test_nan(datout_v)

@@ -181,30 +181,31 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
         Test statistic R2
 
     """
+    ref = adv.sel(comp="trb_r")
+    dat = adv.sel(comp="adv_r") - adv.sel(comp="mean")
+    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     failed = False
     err = []
     fname = None
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
-    for ID in adv.ID.values:
-        adv_i = adv.sel(ID=ID)
-        ref = adv_i.sel(comp="trb_r")
-        dat = adv_i.sel(comp="adv_r") - adv_i.sel(comp="mean")
-        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-        e = R2(dat, ref, dim=avg_dims_error).min().values
+    for ID in dat.ID.values:
+        dat_i = dat.sel(ID=ID)
+        ref_i = ref.sel(ID=ID)
+        e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
             log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.11f}".format(
                 dat.description, ID, thresh, e)
             print(log)
             if plot:
-                ref.name = "trb_r"
-                dat.name = "adv_r - mean"
+                ref_i.name = "trb_r"
+                dat_i.name = "adv_r - mean"
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
+                plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)
 

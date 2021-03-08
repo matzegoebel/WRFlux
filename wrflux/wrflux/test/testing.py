@@ -20,7 +20,7 @@ all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
 
 # %% test functions
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9993,
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
                 loc=None, iloc=None, plot=True, **plot_kws):
     """
     Test closure of budget: tend = forcing.
@@ -145,7 +145,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     return failed, err
 
 
-def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
+def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
                         loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the total advective tendency is indeed the sum of the mean and
     resolved turbulent components in all three spatial directions.
@@ -210,7 +210,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.9999999999,
     return failed, min(err)
 
 
-def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=True, **plot_kws):
+def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the Cartesian corrections imposed by the budget methods
     "cartesian" and "cartesian dz_out_z" lead to
     similar advective tendencies in all three directions and components.
@@ -263,7 +263,7 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.9, loc=None, iloc=None, plot=
     return failed, err
 
 
-def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=True, **plot_kws):
+def test_2nd(adv, avg_dims_error=None, thresh=0.998, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the advective tendencies resulting from 2nd-order and
     correct advection order are equal in all three directions and components
     (usually carried out if correct order is equal to 2nd order).
@@ -316,7 +316,7 @@ def test_2nd(adv, avg_dims_error=None, thresh=0.999, loc=None, iloc=None, plot=T
     return failed, err
 
 
-def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plot=True, **plot_kws):
+def test_w(dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the instantaneous vertical velocity is very similar to the
     instantaneous diagnosed vertical velocity used in the tendency calculations.
 
@@ -365,8 +365,8 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.995, loc=None, iloc=None, plo
     return failed, err
 
 
-def test_mass(tend_mass, avg_dims_error=None,
-              thresh=1., loc=None, iloc=None, plot=True, **plot_kws):
+def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
+              loc=None, iloc=None, plot=True, **plot_kws):
     """Test closure of continuity equation.
 
     In the tendency calculations the vertical component of the continuity equation
@@ -484,7 +484,7 @@ def test_nan(datout, cut_bounds=None):
     return failed
 
 
-def test_y0(adv, thresh=(1e-5, 5e-2)):
+def test_y0(adv, thresh=(5e-6, 5e-3)):
     """Test whether the advective tendency resulting from fluxes in y-direction is,
     on average, much smaller than the one resulting from fluxes in x-direction. This
     should be the case if the budget is averaged over y. The average absolute ratio is
@@ -669,30 +669,45 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         err_i = {}
 
         if "budget" in tests:
-            # TODOm: change threshold depending on ID?
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc / "budget"
             if (var == "w") and (sim_id is not None) and ("open BC y hor_avg" in sim_id):
-                kw["thresh"] = 0.99
-            elif (var == "t") and (attrs["USE_THETA_M"] == 1) and (attrs["OUTPUT_DRY_THETA_FLUXES"] == 1):
-                # reduce threshold for WENO and monotonic advection as
-                # dry theta budget is not perfectly closed
-                if (attrs["SCALAR_ADV_OPT"] >= 3) and (attrs["MOIST_ADV_OPT"] >= 3):
-                    kw["thresh"] = 0.95
-                elif (attrs["SCALAR_ADV_OPT"] >= 3):
-                    kw["thresh"] = 0.7
-                elif attrs["MOIST_ADV_OPT"] == 2:
-                    kw["thresh"] = 0.98
+                kw["thresh"] = 0.995
+            elif (var in ["u", "v", "w"]) and ("open BC" in sim_id):
+                kw["thresh"] = 0.999
+            elif var == "t":
+                if "open BC" in sim_id:
+                    kw["thresh"] = 0.999
+                if "symmetric BC" in sim_id:
+                    kw["thresh"] = 0.995
+                elif attrs["USE_THETA_M"] == 1:
+
+                    if attrs["OUTPUT_DRY_THETA_FLUXES"] == 0:
+                        # lower thresh as cartesian tendency for thm is close to 0
+                        if attrs["MP_PHYSICS"] > 0:
+                            kw["thresh"] = 0.96
+                        else:
+                            kw["thresh"] = 0.995
+
+                    # reduce threshold for WENO and monotonic advection as
+                    # dry theta budget is not perfectly closed
+                    elif (attrs["SCALAR_ADV_OPT"] >= 3) and (attrs["MOIST_ADV_OPT"] >= 3):
+                        kw["thresh"] = 0.94
+                    elif (attrs["SCALAR_ADV_OPT"] >= 3):
+                        kw["thresh"] = 0.8
+                    elif attrs["MOIST_ADV_OPT"] == 2:
+                        kw["thresh"] = 0.97
 
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
             if "thresh" in kw:
                 del kw["thresh"]
         adv = datout_v["adv"]
         if "decomp_sumdir" in tests:
-            if trb_exp or hor_avg or (attrs["HESSELBERG_AVG"] == 0):
-                # reduce threshold
-                kw["thresh"] = 0.992
+            if attrs["HESSELBERG_AVG"] == 0:
+                kw["thresh"] = 0.995
+            elif trb_exp:
+                kw["thresh"] = 0.999
             kw["figloc"] = figloc / "decomp_sumdir"
             failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
                 adv, datout_v["corr"], **kw)
@@ -702,7 +717,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         if "decomp_sumcomp" in tests:
             if trb_exp:
                 # reduce threshold for explicit turbulent fluxes
-                kw["thresh"] = 0.995
+                kw["thresh"] = 0.999
             kw["figloc"] = figloc / "decomp_sumcomp"
             failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(adv, **kw)
             if "thresh" in kw:
@@ -710,22 +725,32 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
 
         if ("dz_out" in tests) and (var != "q"):  # TODOm: why so bad for q?
             kw["figloc"] = figloc / "dz_out"
-            adv_i = adv
+            adv_noavgdir = adv
             if hor_avg:
-                adv_i = adv_i.sel(dir=[d for d in adv.dir.values if d.lower() not in avg_dims])
-            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv_i, **kw)
-
+                thresh = {"t": 0.85, "u": 0.7, "v": 0.995, "w": 0.92}
+                kw["thresh"] = thresh[var]
+                adv_noavgdir = adv.sel(dir=[d for d in adv.dir.values if d.lower() not in avg_dims])
+            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv_noavgdir, **kw)
+            if "thresh" in kw:
+                del kw["thresh"]
         if "adv_2nd" in tests:
             kw["figloc"] = figloc / "adv_2nd"
             failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
-
         if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
             # only do test once: for last variable
             kw["figloc"] = figloc / "w"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
 
         if ("mass" in tests) and (var == "t"):
-            # only do test once: for last variable
+            if "dz_out" in tests:
+                if hor_avg:
+                    kw["thresh"] = 0.85
+                else:
+                    kw["thresh"] = 0.995
+
+            elif attrs["HESSELBERG_AVG"] == 0:
+                kw["thresh"] = 0.99999
+
             kw["figloc"] = figloc / "mass"
             failed_i["mass"], err_i["mass"] = test_mass(datout_v["tend_mass"], **kw)
             if "thresh" in kw:

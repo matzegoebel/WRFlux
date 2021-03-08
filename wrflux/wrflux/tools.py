@@ -1395,12 +1395,15 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         # continuity equation
         dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
         if dz_out:
-            rho_tend = dat_inst["RHOD_STAG"].diff("Time") / dt / grid["RHOD_STAG_MEAN"]
+            rhom = grid["RHOD_STAG_MEAN"]
+            rho_tend = dat_inst["RHOD_STAG"].diff("Time") / dt
         else:
-            rho_tend = dat_inst["MU_STAG"].diff("Time") / dt / grid["MU_STAG_MEAN"]
+            rhom = grid["MU_STAG_MEAN"]
+            rho_tend = dat_inst["MU_STAG"].diff("Time") / dt
 
         if hor_avg:
             rho_tend = avg_xy(rho_tend, avg_dims, cyclic=cyclic)
+        rho_tend = rho_tend / rhom
         tend_mass = adv.sel(comp="mom", drop=True)
         tend_mass = tend_mass.reindex(dir=[*adv.dir.values, "T"])
         tend_mass.loc[{"dir": "T"}] = rho_tend.transpose(*tend_mass[0].dims)

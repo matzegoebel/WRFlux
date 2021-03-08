@@ -736,6 +736,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         if hor_avg and ("Y=0" in tests):
             failed_i["Y=0"], err_i["Y=0"] = test_y0(adv)
 
+
         # store results
         for test, f in failed_i.items():
             if f:
@@ -901,18 +902,6 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
             vel_pert = tools.stagger_like(rho_stag_vel * (inst[vel] - vel_m), var_pert,
                                           cyclic=cyclic, **grid[tools.stagger_const])
             # build flux
-            #  rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
-            # vel_stag = stagger_like(rho_stag_vel * inst[vel], var_pert,
-            #                         cyclic=cyclic, **grid[stagger_const])
-            # vel_stag_mean = stagger_like(rho_stag_vel_mean*dat_mean[vel], var_pert,
-            #                              cyclic=cyclic, **grid[stagger_const])
-            # tot_flux = vel_stag * inst[var_d]
-            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean() / rho_stag_mean
-            # mean_flux = vel_stag_mean * dat_mean[var_d] / rho_stag_mean
-            # flux = tot_flux - mean_flux
-            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
-            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
-
             flux = vel_pert * var_pert
             flux = flux.coarsen(**avg_kwargs).mean()
             if hor_avg and (d.lower() not in avg_dims):
@@ -924,6 +913,22 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
             rho_stag_mean = rho_stag.coarsen(**avg_kwargs).mean()
             flux = flux / rho_stag_mean
             dat_mean["F{}{}_TRB_MEAN".format(var, v)] = flux
+
+            # rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
+            # vel_stag = tools.stagger_like(rho_stag_vel * inst[vel], var_pert,
+            #                               cyclic=cyclic, **grid[tools.stagger_const])
+            # vel_stag_mean = tools.stagger_like(rho_stag_vel_mean * dat_mean[vel], var_pert,
+            #                                    cyclic=cyclic, **grid[tools.stagger_const])
+            # tot_flux = vel_stag * inst[var_d]
+            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean()
+            # mean_flux = vel_stag_mean * dat_mean[var_d]
+            # if hor_avg and (d.lower() not in avg_dims):
+            # tot_flux = tools.avg_xy(tot_flux, avg_dims, cyclic=cyclic)
+            # mean_flux = tools.avg_xy(mean_flux, avg_dims, cyclic=cyclic)
+            # tot_flux = tot_flux / rho_stag_mean
+            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
+            # mean_flux = mean_flux / rho_stag_mean
+            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
 
 # TODO: reimplement?
 # def check_bounds(dat_mean, attrs, var):

@@ -51,8 +51,9 @@ random_msf = True
 
 # tests to perform
 tests = testing.all_tests
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd",
-#          "w", "Y=0", "NaN", "dim_coords", "no_model_change"]
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
+#          "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
+#          "no_model_change"]
 
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
@@ -153,7 +154,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     failed_short = pd.DataFrame(columns=variables)
     index = pd.MultiIndex.from_product([tests, variables])
     err = pd.DataFrame(index=index)
-
 
     test_results = test_path / "test_results"
     os.makedirs(test_results, exist_ok=True)
@@ -270,7 +270,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 hor_avg = False
                 if "hor_avg" in label:
                     hor_avg = True
-
                 if "dz_out" in label:
                     bm = bm + budget_methods_dzout
                 elif "dz_out" in tests_i:

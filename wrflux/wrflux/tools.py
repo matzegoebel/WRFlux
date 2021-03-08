@@ -264,7 +264,6 @@ def avg_xy(data, avg_dims, rho=None, cyclic=None, **stagger_const):
         averaged data.
 
     """
-    # TODOm: bottleneck?
     if type(data) == Dataset:
         out = xr.Dataset()
         for v in data.data_vars:
@@ -1414,11 +1413,12 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         # calculate vertical term as residual
         adv.loc["Z", "mass"] = - adv.loc["X", "mass"] - adv.loc["Y", "mass"] + rho_tend
 
-    # calculate resolved turbulent fluxes and tendencies as residual
     if not trb_exp:
         flux = flux.reindex(comp=[*flux.comp.values, "trb_r"])
         adv = adv.reindex(comp=[*adv.comp.values, "trb_r"])
+
     for d in flux.data_vars:
+        # calculate resolved turbulent fluxes and tendencies as residual
         if (hor_avg and (d.lower() in avg_dims)) or (not trb_exp):
             flux[d].loc["trb_r"] = flux[d].loc["adv_r"] - flux[d].loc["mean"]
             adv.loc[d, "trb_r"] = adv.loc[d, "adv_r"] - adv.loc[d, "mean"]

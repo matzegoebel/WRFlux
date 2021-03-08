@@ -925,7 +925,7 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
 
             flux = vel_pert * var_pert
             flux = flux.coarsen(**avg_kwargs).mean()
-            if hor_avg:
+            if hor_avg and (d.lower() not in avg_dims):
                 flux = tools.avg_xy(flux, avg_dims, cyclic=cyclic)
                 rho = tools.avg_xy(rho, avg_dims, cyclic=cyclic, **grid[tools.stagger_const])
 

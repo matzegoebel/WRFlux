@@ -1279,7 +1279,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
     #  mean advective fluxes
     mean_flux = xr.Dataset()
-    mom_flux = xr.Dataset()
+    mom_flux = vmean.copy()
     for d in XYZ:
         if d in ["X", "Y"]:
             rho = build_mu(dat_mean["MUT_MEAN"], grid, full_levels="bottom_top_stag" in vmean[d].dims)
@@ -1292,10 +1292,6 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
             var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             rho_m = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
-
-        if VAR == "T":
-            # momentum flux for advection of constant base state
-            mom_flux[d] = vmean[d]
 
         rho_stag = stagger_like(rho_m, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
         vel_stag = stagger_like(vmean[d] * rho_stag, ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
@@ -1311,6 +1307,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
     fluxes = {"adv_r": tot_flux, "mean": mean_flux}
     if VAR == "T":
+        # momentum flux for advection of constant base state
         fluxes["mom"] = mom_flux
     try:
         # use explicit resolved turbulent fluxes if present
@@ -1342,15 +1339,12 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
             # determine correct mapscale factors and density to multiply with flux
             mf_flx = mapfac["F" + D]
-            mf = mapfac
             if dz_out:
                 # only need density not dry air mass
                 fac = dat_mean["RHOD_MEAN"]
             else:
                 fac = dat_mean["MUT_MEAN"]
-            if (comp != "adv_r") and hor_avg and (d not in avg_dims):
-                mf = avg_xy(mapfac, avg_dims, cyclic=cyclic)
-                mf_flx = avg_xy(mf_flx, avg_dims, cyclic=cyclic)
+            if (comp in ["mean", "trb_r"]) and hor_avg and (d not in avg_dims):
                 fac = avg_xy(fac, avg_dims, cyclic=cyclic)
             if not dz_out:
                 fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[D].dims)
@@ -1358,11 +1352,11 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
             # flux derivative
             dx = grid["D" + D]
-            adv_i[D] = -diff(flux[D] * fac / mf_flx, ds, dat_mean[d], cyclic=cyc) * mf["X"] * mf["Y"] / dx
+            adv_i[D] = -diff(flux[D] * fac / mf_flx, ds, dat_mean[d], cyclic=cyc) * mapfac["X"] * mapfac["Y"] / dx
 
         # vertical flux
         rhod8z_m = rhod8z
-        if (comp != "adv_r") and hor_avg:
+        if (comp in ["mean", "trb_r"]) and hor_avg:
             rhod8z_m = avg_xy(rhod8z, avg_dims, cyclic=cyclic)
         fz = flux["Z"] * rhod8z_m
         if VAR == "W":

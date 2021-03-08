@@ -1636,7 +1636,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     return total_tend
 
 
-def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castesian",
+def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartesian",
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, hor_avg_end=False,
                     skip_exist=True, chunks=None, save_output=True, return_model_output=False,
                     **load_kw):
@@ -1655,7 +1655,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
         Budget calculation methods to apply. One method is a string that contains
         keys from tools.budget_settings separated by a space.
         Several methods can be combined in a list.
-        The default is "castesian".
+        The default is "cartesian".
     t_avg : bool, optional
         Average WRF output again over time. The default is False.
     t_avg_interval : integer, optional
@@ -1796,7 +1796,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="castes
         return calc_tendencies_core(variables, outpath_wrf, outpath, **kwargs)
 
 
-def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="castesian",
+def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartesian",
                          tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
                          hor_avg=False, avg_dims=None, hor_avg_end=False, skip_exist=True,
                          save_output=True, return_model_output=True, **load_kw):

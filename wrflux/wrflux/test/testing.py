@@ -627,6 +627,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         if "Y=0" in tests:
             tests.remove("Y=0")
 
+    avg_dims = None
     if hor_avg:
         avg_dims = []
         dat = datout[variables[0]]["adv"]

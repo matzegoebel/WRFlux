@@ -488,7 +488,7 @@ CONTAINS
             fwx_dfac, fwy_dfac, &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
             ru_d, rv_d, ww_d,               &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s
+            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
@@ -984,11 +984,16 @@ CONTAINS
 
       !average additional tendencies
       IF (config_flags%output_t_fluxes .eq. 1) THEN
+        qfac = 1.
         DO j=jts,min(jte, jde-1)
         DO k=kts,min(kte, kde-1)
         DO i=its,min(ite, ide-1)
-          T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j) )/count_p1
-          T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j) )/count_p1
+          IF ((.not. config_flags%output_dry_theta_fluxes) .and. ( config_flags%use_theta_m .EQ. 1 )) THEN
+            ! radiation tendency is for dry theta -> convert to moist theta
+            qfac = 1. + rvovrd * Q(i,k,j) 
+          ENDIF
+          T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j)*qfac )/count_p1
+          T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j)*qfac )/count_p1
           T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
         ENDDO
         ENDDO

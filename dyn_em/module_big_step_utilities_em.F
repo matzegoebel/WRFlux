@@ -5938,7 +5938,11 @@ compiler error, not handled yet
             h_diabatic(i,k,j) =  mpten/dt
          END IF
          IF (config_flags%output_t_fluxes .eq. 1) THEN
-            t_tend_mp(i,k,j) =  mpten/dt
+            IF ( config_flags%output_dry_theta_fluxes ) THEN
+               t_tend_mp(i,k,j) =  mpten/dt
+            ELSE
+               t_tend_mp(i,k,j) =  h_diabatic(i,k,j)
+            ENDIF
          ENDIF
 #endif
 !!!         ! KLUDGE:

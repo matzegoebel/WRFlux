@@ -22,7 +22,9 @@ import importlib
 import numpy as np
 import datetime
 from pathlib import Path
+import glob
 from config import config_test_tendencies_base as conf
+pd.set_option("display.precision", 15)
 now = datetime.datetime.now().isoformat()[:16]
 test_path = Path(__file__).parent
 
@@ -140,9 +142,9 @@ def test_all():
                                           hm=hm, spec_hfx=[0.2], input_sounding="free"))
     param_grids["symmetric BC y hor_avg"] = param_grids["symmetric BC y"].copy()
 
-    failed, failed_short, err, err_short = run_and_test(param_grids, param_names, avg_dims=["y"])
+    failed, failed_short, err, err_short, err_diff = run_and_test(param_grids, param_names, avg_dims=["y"])
 
-    return failed, failed_short, err, err_short
+    return failed, failed_short, err, err_short, err_diff
 
 
 # %% run_and_test
@@ -336,6 +338,20 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     err = err.where(~err.isnull(), "")
     failed = failed.where(failed != "").dropna(how="all").dropna(axis=1, how="all")
     failed = failed.where(~failed.isnull(), "")
+
+    # load previous scores file and compute difference
+    err_previous = glob.glob(str(test_results / "test_scores_*.csv"))
+    err_previous = sorted([f for f in err_previous if "failsonly" not in f and now not in f])
+    err_diff = None
+    if len(err_previous) > 0:
+        err_previous = pd.read_csv(err_previous[-1], header=0, index_col=(0, 1))
+        # delete Y=0 test
+        err_previous = err_previous.loc[[t for t in err_previous.index if t[0] != "Y=0"]].astype(float)
+        err_clean = err.where(err != "")
+        err_clean = err_clean.loc[[t for t in err_clean.index if t[0] != "Y=0"]]
+        err_clean = err_clean.astype(float)
+        err_diff = err_clean - err_previous
+
     if save_results:
         failed.to_csv(test_results / ("test_results_" + now + ".csv"))
         err.to_csv(test_results / ("test_scores_" + now + ".csv"))
@@ -348,7 +364,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         if raise_error:
             raise RuntimeError(message)
 
-    return failed, failed_short, err, err_short
+    return failed, failed_short, err, err_short, err_diff
 
 
 # %% misc
@@ -486,7 +502,7 @@ def setup_test_sim(build, restore=False, random_msf=True):
 
 # %%main
 if __name__ == "__main__":
-    failed, failed_short, err, err_short = test_all()
+    failed, failed_short, err, err_short, err_diff = test_all()
 
     err_dict = {}
     err_short_dict = {}

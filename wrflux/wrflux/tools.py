@@ -109,7 +109,6 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
         else:
             raise e
     ds.close()
-
     if fix_c:
         dx, dy = ds.DX, ds.DY
         ds = fix_coords(ds, dx=dx, dy=dy)

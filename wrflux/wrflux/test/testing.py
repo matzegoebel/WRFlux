@@ -74,7 +74,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
         err.append(e)
 
         if e < thresh:
-            log = "test_budget for ID='{}': min. R2 less than {}: {:.5f}\n".format(ID, thresh, e)
+            log = "test_budget for ID='{}': min. R2 less than {}: {:.7f}\n".format(ID, thresh, e)
             print(log)
             if plot:
                 dat.name = dat.description[:2] + "forcing"
@@ -196,7 +196,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.11f}".format(
+            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.8f}".format(
                 dat.description, ID, thresh, e)
             print(log)
             if plot:
@@ -357,7 +357,7 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, pl
     err = R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
-        log = "test_w: min. R2 less than {}: {:.5f}".format(thresh, err)
+        log = "test_w: min. R2 less than {}: {:.6f}".format(thresh, err)
         print(log)
         if plot:
             plotting.scatter_hue(dat, ref, title=log, **plot_kws)
@@ -423,7 +423,7 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.5f}".format(ID, thresh, e)
+            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.10f}".format(ID, thresh, e)
             print(log)
             if plot:
                 dat_i.name = "Residual calculation"
@@ -571,7 +571,7 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
 
 # %% run_tests
 
-def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
+def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
               hor_avg=False, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
@@ -586,7 +586,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
     dat_inst : xarray DataArray, optional
         WRF instantaneous output needed for w test. The default is None.
     sim_id : str, optional
-        ID of the current test simulation. The default is None.
+        ID of the current test simulation. The default is "".
     trb_exp : bool, optional
         Turbulent fluxes were calculated explicitly. The default is False.
     hor_avg : bool, optional
@@ -608,7 +608,10 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
     """
     if tests is None:
         tests = all_tests
-
+    tests = tests.copy()
+    for test in tests:
+        if test not in all_tests:
+            raise ValueError("Test {} not available! Available tests:\n{}".format(test, ", ".join(all_tests)))
     variables = list(datout.keys())
     failed = pd.DataFrame(columns=tests, index=variables)
     err = pd.DataFrame(columns=tests, index=variables)
@@ -643,14 +646,17 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
         datout_lim[v] = {}
         for n, dat in datout_v.items():
             if "ID" in dat.dims:
-                # remove theta_pert label from budget method IDs
+                # remove theta_pert label from budget method IDs if this does not lead to duplicate labels
                 IDs = []
                 for ID in dat.ID.values:
                     ID = ID.split(" ")
                     if "theta_pert" in ID:
-                        ID.remove("theta_pert")
-                        if len(ID) == 0:
-                            ID = ["native"]
+                        ID_new = ID.copy()
+                        ID_new.remove("theta_pert")
+                        if len(ID_new) == 0:
+                            ID_new = ["native"]
+                        if ID_new not in dat.ID:
+                            ID = ID_new
                     IDs.append(" ".join(ID))
                 dat["ID"] = IDs
             if "dim_coords" in tests:
@@ -672,7 +678,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
             tend = datout_v["tend"].sel(comp="tendency")
             forcing = datout_v["tend"].sel(comp="forcing")
             kw["figloc"] = figloc / "budget"
-            if (var == "w") and (sim_id is not None) and ("open BC y hor_avg" in sim_id):
+            if (var == "w") and ("open BC y hor_avg" in sim_id):
                 kw["thresh"] = 0.995
             elif (var in ["u", "v", "w"]) and ("open BC" in sim_id):
                 kw["thresh"] = 0.999
@@ -761,7 +767,6 @@ def run_tests(datout, tests, dat_inst=None, sim_id=None, trb_exp=False,
 
         if hor_avg and ("Y=0" in tests):
             failed_i["Y=0"], err_i["Y=0"] = test_y0(adv)
-
 
         # store results
         for test, f in failed_i.items():
@@ -855,6 +860,8 @@ def R2(dat, ref, dim=None):
         d = dict(dim=tools.correct_dims_stag_list(dim, ref))
     else:
         d = {}
+    dat = dat.astype(np.float64)
+    ref = ref.astype(np.float64)
     mse = ((dat - ref)**2).mean(**d)
     var = ((ref - ref.mean(**d))**2).mean(**d)
     return 1 - mse / var

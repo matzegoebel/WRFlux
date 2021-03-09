@@ -37,7 +37,7 @@ org_build = "WRF_org"  # original WRF version for comparison tests
 # Fill dictionary params with default values to be used for parameters not present in param_grid
 
 params["start_time"] = "2018-06-20_12:00:00"  # format %Y-%m-%d_%H:%M:%S
-params["end_time"] = "2018-06-20_12:02:00"  # format %Y-%m-%d_%H:%M:%S
+params["end_time"] = "2018-06-20_12:00:18"  # format %Y-%m-%d_%H:%M:%S
 
 params["n_rep"] = 1  # number of repetitions for each configuration
 
@@ -90,7 +90,7 @@ params["phi_adv_z"] = 2
 
 # indices for output streams and their respective name and output interval (minutes, floats allowed)
 # 0 is the standard output stream
-params["output_streams"] = {24: ["meanout", 1.], 0: ["instout", 1.]}
+params["output_streams"] = {24: ["meanout", 0.1], 0: ["instout", 0.1]}
 
 params["restart_interval_m"] = 30  # restart interval (min)
 

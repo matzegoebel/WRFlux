@@ -35,6 +35,7 @@ start = datetime.datetime.now()
 
 # %%settings
 # path to WRF output
+
 outpath_wrf = Path(__file__).parent / "example"
 outpath = outpath_wrf / "postprocessed"
 a = "out_d01_2018-06-20_12:00:00"
@@ -64,9 +65,9 @@ skip_exist = False
 chunks = None
 
 # tests to perform
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd", "w", "Y=0", "NaN"]
-tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
-
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd",
+#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change"]
+tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "mass", "NaN", "dim_coords", "Y=0"]
 # %% set calculation methods
 
 # available settings:
@@ -76,6 +77,8 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "w", "NaN"]
 # dz_out_z: use alternative cartesian corrections with dz taken out of derivative
 #           horizontal corrections derived from vertical flux (requires cartesian)
 # force_2nd_adv : use second order advection
+# theta_pert : Compute budget for WRF's prognostic variable theta perturbation = theta - 300K
+#              instead of full theta.
 
 # all budget calculation methods to apply as a list of str
 # each item is a combination of setting strings from above separated by a space
@@ -97,19 +100,20 @@ if rank == 0:
     kw = dict(
         avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
         plot=True,  # scatter plots for failed tests
-        # plot_diff=True, #plot difference between forcing and tendency against tendency
+        # plot_diff=True,  # plot difference between forcing and tendency against tendency
         discrete=True,  # discrete colormap
         # hue="x",
         ignore_missing_hue=True,
-        savefig=True
+        savefig=True,
         # close = True # close figures directly
     )
 
     failed, err = testing.run_tests(datout, tests, dat_inst=dat_inst, hor_avg=hor_avg,
-                                    avg_dims=avg_dims, chunks=chunks, **kw)
+                                    chunks=chunks, **kw)
 
+    if not (failed == "FAIL").any().any():
+        print("\nAll tests passed")
     # %% plotting
-
     pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp", sharex=False)

@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 from functools import partial
 
-all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
+all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
              "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
              "no_model_change"]
 
@@ -764,6 +764,13 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
 
         if "NaN" in tests:
             failed_i["NaN"] = test_nan(datout_v)
+
+        if "sgs" in tests:
+            sgs_sum = datout_v["sgs"].sum("dir")
+            if np.allclose(sgs_sum[0], sgs_sum[1], atol=1e-8, rtol=1e-5):
+                failed_i["sgs"] = False
+            else:
+                failed_i["sgs"] = True
 
         if hor_avg and ("Y=0" in tests):
             failed_i["Y=0"], err_i["Y=0"] = test_y0(adv)

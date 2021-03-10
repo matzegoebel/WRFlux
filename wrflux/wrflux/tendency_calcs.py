@@ -65,9 +65,9 @@ skip_exist = False
 chunks = None
 
 # tests to perform
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "dz_out", "adv_2nd",
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", dz_out", "adv_2nd",
 #           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change"]
-tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "mass", "NaN", "dim_coords", "Y=0"]
+tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim_coords", "Y=0"]
 # %% set calculation methods
 
 # available settings:

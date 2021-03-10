@@ -53,7 +53,7 @@ random_msf = True
 
 # tests to perform
 tests = testing.all_tests
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp",
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 #          "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
 #          "no_model_change"]
 

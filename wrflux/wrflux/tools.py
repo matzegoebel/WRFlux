@@ -1051,7 +1051,15 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
 
     # calculate tendencies from sgs fluxes
-    sgs, sgsflux = sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=mapfac)
+    sgs = []
+    sgsflux = []
+    for cartesian, label in zip([True, False], ["cartesian", "native"]):
+        sgs_i, sgsflux_i = sgs_tendency(dat_mean, VAR, grid, cyclic,
+                                        cartesian=cartesian, mapfac=mapfac)
+        sgs.append(sgs_i.expand_dims(ID=[label]))
+        sgsflux.append(sgsflux_i.expand_dims(ID=[label]))
+    sgs = xr.concat(sgs, dim="ID")
+    sgsflux = xr.concat(sgsflux, dim="ID")
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims, cyclic=cyclic)
@@ -1061,13 +1069,14 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
                               cyclic=cyclic, **grid[stagger_const])
         grid = avg_xy(grid, avg_dims, cyclic=cyclic)
 
+    sgs_sum = sgs.sum("dir", skipna=False)
     sources = sources.to_array("comp")
-    sources_sum = sources.sum("comp") + sgs.sum("dir", skipna=False)
+    sources_sum = sources.sum("comp") + sgs_sum.sel(ID="cartesian", drop=True)
 
     return dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac
 
 
-def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
+def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
     """Calculate tendencies from SGS fluxes.
 
     Parameters
@@ -1081,6 +1090,11 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
     cyclic : dict of booleans for xy
         Defines which dimensions have periodic boundary conditions.
         Use periodic boundary conditions to fill lateral boundary points.
+    cartesian : bool, optional
+        Calculate the tendencies in Cartesian form. The correction terms
+        are then applied to the horizontal flux derivatives.
+        Otherwise they are applied to the vertical derivative.
+        The default is False.
     mapfac : xarray Dataset, optional
         Map-scale factor variables. The default is None.
 
@@ -1105,16 +1119,14 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
         vcoord = grid["ZNU"]
         dn = grid["DNW"]
     fz = dat_mean["F{}Z_SGS_MEAN".format(VAR)]
-    rhoz = stagger_like(dat_mean["RHOD_MEAN"], fz, cyclic=cyclic, **grid[stagger_const])
-    sgs["Z"] = -diff(fz * rhoz, d3s, new_coord=vcoord)
-    sgs["Z"] = sgs["Z"] / dn / grid["MU_STAG_MEAN"] * (-g)
+    fz = fz * stagger_like(dat_mean["RHOD_MEAN"], fz, cyclic=cyclic, **grid[stagger_const])
     for d, v in zip(xy, ["U", "V"]):
-        # compute Cartesian corrections
+        # horizontal derivatives and Cartesian corrections
         D = d.upper()
         if mapfac is None:
-            m = 1
+            mf = 1
         else:
-            m = mapfac[D]
+            mf = mapfac[D]
         fd = dat_mean["F{}{}_SGS_MEAN".format(VAR, D)]
         sgsflux[D] = fd
         fd = fd * stagger_like(dat_mean["RHOD_MEAN"], fd, cyclic=cyclic, **grid[stagger_const])
@@ -1124,27 +1136,41 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, mapfac=None):
             # for momentum variances
             ds = d
             d = ds + "_stag"
-            flux8v = stagger(fd, ds, new_coord=sgs[d], cyclic=cyc)
+            flux8v = stagger(fd, ds, new_coord=dat_mean[d], cyclic=cyc)
         else:
             ds = d + "_stag"
-            flux8v = destagger(fd, ds, new_coord=sgs[d])
+            flux8v = destagger(fd, ds, new_coord=dat_mean[d])
+
+        # flux derivative
+        dx = grid["D" + D]
+        sgs[D] = -diff(fd, ds, new_coord=dat_mean[d], cyclic=cyc) / dx * mf / grid["RHOD_STAG_MEAN"]
+
         # (de)stagger flux vertically
         if VAR == "W":
             flux8z = destagger(flux8v, d3, grid["ZNU"])
+            mf = mapfac["Y"]
         else:
             flux8z = stagger(flux8v, d3, grid["ZNW"], **grid[stagger_const])
             flux8z[:, [0, -1]] = 0
+
+        # build Cartesian correction
         corr_sgs = diff(flux8z, d3s, new_coord=vcoord) / dn
-        corr_sgs = corr_sgs * stagger_like(grid["dzdd"].loc[D], corr_sgs, cyclic=cyclic, **grid[stagger_const])
-
-        # add horizontal derivative of flux and correction
-        dx = grid["D" + D]
-        sgs[D] = -diff(fd, ds, new_coord=sgs[d], cyclic=cyc) / dx * m
-        if VAR == "W":
-            m = mapfac["Y"]
-        sgs[D] = sgs[D] / grid["RHOD_STAG_MEAN"] + corr_sgs * m / grid["MU_STAG_MEAN"] * (-g)
-
+        corr_sgs = corr_sgs * mf * stagger_like(grid["dzdd"].loc[D], corr_sgs, cyclic=cyclic, **grid[stagger_const])
+        corr_sgs_m = corr_sgs / grid["MU_STAG_MEAN"] * (-g)
+        if cartesian:
+            sgs[D] = sgs[D] + corr_sgs_m
+        else:
+            # vertical flux is in Cartesian coordinate system
+            # -> transform to native by vertical integration of correction
+            dfz = (corr_sgs * dn)[:, ::-1].cumsum(d3)[:, ::-1]
+            if VAR == "W":
+                fz = fz + dfz[:, 1:].values
+            else:
+                # top flux is zero: only set values below
+                fz[:, :-1] = fz[:, :-1] + dfz.values
+    # vertical flux derivative
     sgsflux["Z"] = fz
+    sgs["Z"] = -diff(fz, d3s, new_coord=vcoord) / dn / grid["MU_STAG_MEAN"] * (-g)
     sgs = sgs[XYZ]
     sgs = sgs.to_array("dir")
     if VAR == "W":

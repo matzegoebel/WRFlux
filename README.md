@@ -8,7 +8,6 @@
 - [Implementation](#implementation)
 	* [List of modified files](#list-of-modified-files)
 - [Caveats/Limitations](#caveats-limitations)
-	* [Changes to the dynamical core](#changes-to-the-dynamical-core)
 - [Tests](#tests)
 	* [Test details](#test-details)
 	* [Installation](#installation-1)
@@ -72,11 +71,11 @@ horizontal corrections derived from horizontal flux (requires cartesian)
 - `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from vertical flux (requires cartesian)
 - `force_2nd_adv`: use 2nd-order advection
-- `theta_pert` : Compute budget for WRF's prognostic variable potential temeperature perturbation <img src="http://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}" /> instead of full <img src="http://latex.codecogs.com/svg.latex?\theta" />.
+- `theta_pert` : Compute budget for WRF's prognostic variable potential temeperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) instead of full ![](https://latex.codecogs.com/svg.latex?\theta).
 
 For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details. For an explanation of `dz_out_x` and `dz_out_z`, see [Theory/Alternative Corrections](#alternative-corrections).
 
-Since WRF uses flux-form conservation equations, the tendencies output by WRFlux are of the form (see also [Theory](#theory):
+Since WRF uses flux-form conservation equations, the tendencies output by WRFlux are of the form (see also [Theory](#theory)):
 
 ![](https://latex.codecogs.com/svg.latex?\frac{\partial_t\left({\rho}\psi\right)}{\rho})
 
@@ -135,14 +134,14 @@ When spatial averaging is switched on in the post-processing, the mean flux in t
 Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html).
 All output variables are decoupled from the map-scale factors.
 
-The online flux averaging uses potential temperature perturbation <img src="http://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}" /> like WRF itself.
-In the post-processing, however, the tendency calculations are done for full <img src="http://latex.codecogs.com/svg.latex?\theta" /> for better interpretation unless the budget option `theta_pert` is used.
-To obtain the full <img src="http://latex.codecogs.com/svg.latex?\theta" /> budget, the advection equation is split up into advection of the perturbation and of the constant base state:
+The online flux averaging uses potential temperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) like WRF itself.
+In the post-processing, however, the tendency calculations are done for full ![](https://latex.codecogs.com/svg.latex?\theta) for better interpretation unless the budget option `theta_pert` is used.
+To obtain the full ![](https://latex.codecogs.com/svg.latex?\theta) budget, the advection equation is split up into advection of the perturbation and of the constant base state:
 
-![](http://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0\left(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})\right))
+![](https://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0\left(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})\right))
 
-with the dry air mass <img src="http://latex.codecogs.com/svg.latex?\mu_\mathrm{d}" /> and the contravariant velocity <img src="http://latex.codecogs.com/svg.latex?\boldsymbol{\nu}" />.
-The last term on the RHS is the continuity equation. To close the budget for both, <img src="http://latex.codecogs.com/svg.latex?\theta_\mathrm{p}" /> and <img src="http://latex.codecogs.com/svg.latex?\theta" />, this term needs to vanish.
+with the dry air mass ![](https://latex.codecogs.com/svg.latex?\mu_\mathrm{d}) and the contravariant velocity ![](https://latex.codecogs.com/svg.latex?\boldsymbol{\nu}).
+The last term on the RHS is the continuity equation. To close the budget for both, ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}) and ![](https://latex.codecogs.com/svg.latex?\theta), this term needs to vanish.
 Since WRF does not actually solve the continuity equation but instead integrates it vertically, this is not trivial. Therefore, we calculate the temporal and horizontal terms explicitly and take the vertical term as the residual.
 Using the residual instead of calculating the vertical component explicitly has only a marginal effect on the vertical component, but when the three directions are summed up, the effect is noticeable. By using the velocities averaged over the acoustic time steps when building the time-averaged velocities, the mass fluxes also include the effect of the acoustic time steps.
 In the Cartesian form of the budget, correction terms are added to the mass fluxes analogous to the correction terms of the advective fluxes described in the theory section.

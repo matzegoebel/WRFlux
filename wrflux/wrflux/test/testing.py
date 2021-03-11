@@ -582,7 +582,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
         Postprocessed output for all variables.
     tests : list of str
         Tests to perform.
-        Choices: budget, decomp_sumdir, decomp_sumcomp, dz_out, adv_2nd, w, Y=0, NaN
+        Choices: testing.all_tests
     dat_inst : xarray DataArray, optional
         WRF instantaneous output needed for w test. The default is None.
     sim_id : str, optional

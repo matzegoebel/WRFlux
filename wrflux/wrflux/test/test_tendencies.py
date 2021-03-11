@@ -112,9 +112,9 @@ def test_all():
     param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
     param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
     param_grids["chunking x hor_avg no_debug"] = param_grids["chunking x no_debug"].copy()
-    param_grids["hessel"] = odict(hesselberg_avg=[False])
+    param_grids["no density-weighting"] = odict(hesselberg_avg=[False]) #TODO also skip hessel in postproc??
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
-    param_grids["theta - 300K"] = odict(th=th, theta_pert=True)
+    param_grids["theta - 300K no_debug"] = odict(th=th, theta_pert=True)
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],

@@ -7,7 +7,7 @@
 - [Installation](#installation)
 - [Implementation](#implementation)
 	* [List of modified files](#list-of-modified-files)
-- [Caveats/Limitations](#caveats-limitations)
+- [Caveats and limitations](#caveats-and-limitations)
 - [Tests](#tests)
 	* [Test details](#test-details)
 	* [Installation](#installation-1)
@@ -173,7 +173,7 @@ The following WRF source code files have been modified:
 
 
 
-## Caveats/Limitations
+## Caveats and limitations
 Note the following limitations:
 
 * For hydrostatic simulations (`non_hydrostatic=.false.`) the w-budget is not correct.

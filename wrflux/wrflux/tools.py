@@ -101,6 +101,7 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     ds : xarray Dataset
 
     """
+    kwargs["engine"] = "netcdf4"
     try:
         ds = xr.open_dataset(file, cache=False, **kwargs)
     except ValueError as e:
@@ -699,6 +700,7 @@ def load_data(outpath_wrf, inst_file, mean_file,
         WRF instantaneous output.
 
     """
+    kw["engine"] = "netcdf4"
     dat_inst = open_dataset(os.path.join(outpath_wrf, inst_file), del_attrs=False, **kw)
     dat_mean = open_dataset(os.path.join(outpath_wrf, mean_file), **kw)
 
@@ -765,9 +767,9 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg
             continue
         file = outpath / (f + avg + ".nc")
         if f in ["sgsflux", "flux", "grid"]:
-            datout[f] = xr.open_dataset(file, cache=False)
+            datout[f] = xr.open_dataset(file, cache=False, engine="netcdf4")
         else:
-            datout[f] = xr.open_dataarray(file, cache=False)
+            datout[f] = xr.open_dataarray(file, cache=False, engine="netcdf4")
         datout[f].close()
 
     return datout

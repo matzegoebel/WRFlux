@@ -231,6 +231,7 @@ state   real    w_tend_cor_curv      ikj     dyn_em          1               Z  
 
 #namelist options
 
+rconfig  real     avg_interval             namelist,diag    max_domains    -1         - "avg_interval"      "Averaging interval in minutes. If -1, use the output interval of auxhist24."
 rconfig  integer  output_t_fluxes          namelist,diag    max_domains    0          - "output_t_fluxes"   "Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_q_fluxes          namelist,diag    max_domains    0          - "output_q_fluxes"   "Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"
 rconfig  integer  output_u_fluxes          namelist,diag    max_domains    0          - "output_u_fluxes"   "Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)"

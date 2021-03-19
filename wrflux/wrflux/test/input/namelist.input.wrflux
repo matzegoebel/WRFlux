@@ -138,6 +138,7 @@
  /
 
  &diag
+ avg_interval                         = -1
  hesselberg_avg                       = .true.
  output_dry_theta_fluxes              = .true.
  output_t_fluxes                      = 1

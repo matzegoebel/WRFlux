@@ -36,6 +36,7 @@ The following namelist variables are available:
 - **`output_{t,q,u,v,w}_fluxes`** (default: 0): controls calculation and output for each variable;
  								  0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
 - **`output_{t,q,u,v,w}_fluxes_add`** (default: 0): if 1, output additional fluxes using 2nd order advection and different correction forms for comparison (see [Theory/Alternative Corrections](#alternative-corrections)).
+- **`avg_interval`**: averaging interval in minutes. If -1 (default), use the output interval of the auxhist24 output stream.
 - **`output_dry_theta_fluxes`** (default: .true.): if .true., output fluxes and tendencies based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
 - **`hesselberg_avg`** (default: .true.): if .true., budget variables are averaged with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
 
@@ -50,8 +51,17 @@ The other source terms that are output beside resolved and SGS fluxes for `outpu
 - **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both share output variable with pressure gradient tendency)
 
 
-All variables are output to the auxiliary output stream `auxhist24`. The **time-averaging interval** is set by the output interval of this stream with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`.
+All variables are output to the auxiliary output stream `auxhist24`. The output interval can be set with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`. The averaging starts `avg_interval` minutes before each output time of this output stream. If `avg_interval=-1`, the averaging interval is set equal to the output interval.
+
+To calculate the budget in the post-processing, the instantaneous output (history stream) must contain the following variables:
+
+ZNU, ZNW, DNW, DN, C1H, C2H, C1F, C2F, FNP, FNM, CF1, CF2, CF3, CFN, CFN1, MAPFAC_UY, MAPFAC_VX, MU, MUB, PH, PHB, U, V, W, QVAPOR, T, THM.
+
+These variables are all part of the history stream by default in WRF. From the last six variables you only need the ones for which you want to calculate the budget.
+The output interval of the history stream (`history_interval`) must be set in such a way that the start and end points of each averaging interval are available. This usually means that the output interval equals the averaging interval (`avg_interval`).
+
 You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
+
 
 An example namelist file based on the `em_les` test case can be found here:
 [`wrflux/wrflux/test/input/namelist.input.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/input/namelist.input.wrflux)

@@ -1782,6 +1782,7 @@ is "h1", so that stream needs to be explicitly requested in the namelist.input f
 
  &diags
  diag_nwp2 = 1
+ avg_interval (max_dom)             -1       ! Averaging interval in minutes. If -1, use the output interval of auxhist24.
  output_t_fluxes (max_dom)          0        ! Output theta-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
  output_q_fluxes (max_dom)          0        ! Output moisture fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)
  output_u_fluxes (max_dom)          0        ! Output u-fluxes (0: no, 1: resolved and SGS, 2: resolved, 3: SGS)

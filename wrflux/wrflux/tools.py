@@ -886,7 +886,25 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
                                cyclic=cyclic, hor_avg=hor_avg, avg_dims=avg_dims)
 
     # restrict instantaneous data to time steps contained in averaged data
-    dat_inst = dat_inst.sel(Time=[dat_inst.Time[0].values, *dat_mean.Time.values])
+    if attrs["AVG_INTERVAL"] == -1:
+        # averaging interval is output interval of dat_mean
+        avg_interval = (dat_mean.Time[1:].values - dat_mean.Time[:-1].values).mean()
+        attrs["AVG_INTERVAL"] = int(avg_interval) / 60e9
+    else:
+        avg_interval = np.timedelta64(int(attrs["AVG_INTERVAL"] * 60e9))
+
+    # select start and end time of averaging intervals
+    Times = []
+    for time in dat_mean.Time.values:
+        Times.extend([time - avg_interval, time])
+
+    try:
+        dat_inst = dat_inst.sel(Time=Times)
+    except KeyError:
+        times_str = [datetime.utcfromtimestamp(time.tolist()/1e9).isoformat() for time in Times]
+        raise KeyError("Not all necessary time steps included in instantaneous data: "
+                       "need start and end times of all averaging intervals. "
+                       "Needed times: {}".format(times_str))
 
     for v in dat_inst.coords:
         if ("XLAT" in v) or ("XLONG" in v):
@@ -1012,8 +1030,9 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
                        cyclic=cyclic[d]) / grid["D" + D]
 
     zw_inst = (dat_inst["PH"] + dat_inst["PHB"]) / g
-    dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
-    dzdd["T"] = zw_inst.diff("Time") / dt
+    dt = attrs["AVG_INTERVAL"] * 60
+    # only keep end points of averaging intervals
+    dzdd["T"] = zw_inst.diff("Time").isel(Time=slice(None, None, 2)) / dt
     dzdd = stagger_like(dzdd, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
     dzdd = remove_deprecated_dims(dzdd)
     grid["dzdd"] = dzdd.to_array("dir").assign_attrs(
@@ -1418,14 +1437,15 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     tend_mass = None
     if VAR == "T":
         # continuity equation
-        dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
+        dt = attrs["AVG_INTERVAL"] * 60
         if dz_out:
             rhom = grid["RHOD_STAG_MEAN"]
             rho_tend = dat_inst["RHOD_STAG"].diff("Time") / dt
         else:
             rhom = grid["MU_STAG_MEAN"]
             rho_tend = dat_inst["MU_STAG"].diff("Time") / dt
-
+        # only keep end points of averaging intervals
+        rho_tend = rho_tend.isel(Time=slice(None, None, 2))
         if hor_avg:
             rho_tend = avg_xy(rho_tend, avg_dims, cyclic=cyclic)
         rho_tend = rho_tend / rhom
@@ -1648,8 +1668,10 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     rvar = vard * rho
 
     # total tendency
-    dt = int(dat_inst.Time[1] - dat_inst.Time[0]) * 1e-9
+    dt = attrs["AVG_INTERVAL"] * 60.
     total_tend = rvar.diff("Time") / dt
+    # only keep end points of averaging intervals
+    total_tend = total_tend.isel(Time=slice(None, None, 2))
 
     if hor_avg:
         total_tend = avg_xy(total_tend, avg_dims, cyclic=cyclic)

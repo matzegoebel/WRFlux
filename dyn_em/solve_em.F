@@ -159,7 +159,7 @@ SUBROUTINE solve_em ( grid , config_flags  &
    REAL    :: curr_secs, curr_secs2
    INTEGER :: num_sound_steps
    INTEGER :: idex, jdex
-   LOGICAL :: output_fluxes
+   LOGICAL :: output_fluxes, do_avg
    REAL    :: max_msft
    REAL    :: spacing
 
@@ -4625,7 +4625,7 @@ BENCH_END(bc_2d_tim)
       CALL domain_clock_get ( grid, current_time=CurrTime, &
            current_timestr=message2 )
 ! use overloaded -, .LT. operator to check whether to initialize avgflx:
-! reinitialize after each history output (detect this here by comparing current time
+! reinitialize after each auxhist24 output (detect this here by comparing current time
 ! against last history time and time step - this code follows what's done in adapt_timestep_em):
       WRITE ( message , FMT = '("solve_em: old_dt =",g15.6,", dt=",g15.6," on domain ",I3)' ) &
            & old_dt,grid%dt,grid%id
@@ -4698,19 +4698,29 @@ BENCH_END(bc_2d_tim)
    !$OMP END PARALLEL DO
       ENDIF
 
-! Update avgflx quantities
-!tile-loop for upd_avgflx
-   IF (CurrTime .ge. temp_time + intervaltime - dtInterval) THEN
-      last_timestep = .true.
-   ELSE
-      last_timestep = .false.
-   ENDIF
-   !$OMP PARALLEL DO   &
-   !$OMP PRIVATE ( ij )
+      ! Update avgflx quantities
+      !tile-loop for upd_avgflx
+      IF (CurrTime .ge. temp_time + intervaltime - dtInterval) THEN
+         last_timestep = .true.
+      ELSE
+         last_timestep = .false.
+      ENDIF
+      num = INT(config_flags%avg_interval * 60. * precision)
+      den = precision
+      CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE ( ij )
+      ! WRFlux: only do averaging in the interval of length avg_interval before the next output
+      ! original do_avgflx_em is not affected
+      IF ((config_flags%avg_interval .eq. -1) .or. (temp_time + intervaltime - CurrTime .le. dtInterval)) THEN
+         do_avg = .true.
+      ELSE
+         do_avg = .false.
+      ENDIF
 
       DO ij = 1 , grid%num_tiles
          CALL wrf_debug(200,'In solve_em, before upd_avgflx call')
-         CALL upd_avgflx(grid%avgflx_count,grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
+         CALL upd_avgflx(grid%avgflx_count, do_avg, grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &
               &   grid%ru_m, grid%rv_m, grid%ww_m, &
               &   ids, ide, jds, jde, kds, kde,           &
               &   ims, ime, jms, jme, kms, kme,           &
@@ -4782,10 +4792,12 @@ BENCH_END(bc_2d_tim)
               &   last_timestep, grid%dt                                                            )
 
          CALL wrf_debug(200,'In solve_em, after upd_avgflx call')
-         
+
       ENDDO
-   !$OMP END PARALLEL DO
-      grid%avgflx_count = grid%avgflx_count + 1
+      !$OMP END PARALLEL DO
+      IF (do_avg .or. (.not. config_flags%output_avgfluxes)) THEN
+         grid%avgflx_count = grid%avgflx_count + 1
+      ENDIF
    ENDIF
 
 !-----------------------------------------------------------

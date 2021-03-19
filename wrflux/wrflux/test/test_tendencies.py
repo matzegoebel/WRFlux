@@ -29,6 +29,7 @@ now = datetime.datetime.now().isoformat()[:16]
 test_path = Path(__file__).parent
 
 # %% settings
+# TODO: avg_time: update README
 
 variables = ["q", "t", "u", "v", "w"]
 # raise if tests fail
@@ -115,6 +116,7 @@ def test_all():
     param_grids["no density-weighting"] = odict(hesselberg_avg=[False]) #TODO also skip hessel in postproc??
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
     param_grids["theta - 300K no_debug"] = odict(th=th, theta_pert=True)
+    param_grids["avg_interval"] = odict(avg_interval=20, output_streams=[{24: ["meanout", 30.], 0: ["instout", 10.]}])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
     param_grids["2nd-order advection th variations"] = odict(use_theta_m=[0, 1],
@@ -210,7 +212,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
 
                 # delete parameters not available in original WRF
                 if build == "org":
-                    for p in ["output_dry_theta_fluxes", "hesselberg_avg"]:
+                    for p in ["output_dry_theta_fluxes", "hesselberg_avg", "avg_interval"]:
                         if p in param_combs:
                             del param_combs[p]
 

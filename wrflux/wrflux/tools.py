@@ -57,11 +57,11 @@ xy = ["x", "y"]
 XY = ["X", "Y"]
 XYZ = [*XY, "Z"]
 uvw = ["u", "v", "w"]
-units_dict = {"t": "K ", "q": "", **{v: "ms$^{-1}$" for v in uvw}}
-units_dict_tend = {"t": "Ks$^{-1}$", "q": "s$^{-1}$", **{v: "ms$^{-2}$" for v in uvw}}
-units_dict_flux = {"t": "Kms$^{-1}$", "q": "ms$^{-1}$", **{v: "m$^{2}$s$^{-2}$" for v in uvw}}
-units_dict_tend_rho = {"t": "kg m$^{-3}$Ks$^{-1}$",
-                       "q": "kg m$^{-3}$s$^{-1}$", **{v: "kg m$^{-2}$s$^{-2}$" for v in uvw}}
+units_dict = {"t": "K ", "q": "", **{v: "m s$^{-1}$" for v in uvw}}
+units_dict_tend = {"t": "K s$^{-1}$", "q": "s$^{-1}$", **{v: "m s$^{-2}$" for v in uvw}}
+units_dict_flux = {"t": "K m s$^{-1}$", "q": "m s$^{-1}$", **{v: "m$^{2}$ s$^{-2}$" for v in uvw}}
+units_dict_tend_rho = {"t": "kg m$^{-3}$ K s$^{-1}$",
+                       "q": "kg m$^{-3}$ s$^{-1}$", **{v: "kg m$^{-2}$ s$^{-2}$" for v in uvw}}
 g = 9.81
 rvovrd = 461.6 / 287.04
 stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]

@@ -131,6 +131,7 @@ def test_all():
         moist_adv_opt=[0, 1, 3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th)
     param_grids["MP rad"] = odict(mp_physics=[2], th=th)
+    param_grids["convection"] = odict(cu_physics=16, shcu_physics=2, bl_pbl_physics=9, mp_physics=2)
 
     hm = 0  # flat simulations in boundaries are not periodic
     param_grids["open BC x"] = odict(open_x=dict(open_xs=[True], open_xe=[True], periodic_x=[False],

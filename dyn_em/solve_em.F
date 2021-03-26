@@ -4689,6 +4689,7 @@ BENCH_END(bc_2d_tim)
                  &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                 &
                  &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                 &
                  &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+                 &   grid%t_tend_cu_mean, grid%q_tend_cu_mean, grid%u_tend_cu_mean, grid%v_tend_cu_mean,    &
                  &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
                  &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
                  &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
@@ -4766,6 +4767,7 @@ BENCH_END(bc_2d_tim)
               &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                 &
               &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                 &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%t_tend_cu_mean, grid%q_tend_cu_mean, grid%u_tend_cu_mean, grid%v_tend_cu_mean,    &
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
@@ -4779,6 +4781,8 @@ BENCH_END(bc_2d_tim)
               &   grid%ftx_sgs,grid%fty_sgs,grid%ftz_sgs,grid%fqx_sgs,grid%fqy_sgs,grid%fqz_sgs,         &
               &   grid%fux_sgs,grid%fuz_sgs,grid%fvx_sgs,grid%fvy_sgs,grid%fvz_sgs,grid%fwx_sgs,grid%fwy_sgs,grid%fwz_sgs,  &
               &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,                    &
+              &   grid%rthcuten, grid%rqvcuten, grid%rucuten, grid%rvcuten,                              &
+              &   grid%rthshten, grid%rqvshten, grid%rushten, grid%rvshten,                              &
               &   grid%u_tend_pg,grid%u_tend_cor_curv,                                                   &
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                                   &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                                   &

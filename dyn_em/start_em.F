@@ -1324,6 +1324,7 @@ endif
               &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                 &
               &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                 &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
+              &   grid%t_tend_cu_mean, grid%q_tend_cu_mean, grid%u_tend_cu_mean, grid%v_tend_cu_mean,    &
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &

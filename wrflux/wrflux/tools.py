@@ -1060,17 +1060,25 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
     # additional sources
     print("Compute SGS and additional tendencies")
     sources = xr.Dataset()
+    cu = (attrs["CU_PHYSICS"] > 0) or (attrs["SHCU_PHYSICS"] > 0)
     if var == "t":
         sources["mp"] = dat_mean["T_TEND_MP_MEAN"]
         sources["rad_lw"] = dat_mean["T_TEND_RADLW_MEAN"]
         sources["rad_sw"] = dat_mean["T_TEND_RADSW_MEAN"]
+        if cu:
+            sources["cu"] = dat_mean["T_TEND_CU_MEAN"]
     elif var == "q":
         sources["mp"] = dat_mean["Q_TEND_MP_MEAN"]
+        if cu:
+            sources["cu"] = dat_mean["Q_TEND_CU_MEAN"]
     else:
         # pressure gradient, buoyancy, coriolis and curvature
         sources["pg"] = dat_mean["{}_TEND_PG_MEAN".format(VAR)]
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
-
+        if (VAR != "W") and cu:
+            cu = dat_mean["{}_TEND_CU_MEAN".format(VAR)]
+            # convection tendency is on mass levels
+            sources["cu"] = stagger_like(cu, ref, cyclic=cyclic)
     # calculate tendencies from sgs fluxes
     sgs = []
     sgsflux = []

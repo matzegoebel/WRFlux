@@ -44,6 +44,7 @@ CONTAINS
        & fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                      &
        & fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                      &
        & t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                           &
+       & t_tend_cu_mean, q_tend_cu_mean, u_tend_cu_mean, v_tend_cu_mean,                              &
        & u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
        & v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
        & w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
@@ -91,6 +92,7 @@ CONTAINS
        fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                      &
        fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                      &
        t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                           &
+       t_tend_cu_mean, q_tend_cu_mean, u_tend_cu_mean, v_tend_cu_mean,                              &
        u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
        v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
        w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
@@ -174,6 +176,7 @@ CONTAINS
             t_tend_radlw_mean(i,k,j) = 0.
             t_tend_radsw_mean(i,k,j) = 0.
             t_tend_mp_mean(i,k,j) = 0.
+            t_tend_cu_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_q_fluxes > 0) then
@@ -209,6 +212,7 @@ CONTAINS
           endif
           if (config_flags%output_q_fluxes .eq. 1) then
             q_tend_mp_mean(i,k,j) = 0.
+            q_tend_cu_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_u_fluxes > 0) then
@@ -244,6 +248,7 @@ CONTAINS
           if (config_flags%output_u_fluxes .eq. 1) then
             u_tend_pg_mean(i,k,j) = 0.
             u_tend_cor_curv_mean(i,k,j) = 0.
+            u_tend_cu_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_v_fluxes > 0) then
@@ -279,6 +284,7 @@ CONTAINS
           if (config_flags%output_v_fluxes .eq. 1) then
             v_tend_pg_mean(i,k,j) = 0.
             v_tend_cor_curv_mean(i,k,j) = 0.
+            v_tend_cu_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_w_fluxes > 0) then
@@ -367,6 +373,7 @@ CONTAINS
        & FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                 &
        & FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                 &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
+       & T_TEND_CU_MEAN, Q_TEND_CU_MEAN, U_TEND_CU_MEAN, V_TEND_CU_MEAN,                         &
        & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
@@ -376,6 +383,8 @@ CONTAINS
        & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                   &
        & fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs,                 &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                                      &
+       & rthcuten, rqvcuten, rucuten, rvcuten,                                                   &
+       & rthshten, rqvshten, rushten, rvshten,                                                   &
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
@@ -437,6 +446,7 @@ CONTAINS
        FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                 &
        FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                 &
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
+       T_TEND_CU_MEAN, Q_TEND_CU_MEAN, U_TEND_CU_MEAN, V_TEND_CU_MEAN,                         &
        U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
@@ -455,6 +465,8 @@ CONTAINS
          fvx_adv, fvy_adv, fvz_adv,                            &
          fwx_adv, fwy_adv, fwz_adv,                            &
          t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,    &
+         rthcuten, rqvcuten, rucuten, rvcuten,                 &
+         rthshten, rqvshten, rushten, rvshten,                 &
          u_tend_pg,u_tend_cor_curv,                            &
          v_tend_pg,v_tend_cor_curv,                            &
          w_tend_pg,w_tend_cor_curv,                            &
@@ -492,7 +504,7 @@ CONTAINS
             fwx_dfac, fwy_dfac,                                                            &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,        &
             ru_d, rv_d, ww_d,                                                              &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac
+            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac, cu_tend
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
@@ -1011,12 +1023,29 @@ CONTAINS
               ! radiation tendency is for dry theta -> convert to moist theta
               qfac = 1. + rvovrd * Q(i,k,j) 
             ENDIF
+            !TODOm: only do if mp/rad scheme present
             T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j)*qfac )/count_p1
             T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j)*qfac )/count_p1
             T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
           ENDDO
           ENDDO
           ENDDO
+          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              cu_tend = 0.
+              IF (config_flags%cu_physics .gt. 0) THEN
+                cu_tend = rthcuten(i,k,j)
+              ENDIF
+              IF (config_flags%shcu_physics .gt. 0) THEN
+                cu_tend = cu_tend + rthshten(i,k,j)
+              ENDIF
+              T_TEND_CU_MEAN(i,k,j)  = (local_count*T_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_q_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
@@ -1026,6 +1055,22 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
+          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              cu_tend = 0.
+              IF (config_flags%cu_physics .gt. 0) THEN
+                cu_tend = rqvcuten(i,k,j)
+              ENDIF
+              IF (config_flags%shcu_physics .gt. 0) THEN
+                cu_tend = cu_tend + rqvshten(i,k,j)
+              ENDIF
+              Q_TEND_CU_MEAN(i,k,j)  = (local_count*Q_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_u_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
@@ -1036,6 +1081,22 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
+          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              cu_tend = 0.
+              IF (config_flags%cu_physics .gt. 0) THEN
+                cu_tend = rucuten(i,k,j)
+              ENDIF
+              IF (config_flags%shcu_physics .gt. 0) THEN
+                cu_tend = cu_tend + rushten(i,k,j)
+              ENDIF
+              U_TEND_CU_MEAN(i,k,j)  = (local_count*U_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_v_fluxes .eq. 1) THEN
           DO j=jts,jte
@@ -1046,6 +1107,22 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
+          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              cu_tend = 0.
+              IF (config_flags%cu_physics .gt. 0) THEN
+                cu_tend = rvcuten(i,k,j)
+              ENDIF
+              IF (config_flags%shcu_physics .gt. 0) THEN
+                cu_tend = cu_tend + rvshten(i,k,j)
+              ENDIF
+              V_TEND_CU_MEAN(i,k,j)  = (local_count*V_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_w_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)

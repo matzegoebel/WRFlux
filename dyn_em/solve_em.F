@@ -4653,8 +4653,8 @@ BENCH_END(bc_2d_tim)
                  &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
                  &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
                  &   config_flags,                                                                          &
-                 &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                 &
-                 &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                              &
+                 &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                       &
+                 &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                                 &
                  &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
                  &   grid%fqx_adv_mean,grid%fqy_adv_mean,grid%fqz_adv_mean,                                 &
                  &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
@@ -4663,31 +4663,31 @@ BENCH_END(bc_2d_tim)
                  &   grid%fvx_adv_mean,grid%fvy_adv_mean,grid%fvz_adv_mean,                                 &
                  &   grid%ww_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,grid%wy_mean,grid%wz_mean,      &
                  &   grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                                 &
-                 &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                           &
-                 &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                              &
-                 &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                              &
-                 &   grid%fvx_corr,grid%fvy_corr,grid%corr_dvdt,                                              &
-                 &   grid%fwx_corr,grid%fwy_corr,grid%corr_dwdt,                                              &
-                 &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                       &
-                 &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                  &
-                 &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                                 &
-                 &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                       &
-                 &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                  &
-                 &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                                 &
-                 &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                       &
-                 &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                  &
-                 &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                                 &
-                 &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                       &
-                 &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                  &
-                 &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                                 &
-                 &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                       &
-                 &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                  &
-                 &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                                 &
+                 &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                            &
+                 &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                            &
+                 &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                            &
+                 &   grid%fvx_corr,grid%fvy_corr,grid%corr_dvdt,                                            &
+                 &   grid%fwx_corr,grid%fwy_corr,grid%corr_dwdt,                                            &
+                 &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                     &
+                 &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                &
+                 &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                               &
+                 &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                     &
+                 &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                &
+                 &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                               &
+                 &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                     &
+                 &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                &
+                 &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                               &
+                 &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                     &
+                 &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                &
+                 &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                               &
+                 &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                     &
+                 &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                &
+                 &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                               &
                  &   grid%ftx_sgs_mean,grid%fty_sgs_mean,grid%ftz_sgs_mean,                                 &
-                 &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                    &
-                 &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                     &
-                 &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                    &
-                 &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                    &
+                 &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                 &
+                 &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                   &
+                 &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                 &
+                 &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                 &
                  &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
                  &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
                  &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
@@ -4730,8 +4730,8 @@ BENCH_END(bc_2d_tim)
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
               &   config_flags,                                                                          &
-              &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                 &
-              &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                              &
+              &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                       &
+              &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                                 &
               &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
               &   grid%fqx_adv_mean,grid%fqy_adv_mean,grid%fqz_adv_mean,                                 &
               &   grid%u_mean,grid%ux_mean,grid%uy_mean,grid%uz_mean,                                    &
@@ -4740,56 +4740,56 @@ BENCH_END(bc_2d_tim)
               &   grid%fvx_adv_mean,grid%fvy_adv_mean,grid%fvz_adv_mean,                                 &
               &   grid%ww_mean,grid%wd_mean,grid%zwind_mean,grid%wx_mean,grid%wy_mean,grid%wz_mean,      &
               &   grid%fwx_adv_mean,grid%fwy_adv_mean,grid%fwz_adv_mean,                                 &
-              &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                           &
-              &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                              &
-              &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                              &
-              &   grid%fvx_corr,grid%fvy_corr,grid%corr_dvdt,                                              &
-              &   grid%fwx_corr,grid%fwy_corr,grid%corr_dwdt,                                              &
-              &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                       &
-              &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                  &
-              &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                                 &
-              &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                       &
-              &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                  &
-              &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                                 &
-              &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                       &
-              &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                  &
-              &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                                 &
-              &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                       &
-              &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                  &
-              &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                                 &
-              &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                       &
-              &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                  &
-              &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                                 &
+              &   grid%ftx_corr,grid%fty_corr,grid%corr_dtdt,                                            &
+              &   grid%fqx_corr,grid%fqy_corr,grid%corr_dqdt,                                            &
+              &   grid%fux_corr,grid%fuy_corr,grid%corr_dudt,                                            &
+              &   grid%fvx_corr,grid%fvy_corr,grid%corr_dvdt,                                            &
+              &   grid%fwx_corr,grid%fwy_corr,grid%corr_dwdt,                                            &
+              &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                     &
+              &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                &
+              &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                               &
+              &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                     &
+              &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                &
+              &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                               &
+              &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                     &
+              &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                &
+              &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                               &
+              &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                     &
+              &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                &
+              &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                               &
+              &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                     &
+              &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                &
+              &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                               &
               &   grid%ftx_sgs_mean,grid%fty_sgs_mean,grid%ftz_sgs_mean,                                 &
-              &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                    &
-              &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                     &
-              &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                    &
-              &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                    &
+              &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                 &
+              &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                   &
+              &   grid%fvx_sgs_mean,grid%fvy_sgs_mean,grid%fvz_sgs_mean,                                 &
+              &   grid%fwx_sgs_mean,grid%fwy_sgs_mean,grid%fwz_sgs_mean,                                 &
               &   grid%t_tend_radlw_mean,grid%t_tend_radsw_mean,grid%t_tend_mp_mean,grid%q_tend_mp_mean, &
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
-              &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean,grid%w_diag,     &
-              &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv,                                      &
-              &   grid%ftx_small, grid%fty_small, grid%ftz_small,                                            &
-              &   grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,                                         &
-              &   grid%fux_adv, grid%fuy_adv, grid%fuz_adv,                                         &
-              &   grid%fvx_adv, grid%fvy_adv, grid%fvz_adv,                                         &
-              &   grid%fwx_adv, grid%fwy_adv, grid%fwz_adv,                                         &
-              &   grid%ftx_sgs,grid%fty_sgs,grid%ftz_sgs,grid%fqx_sgs,grid%fqy_sgs,grid%fqz_sgs,            &
+              &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean,grid%w_diag,  &
+              &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv,                                              &
+              &   grid%ftx_small, grid%fty_small, grid%ftz_small,                                        &
+              &   grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,                                              &
+              &   grid%fux_adv, grid%fuy_adv, grid%fuz_adv,                                              &
+              &   grid%fvx_adv, grid%fvy_adv, grid%fvz_adv,                                              &
+              &   grid%fwx_adv, grid%fwy_adv, grid%fwz_adv,                                              &
+              &   grid%ftx_sgs,grid%fty_sgs,grid%ftz_sgs,grid%fqx_sgs,grid%fqy_sgs,grid%fqz_sgs,         &
               &   grid%fux_sgs,grid%fuz_sgs,grid%fvx_sgs,grid%fvy_sgs,grid%fvz_sgs,grid%fwx_sgs,grid%fwy_sgs,grid%fwz_sgs,  &
-              &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,               &
-              &   grid%u_tend_pg,grid%u_tend_cor_curv,                                              &
-              &   grid%v_tend_pg,grid%v_tend_cor_curv,                                              &
-              &   grid%w_tend_pg,grid%w_tend_cor_curv,                                              &
-              &   grid%u_save, grid%v_save, grid%w_2, grid%w_save, grid%ru, grid%rv, ww1,           &
-              &   grid%th_save, moist(:,:,:,P_QV),                                                  &
-              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                       &
-              &   grid%dph_x, grid%dph_y,                                                           &
-              &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                 &
-              &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,            &
-              &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                       &
-              &   last_timestep, grid%dt                                                            )
+              &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,                    &
+              &   grid%u_tend_pg,grid%u_tend_cor_curv,                                                   &
+              &   grid%v_tend_pg,grid%v_tend_cor_curv,                                                   &
+              &   grid%w_tend_pg,grid%w_tend_cor_curv,                                                   &
+              &   grid%u_save, grid%v_save, grid%w_2, grid%w_save, grid%ru, grid%rv, ww1,                &
+              &   grid%th_save, moist(:,:,:,P_QV),                                                       &
+              &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                            &
+              &   grid%dph_x, grid%dph_y,                                                                &
+              &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                      &
+              &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,                 &
+              &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                            &
+              &   last_timestep, grid%dt                                                                 )
 
          CALL wrf_debug(200,'In solve_em, after upd_avgflx call')
 

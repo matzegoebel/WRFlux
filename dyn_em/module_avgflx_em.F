@@ -17,17 +17,17 @@ CONTAINS
        & ims, ime, jms, jme, kms, kme,           &
        & its, ite, jts, jte, kts, kte,           &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1, &
-       & config_flags,                                                                           &
-       & t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
-       & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
-       & u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
-       & v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
-       & ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
-       & ftx_corr,fty_corr,corr_dtdt,                                                           &
-       & fqx_corr,fqy_corr,corr_dqdt,                                                              &
-       & fux_corr,fuy_corr,corr_dudt,                                                              &
-       & fvx_corr,fvy_corr,corr_dvdt,                                                              &
-       & fwx_corr,fwy_corr,corr_dwdt,                                                              &
+       & config_flags,                                                                                &
+       & t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,               &
+       & q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,               &
+       & u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                       &
+       & v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                       &
+       & ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,   &
+       & ftx_corr,fty_corr,corr_dtdt,                                                                 &
+       & fqx_corr,fqy_corr,corr_dqdt,                                                                 &
+       & fux_corr,fuy_corr,corr_dudt,                                                                 &
+       & fvx_corr,fvy_corr,corr_dvdt,                                                                 &
+       & fwx_corr,fwy_corr,corr_dwdt,                                                                 &
        & ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
        & ftx_corr_dzout,fty_corr_dzout,                                                               &
        & fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
@@ -38,20 +38,21 @@ CONTAINS
        & fvx_corr_dzout,fvy_corr_dzout,                                                               &
        & fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
        & fwx_corr_dzout,fwy_corr_dzout,                                                               &
-       & ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                 &
-       & fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                    &
-       & fux_sgs_mean,fuz_sgs_mean,                                                                &
-       & fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                    &
-       & fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                    &
-       & t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
-       & u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
-       & v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
-       & w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
-       & rhod_mean,mut_mean,z_mean,dph_x_mean,dph_y_mean                                          )
+       & ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
+       & fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
+       & fux_sgs_mean,fuz_sgs_mean,                                                                   &
+       & fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                      &
+       & fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                      &
+       & t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                           &
+       & u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
+       & v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
+       & w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
+       & rhod_mean,mut_mean,z_mean,dph_x_mean,dph_y_mean                                              )
 
     IMPLICIT NONE
 
-    INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
+    INTEGER , INTENT(IN)        ::      &
+         ids, ide, jds, jde, kds, kde,  &
          ims, ime, jms, jme, kms, kme,  &
          its, ite, jts, jte, kts, kte
 
@@ -63,17 +64,17 @@ CONTAINS
 
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
-    REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::              &
-       t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean, &
-       q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,          &
-       u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                  &
-       v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                  &
-       ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,  &
-       ftx_corr,fty_corr,corr_dtdt,                                                           &
-       fqx_corr,fqy_corr,corr_dqdt,                                                              &
-       fux_corr,fuy_corr,corr_dudt,                                                              &
-       fvx_corr,fvy_corr,corr_dvdt,                                                              &
-       fwx_corr,fwy_corr,corr_dwdt,                                                              &
+    REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::                       &
+       t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,               &
+       q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,               &
+       u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                       &
+       v_mean,vx_mean,vy_mean,vz_mean,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,                       &
+       ww_mean,wd_mean,zwind_mean,wx_mean,wy_mean,wz_mean,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,   &
+       ftx_corr,fty_corr,corr_dtdt,                                                                 &
+       fqx_corr,fqy_corr,corr_dqdt,                                                                 &
+       fux_corr,fuy_corr,corr_dudt,                                                                 &
+       fvx_corr,fvy_corr,corr_dvdt,                                                                 &
+       fwx_corr,fwy_corr,corr_dwdt,                                                                 &
        ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
        ftx_corr_dzout,fty_corr_dzout,                                                               &
        fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
@@ -83,16 +84,16 @@ CONTAINS
        fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd, fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd, &
        fvx_corr_dzout,fvy_corr_dzout,                                                               &
        fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
-       fwx_corr_dzout,fwy_corr_dzout,                                                                    &
-       ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                 &
-       fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                    &
-       fux_sgs_mean,fuz_sgs_mean,                                                                &
-       fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                    &
-       fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                    &
-       t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                      &
-       u_tend_pg_mean,u_tend_cor_curv_mean,                                                    &
-       v_tend_pg_mean,v_tend_cor_curv_mean,                                                    &
-       w_tend_pg_mean,w_tend_cor_curv_mean,                                                    &
+       fwx_corr_dzout,fwy_corr_dzout,                                                               &
+       ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
+       fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
+       fux_sgs_mean,fuz_sgs_mean,                                                                   &
+       fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,                                                      &
+       fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,                                                      &
+       t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,q_tend_mp_mean,                           &
+       u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
+       v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
+       w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
        rhod_mean,z_mean,dph_x_mean,dph_y_mean
 
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
@@ -340,16 +341,16 @@ CONTAINS
        & cfu1,cfd1,dfu1,efu1,dfd1,efd1,          &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1,   &
        & config_flags,                                                              &
-       & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
-       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
-       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
-       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
+       & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN,              &
+       & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,              &
+       & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                      &
+       & V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                      &
        & WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
-       & FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                            &
-       & FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                               &
-       & FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                               &
-       & FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                               &
-       & FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                               &
+       & FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                                 &
+       & FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                                 &
+       & FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                 &
+       & FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                 &
+       & FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                 &
        & FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
        & FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
        & FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
@@ -361,32 +362,33 @@ CONTAINS
        & FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
        & FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
        & FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
-       & FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                    &
-       & FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                                &
-       & FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                    &
-       & FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                    &
+       & FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
+       & FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
+       & FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                 &
+       & FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                 &
        & T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
        & RHOD_MEAN,MUT_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN,w_diag,                                 &
-       & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,        &
+       & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,  &
        & fux_adv, fuy_adv, fuz_adv, fvx_adv, fvy_adv, fvz_adv, fwx_adv, fwy_adv, fwz_adv,        &
-       & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                      &
-       & fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs,                         &
+       & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                   &
+       & fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs,                 &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                                      &
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, Q,                                    &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
-       & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                       &
+       & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                            &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
        & last_timestep, dt                                                                       )
 
     IMPLICIT NONE
 
-    INTEGER , INTENT(IN)        :: ids, ide, jds, jde, kds, kde,  &
+    INTEGER , INTENT(IN)        ::      &
+         ids, ide, jds, jde, kds, kde,  &
          ims, ime, jms, jme, kms, kme,  &
          its, ite, jts, jte, kts, kte
 
@@ -409,16 +411,16 @@ CONTAINS
     LOGICAL, INTENT(IN) :: do_avg
 
     REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
-       T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN, &
+       T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN,          &
        Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
        U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
        V_MEAN,VX_MEAN,VY_MEAN,VZ_MEAN,FVX_ADV_MEAN,FVY_ADV_MEAN,FVZ_ADV_MEAN,                  &
-       WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,  &
-       FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                                           &
-       FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                                              &
-       FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                              &
-       FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                              &
-       FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                              &
+       WW_MEAN,WD_MEAN,ZWIND_MEAN,WX_MEAN,WY_MEAN,WZ_MEAN,FWX_ADV_MEAN,FWY_ADV_MEAN,FWZ_ADV_MEAN,                  &
+       FTX_CORR_MEAN,FTY_CORR_MEAN,CORR_DTDT_MEAN,                                                                 &
+       FQX_CORR_MEAN,FQY_CORR_MEAN,CORR_DQDT_MEAN,                                                                 &
+       FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                                 &
+       FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                                 &
+       FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                                 &
        FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
        FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
        FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
@@ -430,10 +432,10 @@ CONTAINS
        FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
        FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
        FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
-       FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                    &
-       FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                                &
-       FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                    &
-       FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                    &
+       FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
+       FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
+       FVX_SGS_MEAN,FVY_SGS_MEAN,FVZ_SGS_MEAN,                                                 &
+       FWX_SGS_MEAN,FWY_SGS_MEAN,FWZ_SGS_MEAN,                                                 &
        T_TEND_RADLW_MEAN,T_TEND_RADSW_MEAN,T_TEND_MP_MEAN,Q_TEND_MP_MEAN,                      &
        U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
@@ -445,17 +447,17 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
-         u_save, v_save, w_2, w_save, ru, rv, ww,  &
-         th_save, Q, ph_1, ph_2, phb, zx, zy, alt, &
-         ftx_small, fty_small, ftz_small,  &
-         fqx_adv, fqy_adv, fqz_adv,        &
-         fux_adv, fuy_adv, fuz_adv,        &
-         fvx_adv, fvy_adv, fvz_adv,        &
-         fwx_adv, fwy_adv, fwz_adv,        &
-         t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp, &
-         u_tend_pg,u_tend_cor_curv,                         &
-         v_tend_pg,v_tend_cor_curv,                         &
-         w_tend_pg,w_tend_cor_curv,                         &
+         u_save, v_save, w_2, w_save, ru, rv, ww,              &
+         th_save, Q, ph_1, ph_2, phb, zx, zy, alt,             &
+         ftx_small, fty_small, ftz_small,                      &
+         fqx_adv, fqy_adv, fqz_adv,                            &
+         fux_adv, fuy_adv, fuz_adv,                            &
+         fvx_adv, fvy_adv, fvz_adv,                            &
+         fwx_adv, fwy_adv, fwz_adv,                            &
+         t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,    &
+         u_tend_pg,u_tend_cor_curv,                            &
+         v_tend_pg,v_tend_cor_curv,                            &
+         w_tend_pg,w_tend_cor_curv,                            &
          ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
@@ -482,14 +484,14 @@ CONTAINS
     REAL :: local_count, count_p1, ftz, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,       &
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
-            rhoxz_mean_flx, rhoyz_mean_flx, &
-            mu_mean, mux_mean, muy_mean, muxy_mean, muxz_mean, muyz_mean,        &
-            fqx_dfac, fqy_dfac, &
-            fux_dfac, fuy_dfac, &
-            fvx_dfac, fvy_dfac, &
-            fwx_dfac, fwy_dfac, &
-            thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,     &
-            ru_d, rv_d, ww_d,               &
+            rhoxz_mean_flx, rhoyz_mean_flx,                                                &
+            mu_mean, mux_mean, muy_mean, muxy_mean, muxz_mean, muyz_mean,                  &
+            fqx_dfac, fqy_dfac,                                                            &
+            fux_dfac, fuy_dfac,                                                            &
+            fvx_dfac, fvy_dfac,                                                            &
+            fwx_dfac, fwy_dfac,                                                            &
+            thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,        &
+            ru_d, rv_d, ww_d,                                                              &
             rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac
 
     REAL :: thetax2, thetay2, thetaz2,                 &
@@ -526,13 +528,13 @@ CONTAINS
         DO j=jts-1,jte+1
         DO k=kts,kte
         DO i=its-1,ite+1
-          call stagger_z(u8w(i,k,j), u_save(i,:,j),  &
+          call stagger_z(u8w(i,k,j), u_save(i,:,j),          &
                          cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                          k, kms, kme, kde              )
-          call stagger_z(v8w(i,k,j), v_save(i,:,j),  &
+          call stagger_z(v8w(i,k,j), v_save(i,:,j),          &
                          cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                          k, kms, kme, kde              )
-          call stagger_z(rho8w(i,k,j), rho_d(i,:,j),  &
+          call stagger_z(rho8w(i,k,j), rho_d(i,:,j),         &
                          cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                          k, kms, kme, kde              )
           rdzdt(i,k,j) = rho8w(i,k,j)*(ph_2(i,k,j) - ph_1(i,k,j))/(g*dt)
@@ -623,14 +625,14 @@ CONTAINS
           IF (last_timestep) THEN
             !mean staggered densities to normalize fluxes
             rho_mean_flx = RHOD_MEAN(i,k,j)
-            call stagger_z(rhoz_mean_flx, RHOD_MEAN(i,:,j), &
-                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+            call stagger_z(rhoz_mean_flx, RHOD_MEAN(i,:,j),   &
+                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,  &
                          k, kms, kme, kde                   )
             call stagger_z(rhoxz_mean_flx, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i-1,:,j)), &
-                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,                            &
                          k, kms, kme, kde                   )
             call stagger_z(rhoyz_mean_flx, 0.5*(RHOD_MEAN(i,:,j) + RHOD_MEAN(i,:,j-1)), &
-                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,      &
+                         cf1, cf2, cf3, cfn, cfn1, fnm, fnp,                            &
                          k, kms, kme, kde                   )
             rhox_mean_flx = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i-1,k,j))
             rhoy_mean_flx = 0.5*(RHOD_MEAN(i,k,j) + RHOD_MEAN(i,k,j-1))
@@ -682,14 +684,14 @@ CONTAINS
 
             !determine staggered variables from total fluxes
             IF (config_flags%output_tres_fluxes) THEN
-              call get_staggered_from_fluxes(thetax, thetay, thetaz,      &
-                                             ftx_adv, fty_adv, ftz_adv,&
+              call get_staggered_from_fluxes(thetax, thetay, thetaz,                   &
+                                             ftx_adv, fty_adv, ftz_adv,                &
                                              ru(i,k,j), rv(i,k,j), ww(i,k,j), th_save, &
                                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
                                              .false., .false., .false.,                &
-                                             i, j, k,                             &
-                                             ids, ide, jds, jde, kds, kde,        &
-                                             ims, ime, jms, jme, kms, kme         )
+                                             i, j, k,                                  &
+                                             ids, ide, jds, jde, kds, kde,             &
+                                             ims, ime, jms, jme, kms, kme              )
 
               !build averages
               IF (k .lt. kde) THEN
@@ -712,7 +714,7 @@ CONTAINS
                 !2nd order fluxes
                 thetax2 = 0.5*(th_save(i-1,k,j) + th_save(i,k,j))
                 thetay2 = 0.5*(th_save(i,k,j-1) + th_save(i,k,j))
-                call stagger_z(thetaz2, th_save(i,:,j),           &
+                call stagger_z(thetaz2, th_save(i,:,j),            &
                                cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
                                k, kms, kme, kde                   )
                 ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
@@ -730,8 +732,8 @@ CONTAINS
 
             IF (config_flags%output_qres_fluxes) THEN
               !staggered q, different ru,rv,ww needed
-              call get_staggered_from_fluxes(qx, qy, qz,                 &
-                                             fqx_adv, fqy_adv, fqz_adv,  &
+              call get_staggered_from_fluxes(qx, qy, qz,                               &
+                                             fqx_adv, fqy_adv, fqz_adv,                &
                                              ru_m(i,k,j), rv_m(i,k,j), ww_m(i,k,j), Q, &
                                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,       &
                                              .false., .false., .false.,                &
@@ -784,9 +786,9 @@ CONTAINS
               ru_d = 0.5*(ru(i,k,j)+ru(i+1,k,j))
               rv_d = 0.5*(rv(i-1,k,j)+rv(i,k,j))
               ww_d = 0.5*(ww(i-1,k,j)+ww(i,k,j))
-              call get_staggered_from_fluxes(ux, uy, uz,                 &
-                                             fux_adv, fuy_adv, fuz_adv,  &
-                                             ru_d, rv_d, ww_d, u_save,        &
+              call get_staggered_from_fluxes(ux, uy, uz,                        &
+                                             fux_adv, fuy_adv, fuz_adv,         &
+                                             ru_d, rv_d, ww_d, u_save,          &
                                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
                                              .true., .false., .false.,          &
                                              i, j, k,                           &
@@ -837,9 +839,9 @@ CONTAINS
               ru_d = 0.5*(ru(i,k,j-1)+ru(i,k,j))
               rv_d = 0.5*(rv(i,k,j+1)+rv(i,k,j))
               ww_d = 0.5*(ww(i,k,j-1)+ww(i,k,j))
-              call get_staggered_from_fluxes(vx, vy, vz,                 &
-                                             fvx_adv, fvy_adv, fvz_adv,  &
-                                             ru_d, rv_d, ww_d, v_save,        &
+              call get_staggered_from_fluxes(vx, vy, vz,                        &
+                                             fvx_adv, fvy_adv, fvz_adv,         &
+                                             ru_d, rv_d, ww_d, v_save,          &
                                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
                                              .false., .true., .false.,          &
                                              i, j, k,                           &
@@ -902,9 +904,9 @@ CONTAINS
                 ww_d = 1 !not needed
               ENDIF
 
-              call get_staggered_from_fluxes(wx, wy, wz,                 &
-                                             fwx_adv, fwy_adv, fwz_adv,  &
-                                             ru_d, rv_d, ww_d, w_save,        &
+              call get_staggered_from_fluxes(wx, wy, wz,                        &
+                                             fwx_adv, fwy_adv, fwz_adv,         &
+                                             ru_d, rv_d, ww_d, w_save,          &
                                              cf1, cf2, cf3, cfn, cfn1, fnm, fnp,&
                                              .false., .false., .true.,          &
                                              i, j, k,                           &

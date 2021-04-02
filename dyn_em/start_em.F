@@ -1328,6 +1328,8 @@ endif
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
+              &   grid%t_tend_damp_mean,grid%q_tend_damp_mean,                                           &
+              &   grid%u_tend_damp_mean,grid%v_tend_damp_mean,grid%w_tend_damp_mean,                     &
               &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean                )
 
          call wrf_debug(200,'In start_em, after zero_avgflx call')

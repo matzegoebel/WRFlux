@@ -1073,12 +1073,15 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
             sources["cu"] = dat_mean["Q_TEND_CU_MEAN"]
     else:
         # pressure gradient, buoyancy, coriolis and curvature
+        # TODO: add descriptions for sources! only add sources if mp, rad is present
         sources["pg"] = dat_mean["{}_TEND_PG_MEAN".format(VAR)]
         sources["cor_curv"] = dat_mean["{}_TEND_COR_CURV_MEAN".format(VAR)]
         if (VAR != "W") and cu:
             cu = dat_mean["{}_TEND_CU_MEAN".format(VAR)]
             # convection tendency is on mass levels
             sources["cu"] = stagger_like(cu, ref, cyclic=cyclic)
+    sources["damp"] = dat_mean["{}_TEND_DAMP_MEAN".format(VAR)]
+
     # calculate tendencies from sgs fluxes
     sgs = []
     sgsflux = []

@@ -121,8 +121,8 @@ SUBROUTINE solve_em ( grid , config_flags  &
    
    ! Changes in tendency at this timestep
    real ,DIMENSION(grid%sm31:grid%em31,grid%sm32:grid%em32,grid%sm33:grid%em33) :: h_tendency, &
-                                                                                   z_tendency, &
-                                                                                   dummy
+                                                                                   z_tendency
+
                                                                                    
    ! Whether advection should produce decoupled horizontal and vertical advective tendency outputs
    LOGICAL                        :: tenddec
@@ -811,6 +811,7 @@ BENCH_START(rk_tend_tim)
                          ,grid%u_tend_pg, grid%u_tend_cor_curv                                                 &
                          ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
                          ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
+                         ,grid%t_tend_damp, grid%u_tend_damp, grid%v_tend_damp, grid%w_tend_damp               &
                          ,grid%ftx_adv, grid%fty_adv, grid%ftz_adv                                          &
                          ,grid%fux_adv, grid%fuy_adv, grid%fuz_adv                                             &
                          ,grid%fvx_adv, grid%fvy_adv, grid%fvz_adv                                             &
@@ -1445,7 +1446,7 @@ BENCH_START(advance_w_tim)
                            grid%rdn, grid%cf1, grid%cf2, grid%cf3,     &
                            grid%msftx, grid%msfty,                     &
                            config_flags,  config_flags%top_lid,        &
-                           rk_step, grid%w_tend_pg,                    &
+                           rk_step, grid%w_tend_pg, grid%w_tend_damp,  &
                            ids,ide, jds,jde, kds,kde,                  &
                            ims,ime, jms,jme, kms,kme,                  &
                            grid%i_start(ij), grid%i_end(ij),           &
@@ -2213,8 +2214,6 @@ BENCH_START(rk_scalar_tend_tim)
                            moist(ims,kms,jms,im),                            &
                            moist_tend(ims,kms,jms,im),                       &
                            advect_tend,h_tendency,z_tendency,grid%rqvften,   & 
-                           grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,         &
-                           output_fluxes,                                    &
                            grid%qv_base, .true., grid%fnm, grid%fnp,         &
                            grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,&
                            grid%msfvy, grid%msftx,grid%msfty,                & 
@@ -2229,7 +2228,10 @@ BENCH_START(rk_scalar_tend_tim)
                            ims, ime, jms, jme, kms, kme,     &
                            grid%i_start(ij), grid%i_end(ij), &
                            grid%j_start(ij), grid%j_end(ij), &
-                           k_start    , k_end               )
+                           k_start    , k_end,               &
+                           grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,         &
+                           output_fluxes, grid%q_tend_damp,                  &
+                           grid%t_tend_damp, th_phy                         )
 
                IF( rk_step == 1 .AND. config_flags%use_q_diabatic == 1 )THEN
                IF( im.eq.p_qv .or. im.eq.p_qc )THEN
@@ -2373,7 +2375,6 @@ BENCH_START(tke_adv_tim)
 
            CALL wrf_debug ( 200 , ' call rk_scalar_tend for tke' )
            tenddec = .false.
-           output_fluxes = .false.
            CALL rk_scalar_tend ( 1, 1, config_flags, tenddec,                      & 
                             rk_step, dt_rk,                                        &
                             grid%ru_m, grid%rv_m, grid%ww_m,                       &
@@ -2384,7 +2385,6 @@ BENCH_START(tke_adv_tim)
                             grid%tke_2,                                            &
                             tke_tend(ims,kms,jms),                                 &
                             advect_tend,h_tendency,z_tendency,grid%rqvften,        & 
-                            dummy, dummy, dummy, output_fluxes, &
                             grid%qv_base, .false., grid%fnm, grid%fnp,             &
                             grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv,     &
                             grid%msfvy, grid%msftx,grid%msfty,                     &
@@ -2467,7 +2467,6 @@ BENCH_START(chem_adv_tim)
              CALL wrf_debug ( 200 , ' call rk_scalar_tend in chem_tile_loop_1' )
              tenddec = (( config_flags%chemdiag == USECHEMDIAG ) .and. &
                         ( adv_ct_indices(ic) >= PARAM_FIRST_SCALAR ))
-             output_fluxes = .false.
              CALL rk_scalar_tend ( ic, ic, config_flags, tenddec,                & 
                               rk_step, dt_rk,                                    &
                               grid%ru_m, grid%rv_m, grid%ww_m,                   &
@@ -2478,7 +2477,6 @@ BENCH_START(chem_adv_tim)
                               chem(ims,kms,jms,ic),                              &
                               chem_tend(ims,kms,jms,ic),                         &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
-                              dummy, dummy, dummy, output_fluxes,                &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2630,7 +2628,6 @@ BENCH_START(tracer_adv_tim)
 
              CALL wrf_debug ( 15 , ' call rk_scalar_tend in tracer_tile_loop_1' )
              tenddec = .false.
-             output_fluxes = .false.
              CALL rk_scalar_tend ( ic, ic, config_flags, tenddec,                & 
                               rk_step, dt_rk,                                    &
                               grid%ru_m, grid%rv_m, grid%ww_m,                   &
@@ -2641,7 +2638,6 @@ BENCH_START(tracer_adv_tim)
                               tracer(ims,kms,jms,ic),                            &
                               tracer_tend(ims,kms,jms,ic),                       &
                               advect_tend,h_tendency,z_tendency,grid%rqvften,    & 
-                              dummy, dummy, dummy, output_fluxes,                &
                               grid%qv_base, .false., grid%fnm, grid%fnp,         &
                               grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                               grid%msfvy, grid%msftx,grid%msfty,                 &
@@ -2773,7 +2769,6 @@ BENCH_END(tracer_adv_tim)
 
            CALL wrf_debug ( 200 , ' call rk_scalar_tend' )
            tenddec = .false.
-           output_fluxes = .false.
            CALL rk_scalar_tend ( is, is, config_flags, tenddec,                   & 
                                  rk_step, dt_rk,                                  &
                                  grid%ru_m, grid%rv_m, grid%ww_m,                 &
@@ -2784,7 +2779,6 @@ BENCH_END(tracer_adv_tim)
                                  scalar(ims,kms,jms,is),                          &
                                  scalar_tend(ims,kms,jms,is),                     &
                                  advect_tend,h_tendency,z_tendency,grid%rqvften,  & 
-                                 dummy, dummy, dummy, output_fluxes,              &
                                  grid%qv_base, .false., grid%fnm, grid%fnp,       &
                                  grid%msfux,grid%msfuy, grid%msfvx, grid%msfvx_inv, &
                                  grid%msfvy, grid%msftx,grid%msfty,               &
@@ -4693,6 +4687,8 @@ BENCH_END(bc_2d_tim)
                  &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
                  &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
                  &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
+                 &   grid%t_tend_damp_mean,grid%q_tend_damp_mean,                                           &
+                 &   grid%u_tend_damp_mean,grid%v_tend_damp_mean,grid%w_tend_damp_mean,                     &
                  &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean                )
             CALL wrf_debug(200,'In solve_em, after zero_avgflx call')
          ENDDO
@@ -4771,6 +4767,8 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg_mean,grid%u_tend_cor_curv_mean,                                         &
               &   grid%v_tend_pg_mean,grid%v_tend_cor_curv_mean,                                         &
               &   grid%w_tend_pg_mean,grid%w_tend_cor_curv_mean,                                         &
+              &   grid%t_tend_damp_mean,grid%q_tend_damp_mean,                                           &
+              &   grid%u_tend_damp_mean,grid%v_tend_damp_mean,grid%w_tend_damp_mean,                     &
               &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean,grid%w_diag,  &
               &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv,                                              &
               &   grid%ftx_small, grid%fty_small, grid%ftz_small,                                        &
@@ -4786,6 +4784,7 @@ BENCH_END(bc_2d_tim)
               &   grid%u_tend_pg,grid%u_tend_cor_curv,                                                   &
               &   grid%v_tend_pg,grid%v_tend_cor_curv,                                                   &
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                                   &
+              &   grid%t_tend_damp,grid%q_tend_damp,grid%u_tend_damp,grid%v_tend_damp,grid%w_tend_damp,  &
               &   grid%u_save, grid%v_save, grid%w_2, grid%w_save, grid%ru, grid%rv, ww1,                &
               &   grid%th_save, moist(:,:,:,P_QV),                                                       &
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                            &

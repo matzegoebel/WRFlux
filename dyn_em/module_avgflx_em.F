@@ -48,6 +48,7 @@ CONTAINS
        & u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
        & v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
        & w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
+       & t_tend_damp_mean,q_tend_damp_mean,u_tend_damp_mean,v_tend_damp_mean,w_tend_damp_mean,        &
        & rhod_mean,mut_mean,z_mean,dph_x_mean,dph_y_mean                                              )
 
     IMPLICIT NONE
@@ -96,6 +97,7 @@ CONTAINS
        u_tend_pg_mean,u_tend_cor_curv_mean,                                                         &
        v_tend_pg_mean,v_tend_cor_curv_mean,                                                         &
        w_tend_pg_mean,w_tend_cor_curv_mean,                                                         &
+       t_tend_damp_mean,q_tend_damp_mean,u_tend_damp_mean,v_tend_damp_mean,w_tend_damp_mean,        &
        rhod_mean,z_mean,dph_x_mean,dph_y_mean
 
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
@@ -177,6 +179,7 @@ CONTAINS
             t_tend_radsw_mean(i,k,j) = 0.
             t_tend_mp_mean(i,k,j) = 0.
             t_tend_cu_mean(i,k,j) = 0.
+            t_tend_damp_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_q_fluxes > 0) then
@@ -213,6 +216,7 @@ CONTAINS
           if (config_flags%output_q_fluxes .eq. 1) then
             q_tend_mp_mean(i,k,j) = 0.
             q_tend_cu_mean(i,k,j) = 0.
+            q_tend_damp_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_u_fluxes > 0) then
@@ -249,6 +253,7 @@ CONTAINS
             u_tend_pg_mean(i,k,j) = 0.
             u_tend_cor_curv_mean(i,k,j) = 0.
             u_tend_cu_mean(i,k,j) = 0.
+            u_tend_damp_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_v_fluxes > 0) then
@@ -285,6 +290,7 @@ CONTAINS
             v_tend_pg_mean(i,k,j) = 0.
             v_tend_cor_curv_mean(i,k,j) = 0.
             v_tend_cu_mean(i,k,j) = 0.
+            v_tend_damp_mean(i,k,j) = 0.
           endif
         endif
         if (config_flags%output_w_fluxes > 0) then
@@ -322,6 +328,7 @@ CONTAINS
           if (config_flags%output_w_fluxes .eq. 1) then
             w_tend_pg_mean(i,k,j) = 0.
             w_tend_cor_curv_mean(i,k,j) = 0.
+            w_tend_damp_mean(i,k,j) = 0.
           endif
         endif
 
@@ -377,6 +384,7 @@ CONTAINS
        & U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        & V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
+       & T_TEND_DAMP_MEAN,Q_TEND_DAMP_MEAN,U_TEND_DAMP_MEAN,V_TEND_DAMP_MEAN,W_TEND_DAMP_MEAN,   &
        & RHOD_MEAN,MUT_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN,w_diag,                                 &
        & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,  &
        & fux_adv, fuy_adv, fuz_adv, fvx_adv, fvy_adv, fvz_adv, fwx_adv, fwy_adv, fwz_adv,        &
@@ -388,6 +396,7 @@ CONTAINS
        & u_tend_pg,u_tend_cor_curv,                                                              &
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
+       & t_tend_damp,q_tend_damp,u_tend_damp,v_tend_damp,w_tend_damp,                            &
        & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, Q,                                    &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                            &
@@ -450,6 +459,7 @@ CONTAINS
        U_TEND_PG_MEAN,U_TEND_COR_CURV_MEAN,                                                    &
        V_TEND_PG_MEAN,V_TEND_COR_CURV_MEAN,                                                    &
        W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
+       T_TEND_DAMP_MEAN,Q_TEND_DAMP_MEAN,U_TEND_DAMP_MEAN,V_TEND_DAMP_MEAN,W_TEND_DAMP_MEAN,   &
        RHOD_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN
 
     REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: MUT_MEAN
@@ -470,6 +480,7 @@ CONTAINS
          u_tend_pg,u_tend_cor_curv,                            &
          v_tend_pg,v_tend_cor_curv,                            &
          w_tend_pg,w_tend_cor_curv,                            &
+         t_tend_damp,q_tend_damp,u_tend_damp,v_tend_damp,w_tend_damp, &
          ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
@@ -1046,6 +1057,15 @@ CONTAINS
             ENDDO
             ENDDO
           ENDIF
+          IF (( config_flags%diff_6th_opt .ne. 0 ) .or. (config_flags%damp_opt .eq. 2 )) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              T_TEND_DAMP_MEAN(i,k,j)  = (local_count*T_TEND_DAMP_MEAN(i,k,j) + t_tend_damp(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_q_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
@@ -1071,6 +1091,15 @@ CONTAINS
             ENDDO
             ENDDO
           ENDIF
+          IF ( config_flags%diff_6th_opt .ne. 0 ) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              Q_TEND_DAMP_MEAN(i,k,j)  = (local_count*Q_TEND_DAMP_MEAN(i,k,j) + q_tend_damp(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
         IF (config_flags%output_u_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
@@ -1078,6 +1107,7 @@ CONTAINS
           DO i=its,ite
             U_TEND_PG_MEAN(i,k,j)  = (local_count*U_TEND_PG_MEAN(i,k,j) + u_tend_pg(i,k,j) )/count_p1
             U_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*U_TEND_COR_CURV_MEAN(i,k,j) + u_tend_cor_curv(i,k,j) )/count_p1
+            U_TEND_DAMP_MEAN(i,k,j)  = (local_count*U_TEND_DAMP_MEAN(i,k,j) + u_tend_damp(i,k,j) )/count_p1
           ENDDO
           ENDDO
           ENDDO
@@ -1104,6 +1134,7 @@ CONTAINS
           DO i=its,min(ite, ide-1)
             V_TEND_PG_MEAN(i,k,j)  = (local_count*V_TEND_PG_MEAN(i,k,j) + v_tend_pg(i,k,j) )/count_p1
             V_TEND_COR_CURV_MEAN(i,k,j)  = (local_count*V_TEND_COR_CURV_MEAN(i,k,j) + v_tend_cor_curv(i,k,j) )/count_p1
+            V_TEND_DAMP_MEAN(i,k,j)  = (local_count*V_TEND_DAMP_MEAN(i,k,j) + v_tend_damp(i,k,j) )/count_p1
           ENDDO
           ENDDO
           ENDDO
@@ -1133,6 +1164,15 @@ CONTAINS
           ENDDO
           ENDDO
           ENDDO
+          IF (( config_flags%diff_6th_opt .ne. 0 ) .or. (config_flags%damp_opt .gt. 0 ) .or. ( config_flags%w_damping .eq. 1 )) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,kte
+            DO i=its,min(ite, ide-1)
+              W_TEND_DAMP_MEAN(i,k,j)  = (local_count*W_TEND_DAMP_MEAN(i,k,j) + w_tend_damp(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
         ENDIF
       endif
 

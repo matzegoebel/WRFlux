@@ -806,6 +806,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    ENDDO
    ENDDO
    DO i = i_start_up, i_end_up
+   !TODOm: mudf_xy should be added to damping tendency
      MUDF_XY(i)= -emdiv*dx*(MUDF(i,j)-MUDF(i-1,j))/msfuy(i,j)
    ENDDO
    DO k = k_start, k_end
@@ -878,6 +879,7 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    ENDDO
    DO i = i_start, i_end
      MUDF_XY(i)= -emdiv*dy*(MUDF(i,j)-MUDF(i,j-1))*msfvx_inv(i,j)
+     !TODOm: mudf_xy should be added to damping tendency
    ENDDO
      IF (     ( j >= j_start_vp)  &
        .and.( j <= j_end_vp  ) )  THEN
@@ -1256,7 +1258,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
                       dnw, fnm, fnp, rdnw, rdn,   &
                       cf1, cf2, cf3, msftx, msfty,&
                       config_flags, top_lid,      &
-                      rk_step, w_tend_pg,         &
+                      rk_step, w_tend_pg, w_tend_damp, &
                       ids,ide, jds,jde, kds,kde,  & ! domain dims
                       ims,ime, jms,jme, kms,kme,  & ! memory dims
                       its,ite, jts,jte, kts,kte  )  ! tile   dims
@@ -1321,7 +1323,7 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
       REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f, &
                                                   c3h, c4h, c3f, c4f
 
-      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) :: w_tend_pg
+      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) :: w_tend_pg, w_tend_damp
 
 !  Stack based 3d data, tile size.
       REAL, DIMENSION( its:ite ) :: mut_inv, msft_inv
@@ -1544,7 +1546,12 @@ SUBROUTINE advance_w( w, rw_tend, ww, w_save, u, v,  &
           if(hk .ge. hbot)then
             dampwt(k) = dampmag*sin(0.5*pi*(hk-hbot)/hdepth)*sin(0.5*pi*(hk-hbot)/hdepth)
           endif
+          w_old(i,k,j) = w(i,k,j)
           w(i,k,j) = (w(i,k,j) - dampwt(k)*(c1f(k)*mut(i,j)+c2f(k))*w_save(i,k,j))/(1.+dampwt(k))
+          IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+            rw_tend_s = (w(i,k,j) - w_old(i,k,j))/config_flags%dt
+            w_tend_damp(i,k,j) = w_tend_damp(i,k,j) + rw_tend_s*msfty(i,j)/(c1f(k)*mut(i,j)+c2f(k))
+          ENDIF
       ENDDO
       ENDDO
     ENDIF
@@ -2087,6 +2094,7 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
         DO j = jts,min(jte,jde-1)
         DO k = kts,min(kte,kde-1)
         DO i = its,ite
+          !TODOm: subtract mudf_xy
           u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + (u_2(i,k,j) - u_1(i,k,j))/config_flags%dt &
                              - ru_tend(i,k,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k))
         ENDDO
@@ -2098,6 +2106,7 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
         DO j = jts,jte
         DO k = kts,min(kte,kde-1)
         DO i = its,min(ite,ide-1)
+          !TODOm: subtract mudf_xy
           v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + (v_2(i,k,j) - v_1(i,k,j))/config_flags%dt &
                              - rv_tend(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))
         ENDDO

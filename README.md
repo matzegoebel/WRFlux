@@ -45,9 +45,10 @@ The time-averaged fluxes are output in kinematic form (divided by mean dry air m
 
 The other source terms that are output beside resolved and SGS fluxes for `output_{t,q,u,v,w}_fluxes=1` are the following:
 
-- **t**: microphysics, radiation (SW and LW)
-- **q**: microphysics
-- **u,v,w**: Coriolis and curvature, pressure gradient (from RK and acoustic step)
+- **t**: microphysics, radiation (SW and LW), convection, damping + numerical diffusion
+- **q**: microphysics, convection, numerical diffusion
+- **u,v,w**: Coriolis and curvature, pressure gradient (from RK and acoustic step), damping + numerical diffusion
+- **u,v**: convection
 - **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both share output variable with pressure gradient tendency)
 
 
@@ -188,7 +189,6 @@ Note the following limitations:
 
 * For hydrostatic simulations (`non_hydrostatic=.false.`) the w-budget is not correct.
 * SGS horizontal fluxes can only be retrieved for `diff_opt=2`.
-* Tendencies from the cumulus scheme, sixth-order diffusion, and damping are not yet output explicitly. However, the residual of the budget can be used to assess them.
 * For non-periodic boundary conditions, the budget calculation for the boundary grid points does not work.
 * If using WENO or monotonic advection for scalars, energy is not perfectly conserved. Therefore, when the model uses moist theta (`use_theta_m=1`), the dry theta-budget obtained with `output_dry_theta_fluxes=.true.` is not perfectly closed. 
 

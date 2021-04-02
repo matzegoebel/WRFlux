@@ -193,6 +193,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          u_tend_pg,u_tend_cor_curv,                       &
                          v_tend_pg,v_tend_cor_curv,                       &
                          w_tend_pg,w_tend_cor_curv,                       &
+                         t_tend_damp,u_tend_damp,v_tend_damp,w_tend_damp, &
                          ftx, fty, ftz,                                   &
                          fux, fuy, fuz, fvx, fvy, fvz, fwx, fwy, fwz, qv, &
                          mu_tend, u_save, v_save, w_save, ph_save,        &
@@ -291,7 +292,11 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                                          rw_tendf, &
                                                          t_tendf,  &
                                                          ph_tendf, &
-                                                         cqw
+                                                         cqw,      &
+                                                      t_tend_damp, &
+                                                      u_tend_damp, &
+                                                      v_tend_damp, &
+                                                      w_tend_damp
 
    REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(OUT) :: dph_x, dph_y
 
@@ -356,7 +361,9 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL    :: kdift, khdq, kvdq, cfn, cfn1, cf1, cf2, cf3
    INTEGER :: i,j,k
    INTEGER :: time_step
-   LOGICAL :: output_fluxes, advect_thdry
+   LOGICAL :: output_fluxes, advect_thdry, &
+              save_ttend, save_utend, save_vtend, save_wtend, &
+              save_utend_end, save_vtend_end, save_wtend_end
 
 !<DESCRIPTION>
 !
@@ -666,11 +673,45 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                   ims, ime, jms, jme, kms, kme,      &
                   its, ite, jts, jte, kts, kte      )
 
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
-       ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+     save_ttend = .false.
+     save_utend = .false.
+     save_vtend = .false.
+     save_wtend = .false.
+     save_utend_end = .false.
+     save_vtend_end = .false.
+     save_wtend_end = .false.
+     IF (config_flags%output_t_fluxes .eq. 1) THEN
+       save_ttend = .true.
+       IF (rk_step == 1) THEN
+         t_tend_damp(:,:,:) = 0
+       ENDIF
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
-       rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+     IF (config_flags%output_u_fluxes .eq. 1) THEN
+       save_utend = .true.
+       IF (rk_step == 1) THEN
+         u_tend_damp(:,:,:) = 0
+       ELSEIF (rk_step == config_flags%rk_ord) THEN
+         save_utend_end = .true.
+         ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
+       ENDIF
+     ENDIF
+     IF (config_flags%output_v_fluxes .eq. 1) THEN
+       save_vtend = .true.
+       IF (rk_step == 1) THEN
+         v_tend_damp(:,:,:) = 0
+       ELSEIF (rk_step == config_flags%rk_ord) THEN
+         save_vtend_end = .true.
+         rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
+       ENDIF
+     ENDIF
+     IF (config_flags%output_w_fluxes .eq. 1) THEN
+       save_wtend = .true.
+       IF (rk_step == 1) THEN
+         w_tend_damp(:,:,:) = 0
+       ELSEIF (rk_step == config_flags%rk_ord) THEN
+         save_wtend_end = .true.
+         rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
+       ENDIF
      ENDIF
      CALL horizontal_pressure_gradient( ru_tend,rv_tend,                 &
                                          ph,alt,p,pb,al,php,cqu,cqv,     &
@@ -686,7 +727,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ! reconstruct momentum tendencies from pressure gradient
      ! and decouple from dry mass and map scale factors
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     ! TODOm: do inside pg function?
+     IF (save_utend_end) THEN
           DO j = jts,min(jte,jde-1)
           DO k = kts,min(kte,kde-1)
           DO i = its,ite
@@ -695,7 +737,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF (save_vtend_end) THEN
           DO j = jts,jte
           DO k = kts,min(kte,kde-1)
           DO i = its,min(ite,ide-1)
@@ -706,16 +748,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      ENDIF
 
      IF (non_hydrostatic) THEN
-          IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
-            rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
-          ENDIF
           CALL pg_buoy_w( rw_tend, p, cqw, mu, mub,       &
                           c1f,c2f,                        &
                           rdnw, rdn, g, msftx, msfty,     &
                           ids, ide, jds, jde, kds, kde,   &
                           ims, ime, jms, jme, kms, kme,   &
                           its, ite, jts, jte, kts, kte   )
-          IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+          IF (save_wtend_end) THEN
                 DO j = jts,min(jte,jde-1)
                 DO k = kts,kde
                 DO i = its,min(ite,ide-1)
@@ -729,19 +768,20 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
      CALL w_damp   ( rw_tend, max_vert_cfl,             &
                       max_horiz_cfl,                    &
                       u, v, ww, w, mut, c1f, c2f, rdnw, &
-                      rdx, rdy, msfux, msfuy, msfvx,    &
-                      msfvy, dt, config_flags,          &
+                      rdx, rdy, msfux, msfuy, msfty, msfvx,  &
+                      msfvy, dt, w_tend_damp, save_wtend_end, &
+                      config_flags,                     &
                       ids, ide, jds, jde, kds, kde,     &
                       ims, ime, jms, jme, kms, kme,     &
                       its, ite, jts, jte, kts, kte     )
 
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF (save_utend_end) THEN
        ru_tend_old(its:ite, kts:kte, jts:jte) = ru_tend(its:ite, kts:kte, jts:jte)
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF (save_vtend_end) THEN
        rv_tend_old(its:ite, kts:kte, jts:jte) = rv_tend(its:ite, kts:kte, jts:jte)
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+     IF (save_wtend_end) THEN
        rw_tend_old(its:ite, kts:kte, jts:jte) = rw_tend(its:ite, kts:kte, jts:jte)
      ENDIF
 
@@ -783,7 +823,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
      ! reconstruct momentum tendencies from coriolis and curvature
      ! and decouple from dry mass and map scale factors
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_u_fluxes .eq. 1)) THEN
+     IF (save_utend_end) THEN
           DO j = jts,min(jte,jde-1)
           DO k = kts,min(kte,kde-1)
           DO i = its,ite
@@ -792,7 +832,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_v_fluxes .eq. 1)) THEN
+     IF (save_vtend_end) THEN
           DO j = jts,jte
           DO k = kts,min(kte,kde-1)
           DO i = its,min(ite,ide-1)
@@ -801,7 +841,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
           ENDDO
           ENDDO
      ENDIF
-     IF ((rk_step == config_flags%rk_ord) .and. (config_flags%output_w_fluxes .eq. 1)) THEN
+     IF (save_wtend_end) THEN
           DO j = jts,min(jte,jde-1)
           DO k = kts,kte
           DO i = its,min(ite,ide-1)
@@ -909,6 +949,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
     IF ( diff_6th_opt .NE. 0 ) THEN
 
       CALL sixth_order_diffusion( 'u', u, ru_tendf, mut, dt,          &
+                                       u_tend_damp, save_utend,       &
                                        config_flags, c1h, c2h,        &
                                        diff_6th_opt, diff_6th_factor, &
                                        phb, ph,                       &
@@ -921,6 +962,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                        its, ite, jts, jte, kts, kte )
 
       CALL sixth_order_diffusion( 'v', v, rv_tendf, mut, dt,          &
+                                       v_tend_damp, save_vtend,       &
                                        config_flags, c1h, c2h,        &
                                        diff_6th_opt, diff_6th_factor, &
                                        phb, ph,                       &
@@ -934,6 +976,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
       IF (non_hydrostatic)                                            &
       CALL sixth_order_diffusion( 'w', w, rw_tendf, mut, dt,          &
+                                       w_tend_damp, save_wtend,       &
                                        config_flags, c1f, c2f,        &
                                        diff_6th_opt, diff_6th_factor, &
                                        phb, ph,                       &
@@ -946,6 +989,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                        its, ite, jts, jte, kts, kte )
 
       CALL sixth_order_diffusion( 'm', t,  t_tendf, mut, dt,          &
+                                       t_tend_damp, save_ttend,       &
                                        config_flags, c1h, c2h,        &
                                        diff_6th_opt, diff_6th_factor, &
                                        phb, ph,                       &
@@ -962,6 +1006,10 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
     IF( damp_opt .eq. 2 )                                      &
        CALL rk_rayleigh_damp( ru_tendf, rv_tendf,              &
                               rw_tendf, t_tendf,               &
+                              t_tend_damp, u_tend_damp,        &
+                              v_tend_damp, w_tend_damp,        &
+                              save_ttend, save_utend,          &
+                              save_vtend, save_wtend,          &
                               u, v, w, t, t_init,              &
                               c1h, c2h, c1f, c2f,              &
                               mut, muu, muv, ph, phb,          &
@@ -970,6 +1018,17 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                               ids, ide, jds, jde, kds, kde,    &
                               ims, ime, jms, jme, kms, kme,    &
                               its, ite, jts, jte, kts, kte   )
+
+    ! convert to dry theta tendency
+    IF (config_flags%output_dry_theta_fluxes .and. ( config_flags%use_theta_m .eq. 1 ) .and. save_ttend) THEN
+      DO j = jts,min(jte,jde-1)
+      DO k = kts,min(kte,kde-1)
+      DO i = its,min(ite,ide-1)
+        t_tend_damp(i,k,j) = t_tend_damp(i,k,j)/(1. + rvovrd*qv(i,k,j))
+      ENDDO
+      ENDDO
+      ENDDO
+    ENDIF
 
     IF( rad_nudge .eq. 1 )                                     &
        CALL theta_relaxation( t_tendf, t, t_init,              &
@@ -1131,7 +1190,6 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                             scalar_tends, advect_tend,       &
                             h_tendency, z_tendency,          &
                             RQVFTEN,                         &
-                            fqx, fqy, fqz, output_fluxes,    &
                             base, moist_step, fnm, fnp,      &
                             msfux, msfuy, msfvx, msfvx_inv,  &
                             msfvy, msftx, msfty,             &
@@ -1143,7 +1201,9 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                             mix2_off, mix6_off,              &
                             ids, ide, jds, jde, kds, kde,    &
                             ims, ime, jms, jme, kms, kme,    &
-                            its, ite, jts, jte, kts, kte    )
+                            its, ite, jts, jte, kts, kte,    &
+                            fqx, fqy, fqz, output_fluxes_in, &
+                            q_tend_damp, t_tend_damp, th_phy )
 
    IMPLICIT NONE
 
@@ -1152,7 +1212,6 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    TYPE(grid_config_rec_type   ) ,   INTENT(IN   ) :: config_flags
 
    LOGICAL ,                INTENT(IN   ) :: tenddec ! tendency term
-   LOGICAL,                 INTENT(INOUT) :: output_fluxes
 
    INTEGER ,                INTENT(IN   ) :: rk_step, scs, sce
    INTEGER ,                INTENT(IN   ) :: ids, ide, jds, jde, kds, kde, &
@@ -1170,9 +1229,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(INOUT) :: advect_tend
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(  OUT) :: h_tendency, z_tendency
 
-   REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: RQVFTEN,      &
-                                                                  fqx, fqy, fqz
-
+   REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: RQVFTEN
 
    REAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(IN   ) ::     ru,  &
                                                                       rv,  &
@@ -1214,13 +1271,19 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    INTEGER, INTENT(IN   ) :: adv_opt          
    LOGICAL, INTENT(IN   ) :: mix2_off, mix6_off
 
+   LOGICAL, OPTIONAL, INTENT(IN   ) :: output_fluxes_in
+   REAL, OPTIONAL,DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: q_tend_damp,  &
+                                                                           th_phy,       &
+                                                                           fqx, fqy, fqz
+   REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(INOUT) :: t_tend_damp
+
    ! Local data
   
    INTEGER :: im, i,j,k
    INTEGER :: time_step
 
    REAL    :: khdq, kvdq, tendency
-
+   LOGICAL :: output_fluxes, save_qtend
 !<DESCRIPTION>
 !
 ! rk_scalar_tend calls routines that computes scalar tendency from advection
@@ -1231,6 +1294,12 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
 
    khdq = khdif/prandtl
    kvdq = kvdif/prandtl
+
+   IF (present(output_fluxes_in)) THEN
+     output_fluxes = output_fluxes_in
+   ELSE
+     output_fluxes = .false.
+   ENDIF
 
    scalar_loop : DO im = scs, sce
 
@@ -1392,10 +1461,16 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
 
     ENDIF diff_opt1
 
-    IF ( (diff_6th_opt .NE. 0 ) .and. (.not. mix6_off) )              &
+    save_qtend = .false.
+    IF  (moist_step .and. ( im == P_QV) .and. (config_flags%output_q_fluxes .eq. 1)) THEN
+      save_qtend = .true.
+      q_tend_damp(:,:,:) = 0
+    ENDIF
+    IF ( (diff_6th_opt .NE. 0 ) .and. (.not. mix6_off) ) THEN
       CALL sixth_order_diffusion( 'm', scalar(ims,kms,jms,im),        &
                                        scalar_tends(ims,kms,jms,im),  &
-                                       mut, dt, config_flags, c1h,c2h,&
+                                       mut, dt, q_tend_damp, save_qtend, &
+                                       config_flags, c1h,c2h,         &
                                        diff_6th_opt, diff_6th_factor, &
                                        phb, ph,                       &
                                        rdx, rdy,                      &
@@ -1405,6 +1480,18 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                                        ids, ide, jds, jde, kds, kde,  &
                                        ims, ime, jms, jme, kms, kme,  &
                                        its, ite, jts, jte, kts, kte )
+      ! convert t_tend_damp to dry theta
+      IF ((config_flags%output_t_fluxes .eq. 1) .and. config_flags%output_dry_theta_fluxes .and. &
+         (config_flags%use_theta_m .eq. 1) .and. save_qtend) THEN
+        DO j = jts,min(jte,jde-1)
+        DO k = kts,min(kte,kde-1)
+        DO i = its,min(ite,ide-1)
+          t_tend_damp(i,k,j) = t_tend_damp(i,k,j) - rvovrd*q_tend_damp(i,k,j)*th_phy(i,k,j)/(1 + rvovrd*scalar(i,k,j,P_QV))
+        ENDDO
+        ENDDO
+        ENDDO
+      ENDIF
+    ENDIF
 
   ENDIF rk_step_1
 

@@ -2699,8 +2699,9 @@ END SUBROUTINE pg_buoy_w
 
 SUBROUTINE w_damp( rw_tend, max_vert_cfl,max_horiz_cfl, &
                       u, v, ww, w, mut, c1f, c2f, rdnw, &
-                      rdx, rdy, msfux, msfuy,           &
+                      rdx, rdy, msfux, msfuy, msfty,    &
                       msfvx, msfvy, dt,                 &
+                      w_tend_damp, save_wtend,          &
                       config_flags,                     &
                       ids, ide, jds, jde, kds, kde,     &
                       ims, ime, jms, jme, kms, kme,     &
@@ -2719,7 +2720,7 @@ SUBROUTINE w_damp( rw_tend, max_vert_cfl,max_horiz_cfl, &
 
    REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(IN   ) ::   u, v, ww, w
 
-   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(INOUT) ::  rw_tend
+   REAL, DIMENSION( ims:ime, kms:kme , jms:jme ), INTENT(INOUT) ::  rw_tend, w_tend_damp
 
    REAL, INTENT(OUT) ::  max_vert_cfl
    REAL, INTENT(OUT) ::  max_horiz_cfl
@@ -2733,8 +2734,9 @@ SUBROUTINE w_damp( rw_tend, max_vert_cfl,max_horiz_cfl, &
 
    REAL, INTENT(IN)    :: dt
    REAL, INTENT(IN)    :: rdx, rdy
-   REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux, msfuy
+   REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux, msfuy, msfty
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfvx, msfvy
+   LOGICAL, INTENT(IN) :: save_wtend
 
    REAL                :: vert_cfl, cf_n, cf_d, maxdub, maxdeta
 
@@ -2834,6 +2836,9 @@ SUBROUTINE w_damp( rw_tend, max_vert_cfl,max_horiz_cfl, &
 #endif
            if ( vert_cfl > 2. ) some = some + 1
            rw_tend(i,k,j) = rw_tend(i,k,j)-sign(1.,w(i,k,j))*w_alpha*(vert_cfl-w_beta)*(c1f(k)*mut(i,j)+c2f(k))
+           IF (save_wtend) THEN
+             w_tend_damp(i,k,j) = w_tend_damp(i,k,j) -sign(1.,w(i,k,j))*w_alpha*(vert_cfl-w_beta)*msfty(i,j)!TODO done correctly or zero anyway? -> check sim!
+           ENDIF
         endif
      END DO
      ENDDO
@@ -6035,6 +6040,10 @@ END SUBROUTINE set_tend
 
     SUBROUTINE rk_rayleigh_damp( ru_tendf, rv_tendf,              &
                                  rw_tendf, t_tendf,               &
+                                 t_tend_damp, u_tend_damp,        &
+                                 v_tend_damp, w_tend_damp,        &
+                                 save_ttend, save_utend,          &
+                                 save_vtend, save_wtend,          &
                                  u, v, w, t, t_init,              &
                                  c1h, c2h, c1f, c2f,              &
                                  mut, muu, muv, ph, phb,          &
@@ -6082,7 +6091,11 @@ END SUBROUTINE set_tend
        its, ite, jts, jte, kts, kte
 
     REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT( INOUT )  &
-    :: ru_tendf, rv_tendf, rw_tendf, t_tendf
+    :: ru_tendf, rv_tendf, rw_tendf, t_tendf, &
+       t_tend_damp, u_tend_damp, v_tend_damp, w_tend_damp
+
+    LOGICAL, INTENT(IN   )   &
+    ::  save_ttend, save_utend, save_vtend, save_wtend
 
     REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT( IN )  &
     :: u, v, w, t, t_init, ph, phb
@@ -6171,6 +6184,9 @@ END SUBROUTINE set_tend
         ru_tendf(i,k,j) = ru_tendf(i,k,j) -                    &
                           (c1h(k)*muu(i,j)+c2h(k)) * ( dcoef * dampcoef ) *    &
                           ( u(i,k,j) - u00(k) )
+        IF (save_utend) THEN
+          u_tend_damp(i,k,j) = u_tend_damp(i,k,j) - ( dcoef * dampcoef ) * ( u(i,k,j) - u00(k) )
+        ENDIF
       END DO
 
     END DO
@@ -6226,6 +6242,9 @@ END SUBROUTINE set_tend
         rv_tendf(i,k,j) = rv_tendf(i,k,j) -                    &
                           (c1h(k)*muv(i,j)+c2h(k)) * ( dcoef * dampcoef ) *    &
                           ( v(i,k,j) - v00(k) )
+        IF (save_vtend) THEN
+          v_tend_damp(i,k,j) = v_tend_damp(i,k,j) - ( dcoef * dampcoef ) * ( v(i,k,j) - v00(k) )
+        ENDIF
       END DO
 
     END DO
@@ -6247,6 +6266,9 @@ END SUBROUTINE set_tend
           dcoef = ( SIN( 0.5 * pii * dcoef ) )**2
           rw_tendf(i,k,j) = rw_tendf(i,k,j) -  &
                             (c1f(k)*mut(i,j)+c2f(k)) * ( dcoef * dampcoef ) * w(i,k,j)
+          IF (save_wtend) THEN
+            w_tend_damp(i,k,j) = w_tend_damp(i,k,j) - ( dcoef * dampcoef ) * w(i,k,j)
+          ENDIF
         END IF
       END DO
     END DO
@@ -6299,6 +6321,9 @@ END SUBROUTINE set_tend
         t_tendf(i,k,j) = t_tendf(i,k,j) -                      &
                          (c1(k)*MUT(i,j)+c2(k)) * ( dcoef * dampcoef )  *    &
                          ( t(i,k,j) - t00(k) )
+        IF (save_ttend) THEN
+          t_tend_damp(i,k,j) = t_tend_damp(i,k,j) - ( dcoef * dampcoef ) * ( t(i,k,j) - t00(k) )
+        ENDIF
       END DO
 
     END DO
@@ -6418,6 +6443,7 @@ END SUBROUTINE set_tend
 !==============================================================================
 
       SUBROUTINE sixth_order_diffusion( name, field, tendency, MUT, dt,  &
+                                        diff_tend, save_tend,            &
                                         config_flags, c1, c2,            &
                                         diff_6th_opt, diff_6th_factor,   &
                                         phb, ph,                         &
@@ -6456,6 +6482,9 @@ END SUBROUTINE set_tend
     REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(INOUT)  &
     :: tendency
 
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(INOUT)  &
+    ::  diff_tend
+
     REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT(IN)  &
     :: field
 
@@ -6470,6 +6499,9 @@ END SUBROUTINE set_tend
 
     REAL, INTENT(IN)  &
     :: dt, rdx, rdy
+
+    LOGICAL, INTENT(IN)  &
+    :: save_tend
 
     REAL, INTENT(IN)  &
     :: diff_6th_factor
@@ -6498,7 +6530,7 @@ END SUBROUTINE set_tend
     :: dflux_x_p0, dflux_y_p0,  &
        dflux_x_p1, dflux_y_p1,  &
        tendency_x, tendency_y,  &
-       mu_avg_p0, mu_avg_p1,    &
+       mu_avg_p0, mu_avg_p1, mu, &
        diff_6th_coef
 
     REAL  &
@@ -6796,12 +6828,15 @@ END SUBROUTINE set_tend
                     (c1(k)*MUT(i  ,j  )+c2(k)) +  &
                     (c1(k)*MUT(i-1,j+1)+c2(k)) +  &
                     (c1(k)*MUT(i  ,j+1)+c2(k)) )
+
+        mu = 0.5*(MUT(i,j) + MUT(i-1,j))
         tendency_y = diff_6th_coef * msfuy(i,j) * &
                  ( ( slopedamp_p1 * mu_avg_p1 * dflux_y_p1 ) - ( slopedamp_p0 * mu_avg_p0 * dflux_y_p0 ) )
  
       ELSE IF ( name .EQ. 'v' ) THEN
         mu_avg_p0 = (c1(k)*MUT(i,j-1)+c2(k))
         mu_avg_p1 = (c1(k)*MUT(i,j  )+c2(k))
+        mu = 0.5*(MUT(i,j) + MUT(i,j-1))
         tendency_y = diff_6th_coef * msfvy(i,j) * &
                    ( ( slopedamp_p1 * mu_avg_p1 * dflux_y_p1 ) - ( slopedamp_p0 * mu_avg_p0 * dflux_y_p0 ) )
       ELSE
@@ -6811,6 +6846,7 @@ END SUBROUTINE set_tend
         mu_avg_p1 = 0.5 * (      &
                     (c1(k)*MUT(i,j  )+c2(k)) +  &
                     (c1(k)*MUT(i,j+1)+c2(k)) )
+        mu = MUT(i,j)
         tendency_y = diff_6th_coef * msfty(i,j) * &
                    ( ( slopedamp_p1 * mu_avg_p1 * dflux_y_p1 ) - ( slopedamp_p0 * mu_avg_p0 * dflux_y_p0 ) )
       END IF
@@ -6822,6 +6858,9 @@ END SUBROUTINE set_tend
 ! Begin: Combine diffusion in x and y.
      
       tendency(i,k,j) = tendency(i,k,j) + tendency_x + tendency_y
+      IF (save_tend) THEN
+        diff_tend(i,k,j) = diff_tend(i,k,j) + (tendency_x + tendency_y)/(c1(k)*mu + c2(k))
+      ENDIF
 
 ! End: Combine diffusion in x and y.
 !------------------------------------------------------------------------------

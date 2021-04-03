@@ -500,7 +500,7 @@ CONTAINS
 
 
     REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    rdzdt, u8w, v8w, rho8w, rw_diag, rzxu, rzyv, &
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    rdzdt, qfac, u8w, v8w, rho8w, rw_diag, rzxu, rzyv, &
                                                                     ftx_adv_small, fty_adv_small, ftz_adv_small
 
     INTEGER :: i,j,k
@@ -515,7 +515,7 @@ CONTAINS
             fwx_dfac, fwy_dfac,                                                            &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,        &
             ru_d, rv_d, ww_d,                                                              &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac, cu_tend, cu_tend_q
+            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, cu_tend, cu_tend_q
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
@@ -1025,20 +1025,51 @@ CONTAINS
         end DO
 
         !average additional tendencies
+        !TODOm: hesselberg for sources?
         IF (config_flags%output_t_fluxes .eq. 1) THEN
-          qfac = 1.
-          DO j=jts,min(jte, jde-1)
-          DO k=kts,min(kte, kde-1)
-          DO i=its,min(ite, ide-1)
-            IF ((.not. config_flags%output_dry_theta_fluxes) .and. ( config_flags%use_theta_m .EQ. 1 )) THEN
+          IF ((.not. config_flags%output_dry_theta_fluxes) .and. ( config_flags%use_theta_m .EQ. 1 )) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
               ! radiation tendency is for dry theta -> convert to moist theta
-              qfac = 1. + rvovrd * q_1(i,k,j)
-            ENDIF
-            !TODOm: only do if mp/rad scheme present
-            T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j)*qfac )/count_p1
-            T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j)*qfac )/count_p1
-            T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
-            IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+              qfac(i,k,j) = 1. + rvovrd * q_1(i,k,j)
+            ENDDO
+            ENDDO
+            ENDDO
+          ELSE
+            qfac(:,:,:) = 1.
+          ENDIF
+          IF (config_flags%ra_lw_physics .gt. 0) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j)*qfac(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
+          IF (config_flags%ra_sw_physics .gt. 0) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j)*qfac(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
+          IF (config_flags%mp_physics .gt. 0) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
+          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
               cu_tend = 0.
               IF (config_flags%cu_physics .gt. 0) THEN
                 cu_tend = rthcuten(i,k,j)
@@ -1048,14 +1079,14 @@ CONTAINS
                 cu_tend = cu_tend + rthshten(i,k,j)
                 cu_tend_q = cu_tend_q + rqvshten(i,k,j)
               ENDIF
-              IF (qfac .ne. 1.) THEN
-                cu_tend = qfac*cu_tend + rvovrd*(t_1(i,k,j)+t0)/qfac*cu_tend_q
+              IF (qfac(i,k,j) .ne. 1.) THEN
+                cu_tend = qfac(i,k,j)*cu_tend + rvovrd*(t_1(i,k,j)+t0)/qfac(i,k,j)*cu_tend_q
               ENDIF
               T_TEND_CU_MEAN(i,k,j)  = (local_count*T_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
-            ENDIF
-          ENDDO
-          ENDDO
-          ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
           IF (( config_flags%diff_6th_opt .ne. 0 ) .or. (config_flags%damp_opt .eq. 2 )) THEN
             DO j=jts,min(jte, jde-1)
             DO k=kts,min(kte, kde-1)
@@ -1066,14 +1097,17 @@ CONTAINS
             ENDDO
           ENDIF
         ENDIF
+
         IF (config_flags%output_q_fluxes .eq. 1) THEN
-          DO j=jts,min(jte, jde-1)
-          DO k=kts,min(kte, kde-1)
-          DO i=its,min(ite, ide-1)
-            Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/count_p1
-          ENDDO
-          ENDDO
-          ENDDO
+          IF (config_flags%mp_physics .gt. 0) THEN
+            DO j=jts,min(jte, jde-1)
+            DO k=kts,min(kte, kde-1)
+            DO i=its,min(ite, ide-1)
+              Q_TEND_MP_MEAN(i,k,j)  = (local_count*Q_TEND_MP_MEAN(i,k,j) + qv_tend_mp(i,k,j) )/count_p1
+            ENDDO
+            ENDDO
+            ENDDO
+          ENDIF
           IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
             DO j=jts,min(jte, jde-1)
             DO k=kts,min(kte, kde-1)
@@ -1100,6 +1134,7 @@ CONTAINS
             ENDDO
           ENDIF
         ENDIF
+
         IF (config_flags%output_u_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
           DO k=kts,min(kte, kde-1)
@@ -1127,6 +1162,7 @@ CONTAINS
             ENDDO
           ENDIF
         ENDIF
+
         IF (config_flags%output_v_fluxes .eq. 1) THEN
           DO j=jts,jte
           DO k=kts,min(kte, kde-1)
@@ -1154,6 +1190,7 @@ CONTAINS
             ENDDO
           ENDIF
         ENDIF
+
         IF (config_flags%output_w_fluxes .eq. 1) THEN
           DO j=jts,min(jte, jde-1)
           DO k=kts,kte

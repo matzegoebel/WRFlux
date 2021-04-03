@@ -45,12 +45,12 @@ The time-averaged fluxes are output in kinematic form (divided by mean dry air m
 
 The other source terms that are output beside resolved and SGS fluxes for `output_{t,q,u,v,w}_fluxes=1` are the following:
 
-- **t**: microphysics, radiation (SW and LW), convection, damping + numerical diffusion
-- **q**: microphysics, convection, numerical diffusion
-- **u,v,w**: Coriolis and curvature, pressure gradient (from RK and acoustic step), damping + numerical diffusion
-- **u,v**: convection
-- **w**: buoyancy (from RK and acoustic step) and update of lower boundary condition (both share output variable with pressure gradient tendency)
+- **t**: microphysics, SW radiation, LW radiation, convection, Rayleight damping + 6th-order diffusion
+- **q**: microphysics, convection, 6th-order diffusion
+- **u,v**: Coriolis and curvature, pressure gradient (from RK and acoustic step), convection, Rayleight damping + 6th-order diffusion + external-mode filtering
+- **w**: Coriolis and curvature, pressure gradient + buoyancy (from RK and acoustic step), Rayleight damping + 6th-order diffusion
 
+Convection includes tendencies from the cumulus and shallow cumulus schemes.
 
 All variables are output to the auxiliary output stream `auxhist24`. The output interval can be set with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`. The averaging starts `avg_interval` minutes before each output time of this output stream. If `avg_interval=-1`, the averaging interval is set equal to the output interval.
 
@@ -72,7 +72,8 @@ In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t
 
 ### Post-processing
 
-In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulent, and SGS. To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by [`tendency_calcs.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/tendency_calcs.py). This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
+In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulent, and SGS.
+To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by [`tendency_calcs.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/tendency_calcs.py). This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
 
 The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
@@ -130,7 +131,8 @@ mpiexec -n N ./tendency_calcs.py
 
 ## Implementation
 
-The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux. 
+The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux.
+If a PBL scheme is activated (including `km_opt=5`), it is responsible for the SGS vertical diffusion in WRF. We recover the vertical SGS fluxes by integrating the resulting tendencies cumulatively from the model top to the surface assuming zero flux at the top.
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).

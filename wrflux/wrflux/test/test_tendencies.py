@@ -100,6 +100,13 @@ def test_all():
                    "symm_y": [True]}
 
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    s = "output_{}_fluxes"
+    d = {s.format(v): [1, 2, 3] for v in tools.all_variables}
+    param_names.update(d)
+    for v in tools.all_variables:
+        d = {s.format(v) + suff: [0, 0, 0] for v in tools.all_variables for suff in ["", "_add"]}
+        d[s.format(v)] = [1, 2, 3]
+        param_grids[s.format(v) + "_debug_only"] = {s.format(v): d}
     param_grids["dz_out no_debug"] = odict(msf=1)
     param_grids["dz_out no_debug hor_avg"] = odict(msf=1)
     param_grids["trb no_debug"] = odict(msf=1, timing=dict(
@@ -172,6 +179,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         runID = None
         if "no_debug" in label:
             builds_i = [b for b in builds if b not in ["debug", "org"]]
+        elif "debug_only" in label:
+            builds_i = ["debug"]
         if "chunks" in param_grid:
             chunks = param_grid.pop("chunks")
         else:
@@ -449,9 +458,11 @@ def setup_test_sim(build, restore=False, random_msf=True):
     wrf_path = Path(conf.params["build_path"]) / build_dir
     fpath = wrf_path / "dyn_em" / fname
     recompile = True
+    fpath_org = Path(str(fpath) + ".org")
     if restore:
         m = "Restore"
-        os.rename(str(fpath) + ".org", fpath)
+        if os.path.isfile(fpath_org):
+            os.rename(fpath_org, fpath)
     else:
         input_path = test_path / "input"
         org_file = fpath.read_text()
@@ -464,7 +475,6 @@ def setup_test_sim(build, restore=False, random_msf=True):
             recompile = False
         else:
             m = "Copy"
-            fpath_org = Path(str(fpath) + ".org")
             if not fpath_org.exists():
                 shutil.copy(fpath, fpath_org)
             shutil.copy(test_file_path, fpath)
@@ -498,10 +508,11 @@ def setup_test_sim(build, restore=False, random_msf=True):
                         shutil.copy(fpath, fpath_org)
                 shutil.copy(src, fpath)
         else:
-            os.remove(fpath)
-            if f == "namelist.input":
-                print("Restore namelist file")
-                os.rename(fpath_org, fpath)
+            if os.path.isfile(fpath_org):
+                os.remove(fpath)
+                if f == "namelist.input":
+                    print("Restore namelist file")
+                    os.rename(fpath_org, fpath)
 
     return build_dir
 

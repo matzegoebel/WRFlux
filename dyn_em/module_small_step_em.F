@@ -17,7 +17,8 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
                             t_1, t_2, ph_1, ph_2,         &
                             mub, mu_1, mu_2,              &
                             muu, muus, muv, muvs,         &
-                            mut, muts, mudf,              &
+                            mut, muts,                    &
+                            mudf, mudf_x, mudf_y,         &
                             c1h, c2h, c1f, c2f,           &
                             c3h, c4h, c3f, c4f,           &
                             u_save, v_save, w_save,       &
@@ -86,7 +87,9 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
   REAL, DIMENSION(ims:ime, jms:jme)         , INTENT(  OUT) :: muus, &
                                                                muvs, &
                                                                muts, &
-                                                               mudf
+                                                               mudf, &
+                                                               mudf_x, &
+                                                               mudf_y
 
   REAL, DIMENSION(ims:ime, jms:jme)         , INTENT(  OUT) :: mu_save
 
@@ -133,6 +136,8 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
         ww_save(i,kde,j) = 0.
         ww_save(i,1,j) = 0.
         MUDF(i,j) = 0.  !  initialize external mode div damp to zero
+        MUDF_X(i,j) = 0.
+        MUDF_Y(i,j) = 0.
       ENDDO
       ENDDO
 
@@ -654,14 +659,15 @@ END SUBROUTINE calc_coef_w
 SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
                         p, pb,                         &
                         ph, php, alt, al, mu,          &
-                        muu, cqu, muv, cqv, mudf,      &
+                        muu, cqu, muv, cqv,            &
+                        mudf, mudf_x, mudf_y,          &
                         c1h, c2h, c1f, c2f,            &
                         c3h, c4h, c3f, c4f,            &
                         msfux, msfuy, msfvx,           &
                         msfvx_inv, msfvy,              &
                         rdx, rdy, dts,                 &
                         cf1, cf2, cf3, fnm, fnp,       &
-                        emdiv,                         &
+                        emdiv, rk_step,                &
                         rdnw, config_flags, spec_zone, &
                         non_hydrostatic, top_lid,      &
                         ids, ide, jds, jde, kds, kde,  &
@@ -674,11 +680,12 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
       INTEGER,      INTENT(IN   )    :: ids,ide, jds,jde, kds,kde
       INTEGER,      INTENT(IN   )    :: ims,ime, jms,jme, kms,kme
       INTEGER,      INTENT(IN   )    :: its,ite, jts,jte, kts,kte
-      INTEGER,      INTENT(IN   )    :: spec_zone
+      INTEGER,      INTENT(IN   )    :: rk_step, spec_zone
       REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  &
             INTENT(INOUT) ::                          &
                                                   u,  &
                                                   v
+      REAL, DIMENSION ( ims:ime , jms:jme ),INTENT(INOUT   ) :: mudf_x, mudf_y
       REAL, DIMENSION( ims:ime , kms:kme, jms:jme ), &
             INTENT(IN   ) ::                          &
                                              ru_tend, &
@@ -806,8 +813,10 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    ENDDO
    ENDDO
    DO i = i_start_up, i_end_up
-   !TODOm: mudf_xy should be added to damping tendency
      MUDF_XY(i)= -emdiv*dx*(MUDF(i,j)-MUDF(i-1,j))/msfuy(i,j)
+     IF (rk_step == config_flags%rk_ord) THEN
+       mudf_x(i,j) = mudf_x(i,j) + MUDF_XY(i)
+     ENDIF
    ENDDO
    DO k = k_start, k_end
    DO i = i_start_up, i_end_up
@@ -879,7 +888,9 @@ SUBROUTINE advance_uv ( u, ru_tend, v, rv_tend,        &
    ENDDO
    DO i = i_start, i_end
      MUDF_XY(i)= -emdiv*dy*(MUDF(i,j)-MUDF(i,j-1))*msfvx_inv(i,j)
-     !TODOm: mudf_xy should be added to damping tendency
+     IF (rk_step == config_flags%rk_ord) THEN
+       mudf_y(i,j) = mudf_y(i,j) + MUDF_XY(i)
+     ENDIF
    ENDDO
      IF (     ( j >= j_start_vp)  &
        .and.( j <= j_end_vp  ) )  THEN
@@ -2058,8 +2069,10 @@ END SUBROUTINE restore_ph_mu
 #endif
 
 SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
+                                          u_tend_damp, v_tend_damp,        &
                                           u_1, u_2, v_1, v_2, w_1, w_2,    &
                                           ru_tend, rv_tend, rw_tend,       &
+                                          mudf_x, mudf_y,                  &
                                           mut, muu, muv,                   &
                                           c1h, c2h, c1f, c2f,              &
                                           msfuy, msfvx, msfty,             &
@@ -2068,12 +2081,13 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
                                           ims, ime, jms, jme, kms, kme,    &
                                           its, ite, jts, jte, kts, kte     )
 
-      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) :: u_tend_pg, v_tend_pg, w_tend_pg
+      REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(INOUT) :: u_tend_pg, v_tend_pg, w_tend_pg, &
+                                                                       u_tend_damp, v_tend_damp
       REAL, DIMENSION( ims:ime , kms:kme, jms:jme ),  INTENT(IN) :: u_1, u_2, v_1, v_2, w_1, w_2,    &
                                                                        ru_tend, rv_tend, rw_tend
 
 
-      REAL,   DIMENSION(ims:ime, jms:jme), INTENT(IN) :: mut, muu, muv
+      REAL,   DIMENSION(ims:ime, jms:jme), INTENT(IN) :: mudf_x, mudf_y, mut, muu, muv
       REAL, DIMENSION( kms:kme ),INTENT(IN   ) :: c1h, c2h, c1f, c2f
       REAL,   DIMENSION(ims:ime, jms:jme), INTENT(IN) :: msfuy, msfvx, msfty
 
@@ -2081,11 +2095,15 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
       INTEGER,      INTENT(IN)       :: ids,ide, jds,jde, kds,kde, &
                                         ims,ime, jms,jme, kms,kme, &
                                         its,ite, jts,jte, kts,kte
+      REAL :: mudf_tend
 
       ! Recover small-step momentum tendencies by subtracting
       ! the decoupled (from mu and map-scale factors) rk tendencies
+      ! and tendencies from the external-mode filter
       ! from the total tendencies.
       ! Save the result in the pressure gradient tendencies.
+      ! The tendencies from the external-mode filter is saved in
+      ! the damping tendencies.
       ! For w, only the surface values are set, since all other
       ! values are already set during the small-step update to
       ! avoid including tendencies from damp_opt=3.
@@ -2094,9 +2112,12 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
         DO j = jts,min(jte,jde-1)
         DO k = kts,min(kte,kde-1)
         DO i = its,ite
-          !TODOm: subtract mudf_xy
+          ! add tendency from external-mode filter
+          mudf_tend = c1h(k)*mudf_x(i,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k))/config_flags%dt
+          u_tend_damp(i,k,j) = u_tend_damp(i,k,j) + mudf_tend
+          ! recover small-step pressure gradient tendency
           u_tend_pg(i,k,j) = u_tend_pg(i,k,j) + (u_2(i,k,j) - u_1(i,k,j))/config_flags%dt &
-                             - ru_tend(i,k,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k))
+                             - ru_tend(i,k,j)*msfuy(i,j)/(c1h(k)*muu(i,j)+c2h(k)) - mudf_tend
         ENDDO
         ENDDO
         ENDDO
@@ -2106,9 +2127,12 @@ SUBROUTINE recover_small_step_tendencies( u_tend_pg, v_tend_pg, w_tend_pg, &
         DO j = jts,jte
         DO k = kts,min(kte,kde-1)
         DO i = its,min(ite,ide-1)
-          !TODOm: subtract mudf_xy
+          ! add tendency from external-mode filter
+          mudf_tend = c1h(k)*mudf_y(i,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))/config_flags%dt
+          v_tend_damp(i,k,j) = v_tend_damp(i,k,j) + mudf_tend
+          ! recover small-step pressure gradient tendency
           v_tend_pg(i,k,j) = v_tend_pg(i,k,j) + (v_2(i,k,j) - v_1(i,k,j))/config_flags%dt &
-                             - rv_tend(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k))
+                             - rv_tend(i,k,j)*msfvx(i,j)/(c1h(k)*muv(i,j)+c2h(k)) - mudf_tend
         ENDDO
         ENDDO
         ENDDO

@@ -1025,7 +1025,7 @@ BENCH_START(small_step_prep_tim)
                              grid%t_1,grid%t_2,grid%ph_1,grid%ph_2,                   &
                              grid%mub, grid%mu_1, grid%mu_2,                          &
                              grid%muu, grid%muus, grid%muv, grid%muvs,                &
-                             grid%mut, grid%muts, grid%mudf,                          &
+                             grid%mut, grid%muts, grid%mudf, grid%mudf_x, grid%mudf_y,&
                              grid%c1h, grid%c2h, grid%c1f, grid%c2f,                  &
                              grid%c3h, grid%c4h, grid%c3f, grid%c4f,                  &
                              grid%u_save, grid%v_save, grid%w_save,                   &
@@ -1214,14 +1214,15 @@ BENCH_START(advance_uv_tim)
          CALL advance_uv ( grid%u_2, grid%ru_tend, grid%v_2, grid%rv_tend,        &
                            grid%p, grid%pb,                                       &
                            grid%ph_2, grid%php, grid%alt,  grid%al,               &
-                           grid%mu_2, grid%muu, cqu, grid%muv, cqv, grid%mudf,    &
+                           grid%mu_2, grid%muu, cqu, grid%muv, cqv,               &
+                           grid%mudf, grid%mudf_x, grid%mudf_y,                   &
                            grid%c1h, grid%c2h, grid%c1f, grid%c2f,                &
                            grid%c3h, grid%c4h, grid%c3f, grid%c4f,                &
                            grid%msfux, grid%msfuy, grid%msfvx,                    &
                            grid%msfvx_inv, grid%msfvy,                            &
                            grid%rdx, grid%rdy, dts_rk,                            &
                            grid%cf1, grid%cf2, grid%cf3, grid%fnm, grid%fnp,      &
-                           grid%emdiv,                                            &
+                           grid%emdiv, rk_step,                                   &
                            grid%rdnw, config_flags,grid%spec_zone,                &
                            config_flags%non_hydrostatic, config_flags%top_lid,    &
                            ids, ide, jds, jde, kds, kde,                          &
@@ -4597,8 +4598,10 @@ BENCH_END(bc_2d_tim)
 !                          its, ite, jts, jte, k_start, min(k_end,kde-1),   &
 
       CALL recover_small_step_tendencies( grid%u_tend_pg, grid%v_tend_pg, grid%w_tend_pg,             &
+                                          grid%u_tend_damp, grid%v_tend_damp,                         &
                                           grid%u_1, grid%u_2, grid%v_1, grid%v_2, grid%w_1, grid%w_2, &
                                           grid%ru_tend, grid%rv_tend, rw_tend,                        &
+                                          grid%mudf_x, grid%mudf_y,                                   &
                                           grid%mut, grid%muu, grid%muv,                               &
                                           grid%c1h, grid%c2h, grid%c1f, grid%c2f,                     &
                                           grid%msfuy, grid%msfvx, grid%msfty,                         &

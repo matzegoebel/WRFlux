@@ -29,7 +29,6 @@ now = datetime.datetime.now().isoformat()[:16]
 test_path = Path(__file__).parent
 
 # %% settings
-# TODO: avg_time: update README
 
 variables = ["q", "t", "u", "v", "w"]
 # raise if tests fail
@@ -130,8 +129,10 @@ def test_all():
     param_grids["WENO advection"] = odict(
         moist_adv_opt=[0, 1, 3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th)
-    param_grids["MP rad"] = odict(mp_physics=[2], th=th)
-    param_grids["convection"] = odict(cu_physics=16, shcu_physics=2, bl_pbl_physics=9, mp_physics=2)
+    param_grids["MP + CU"] = odict(cu_physics=16, shcu_physics=2, bl_pbl_physics=9, mp_physics=2, th=th)
+    param_grids["damp2_diff6"] = odict(damp_opt=2, diff_6th_opt=1, th=th)
+    param_grids["damp3"] = odict(damp_opt=3)
+    param_grids["w_damping"] = odict(w_damping=1, dz0=30, dzmax=50, dx=1000, lx=20000, ly=20000, dt_f=10)
 
     hm = 0  # flat simulations in boundaries are not periodic
     param_grids["open BC x"] = odict(open_x=dict(open_xs=[True], open_xe=[True], periodic_x=[False],
@@ -257,7 +258,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     use_build = "normal"
                 else:
                     use_build = "debug"
-                if ("no_model_change" in tests) and ("debug" in builds_i) and (build == use_build):
+                if ("no_model_change" in tests) and ("debug" in builds_i) and \
+                   ("org" in builds_i) and (build == use_build):
                     print("Check for differences between debug build and official WRF.")
                     # replace build with placeholder for later formatting
                     ID_b = IDi.replace(build, "{}")
@@ -354,6 +356,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         err_clean = err_clean.loc[[t for t in err_clean.index if t[0] != "Y=0"]]
         err_clean = err_clean.astype(float)
         err_diff = err_clean - err_previous
+        err_diff = err_diff.dropna(0, "all").dropna(1, "all")
 
     if save_results:
         failed.to_csv(test_results / ("test_results_" + now + ".csv"))

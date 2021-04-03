@@ -19,6 +19,5 @@ params = deepcopy(params)
 '''Simulations settings'''
 
 # only short test run to check for invalid arithmetics,...
-# TODO: reduce end time!
 params["end_time"] = "2018-06-20_12:00:18"  # format %Y-%m-%d_%H:%M:%S
 params["output_streams"] = {24: ["meanout", 0.1], 0: ["instout", 0.1]}

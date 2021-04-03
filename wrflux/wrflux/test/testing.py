@@ -20,7 +20,7 @@ all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 
 # %% test functions
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
+def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartesian=None,
                 loc=None, iloc=None, plot=True, **plot_kws):
     """
     Test closure of budget: tend = forcing.
@@ -41,6 +41,9 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
         Dimensions over which to calculate the R2. The default is None.
     thresh : float, optional
         Threshold value for R2 below which the test fails
+    thresh_cartesian : float, optional
+        Use different threshold value for Cartesian coordinate system.
+        The default is None, for which 'thresh' is used in both formulations.
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -64,6 +67,9 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in ["native", "cartesian"]:
+        thresh_i = thresh
+        if (ID == "cartesian") and (thresh_cartesian is not None):
+            thresh_i = thresh_cartesian
         if ID not in tend.ID:
             continue
         ref = tend.sel(ID=ID, drop=True)
@@ -73,8 +79,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999,
         e = R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
 
-        if e < thresh:
-            log = "test_budget for ID='{}': min. R2 less than {}: {:.7f}\n".format(ID, thresh, e)
+        if e < thresh_i:
+            log = "test_budget for ID='{}': min. R2 less than {}: {:.7f}\n".format(ID, thresh_i, e)
             print(log)
             if plot:
                 dat.name = dat.description[:2] + "forcing"
@@ -692,9 +698,10 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
                     if attrs["OUTPUT_DRY_THETA_FLUXES"] == 0:
                         # lower thresh as cartesian tendency for thm is close to 0
                         if attrs["MP_PHYSICS"] > 0:
-                            kw["thresh"] = 0.96
+                            kw["thresh_cartesian"] = 0.96
+                            kw["thresh"] = 0.9998
                         else:
-                            kw["thresh"] = 0.995
+                            kw["thresh_cartesian"] = 0.995
 
                     # reduce threshold for WENO and monotonic advection as
                     # dry theta budget is not perfectly closed
@@ -706,8 +713,9 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
                         kw["thresh"] = 0.97
 
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
-            if "thresh" in kw:
-                del kw["thresh"]
+            for thresh in ["thresh", "thresh_cartesian"]:
+                if thresh in kw:
+                    del kw[thresh]
         adv = datout_v["adv"]
         if "decomp_sumdir" in tests:
             if attrs["HESSELBERG_AVG"] == 0:
@@ -767,7 +775,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
 
         if "sgs" in tests:
             sgs_sum = datout_v["sgs"].sum("dir")
-            if np.allclose(sgs_sum[0], sgs_sum[1], atol=1e-8, rtol=1e-5):
+            if np.allclose(sgs_sum[0], sgs_sum[1], atol=1e-7, rtol=1e-5):
                 failed_i["sgs"] = False
             else:
                 failed_i["sgs"] = True

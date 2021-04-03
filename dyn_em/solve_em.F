@@ -4786,7 +4786,7 @@ BENCH_END(bc_2d_tim)
               &   grid%w_tend_pg,grid%w_tend_cor_curv,                                                   &
               &   grid%t_tend_damp,grid%q_tend_damp,grid%u_tend_damp,grid%v_tend_damp,grid%w_tend_damp,  &
               &   grid%u_save, grid%v_save, grid%w_2, grid%w_save, grid%ru, grid%rv, ww1,                &
-              &   grid%th_save, moist(:,:,:,P_QV),                                                       &
+              &   grid%th_save, grid%t_1, moist(:,:,:,P_QV), moist_old(:,:,:,P_QV),                      &
               &   grid%ph_1, grid%ph_2, grid%phb, grid%zx, grid%zy, grid%alt,                            &
               &   grid%dph_x, grid%dph_y,                                                                &
               &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                      &

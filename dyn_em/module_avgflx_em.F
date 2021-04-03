@@ -397,7 +397,7 @@ CONTAINS
        & v_tend_pg,v_tend_cor_curv,                                                              &
        & w_tend_pg,w_tend_cor_curv,                                                              &
        & t_tend_damp,q_tend_damp,u_tend_damp,v_tend_damp,w_tend_damp,                            &
-       & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, Q,                                    &
+       & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, t_1, Q, q_1,                          &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                            &
        & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
@@ -468,7 +468,7 @@ CONTAINS
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_save, v_save, w_2, w_save, ru, rv, ww,              &
-         th_save, Q, ph_1, ph_2, phb, zx, zy, alt,             &
+         th_save, t_1, Q, q_1, ph_1, ph_2, phb, zx, zy, alt,   &
          ftx_small, fty_small, ftz_small,                      &
          fqx_adv, fqy_adv, fqz_adv,                            &
          fux_adv, fuy_adv, fuz_adv,                            &
@@ -515,7 +515,7 @@ CONTAINS
             fwx_dfac, fwy_dfac,                                                            &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,        &
             ru_d, rv_d, ww_d,                                                              &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac, cu_tend
+            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, qfac, cu_tend, cu_tend_q
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
@@ -1032,31 +1032,30 @@ CONTAINS
           DO i=its,min(ite, ide-1)
             IF ((.not. config_flags%output_dry_theta_fluxes) .and. ( config_flags%use_theta_m .EQ. 1 )) THEN
               ! radiation tendency is for dry theta -> convert to moist theta
-              qfac = 1. + rvovrd * Q(i,k,j) 
+              qfac = 1. + rvovrd * q_1(i,k,j)
             ENDIF
             !TODOm: only do if mp/rad scheme present
             T_TEND_RADLW_MEAN(i,k,j)  = (local_count*T_TEND_RADLW_MEAN(i,k,j) + t_tend_radlw(i,k,j)*qfac )/count_p1
             T_TEND_RADSW_MEAN(i,k,j)  = (local_count*T_TEND_RADSW_MEAN(i,k,j) + t_tend_radsw(i,k,j)*qfac )/count_p1
             T_TEND_MP_MEAN(i,k,j)  = (local_count*T_TEND_MP_MEAN(i,k,j) + t_tend_mp(i,k,j) )/count_p1
-          ENDDO
-          ENDDO
-          ENDDO
-          IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
-            DO j=jts,min(jte, jde-1)
-            DO k=kts,min(kte, kde-1)
-            DO i=its,min(ite, ide-1)
+            IF ((config_flags%shcu_physics .gt. 0) .or. (config_flags%cu_physics .gt. 0)) THEN
               cu_tend = 0.
               IF (config_flags%cu_physics .gt. 0) THEN
                 cu_tend = rthcuten(i,k,j)
+                cu_tend_q = rqvcuten(i,k,j)
               ENDIF
               IF (config_flags%shcu_physics .gt. 0) THEN
                 cu_tend = cu_tend + rthshten(i,k,j)
+                cu_tend_q = cu_tend_q + rqvshten(i,k,j)
+              ENDIF
+              IF (qfac .ne. 1.) THEN
+                cu_tend = qfac*cu_tend + rvovrd*(t_1(i,k,j)+t0)/qfac*cu_tend_q
               ENDIF
               T_TEND_CU_MEAN(i,k,j)  = (local_count*T_TEND_CU_MEAN(i,k,j) + cu_tend )/count_p1
-            ENDDO
-            ENDDO
-            ENDDO
-          ENDIF
+            ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
           IF (( config_flags%diff_6th_opt .ne. 0 ) .or. (config_flags%damp_opt .eq. 2 )) THEN
             DO j=jts,min(jte, jde-1)
             DO k=kts,min(kte, kde-1)

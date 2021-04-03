@@ -2837,7 +2837,7 @@ SUBROUTINE w_damp( rw_tend, max_vert_cfl,max_horiz_cfl, &
            if ( vert_cfl > 2. ) some = some + 1
            rw_tend(i,k,j) = rw_tend(i,k,j)-sign(1.,w(i,k,j))*w_alpha*(vert_cfl-w_beta)*(c1f(k)*mut(i,j)+c2f(k))
            IF (save_wtend) THEN
-             w_tend_damp(i,k,j) = w_tend_damp(i,k,j) -sign(1.,w(i,k,j))*w_alpha*(vert_cfl-w_beta)*msfty(i,j)!TODO done correctly or zero anyway? -> check sim!
+             w_tend_damp(i,k,j) = w_tend_damp(i,k,j) -sign(1.,w(i,k,j))*w_alpha*(vert_cfl-w_beta)*msfty(i,j)
            ENDIF
         endif
      END DO

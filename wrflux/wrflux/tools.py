@@ -1218,7 +1218,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
 def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
              hor_avg=False, avg_dims=None, cartesian=True, force_2nd_adv=False,
              dz_out_x=False, dz_out_z=False, theta_pert=False):
-    """Compute advective tendencies decomposed into mean and resolved turbulent.
+    """Compute advective tendencies decomposed into mean and resolved turbulence.
 
     Also return Cartesian corrections, but do not apply them yet.
 
@@ -1581,7 +1581,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         if VAR == "T":
             corr.loc["mass", "T"] = rho_stag * dzdt
 
-    # resolved turbulent component as residual
+    # resolved turbulence component as residual
     corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
 
     # correction flux to tendency: take vertical derivative

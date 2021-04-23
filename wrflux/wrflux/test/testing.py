@@ -88,7 +88,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
+                plotting.scatter_hue(dat, ref, title=fname_i + "\n" + log, fname=fname_i, **plot_kws)
             failed = True
 
     return failed, min(err)

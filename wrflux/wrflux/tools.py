@@ -766,10 +766,10 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg
         if (f == "tend_mass") and (var != "t"):
             continue
         file = outpath / (f + avg + ".nc")
-        if f in ["sgsflux", "flux", "grid"]:
-            datout[f] = xr.open_dataset(file, cache=False, engine="netcdf4")
-        else:
+        try:
             datout[f] = xr.open_dataarray(file, cache=False, engine="netcdf4")
+        except ValueError:
+            datout[f] = xr.open_dataset(file, cache=False, engine="netcdf4")
         datout[f].close()
 
     return datout
@@ -958,7 +958,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         SGS tendencies calculated from SGS fluxes in all three directions.
     sgsflux : xarray Dataset
         SGS fluxes in all three directions.
-    sources : xarray DataArray
+    sources : xarray Dataset
         All source terms for variable except advection.
     sources_sum : xarray DataArray
         Sum of source terms.
@@ -1105,8 +1105,11 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         grid = avg_xy(grid, avg_dims, cyclic=cyclic)
 
     sgs_sum = sgs.sum("dir", skipna=False)
-    sources = sources.to_array("comp")
-    sources_sum = sources.sum("comp") + sgs_sum.sel(ID="cartesian", drop=True)
+    if len(sources.data_vars) > 0:
+        sources_sum = sources.to_array("comp").sum("comp")
+    else:
+        sources_sum = 0
+    sources_sum = sources_sum + sgs_sum.sel(ID="cartesian", drop=True)
 
     return dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac
 

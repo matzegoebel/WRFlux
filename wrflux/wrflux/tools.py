@@ -717,10 +717,13 @@ def load_data(outpath_wrf, inst_file, mean_file,
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
 
-    dims = ["Time", "bottom_top", "bottom_top_stag", "soil_layers_stag",
-            "y", "y_stag", "x", "x_stag", "seed_dim_stag"]
-    dat_mean = dat_mean.transpose(*[d for d in dims if d in dat_mean.dims])
-    dat_inst = dat_inst.transpose(*[d for d in dims if d in dat_inst.dims])
+    dims = ["Time", "bottom_top", "bottom_top_stag", "y", "y_stag", "x", "x_stag"]
+    dims_mean = [*[d for d in dims if d in dat_mean.dims],
+                 *[d for d in dat_mean.dims if d not in dims]]
+    dims_inst = [*[d for d in dims if d in dat_inst.dims],
+                 *[d for d in dat_inst.dims if d not in dims]]
+    dat_mean = dat_mean.transpose(*dims_mean)
+    dat_inst = dat_inst.transpose(*dims_inst)
 
     return dat_mean, dat_inst
 

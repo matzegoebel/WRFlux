@@ -26,7 +26,7 @@ import glob
 from config import config_test_tendencies_base as conf
 pd.set_option("display.precision", 15)
 now = datetime.datetime.now().isoformat()[:16]
-test_path = Path(__file__).parent
+test_path = Path(__file__).parent.absolute()
 
 # %% settings
 

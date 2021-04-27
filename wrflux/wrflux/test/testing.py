@@ -21,11 +21,10 @@ all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartesian=None,
-                loc=None, iloc=None, plot=True, **plot_kws):
+                budget_methods=("native", "cartesian"), loc=None, iloc=None, plot=True, **plot_kws):
     """
     Test closure of budget: tend = forcing.
 
-    Only the budget methods "native" and "cartesian" are tested.
     The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
     R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
@@ -44,6 +43,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
     thresh_cartesian : float, optional
         Use different threshold value for Cartesian coordinate system.
         The default is None, for which 'thresh' is used in both formulations.
+    budget_methods : list of str
+        Budget methods to consider. By default, only "native" and "cartesian" are tested.
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -66,7 +67,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
     fname = None
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
-    for ID in ["native", "cartesian"]:
+    for ID in budget_methods:
         thresh_i = thresh
         if (ID == "cartesian") and (thresh_cartesian is not None):
             thresh_i = thresh_cartesian
@@ -80,7 +81,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
         err.append(e)
 
         if e < thresh_i:
-            log = "test_budget for ID='{}': min. R2 less than {}: {:.7f}\n".format(ID, thresh_i, e)
+            log = "test_budget for ID='{}': min. R2 less than {}: {:.10f}\n".format(ID, thresh_i, e)
             print(log)
             if plot:
                 dat.name = dat.description[:2] + "forcing"
@@ -88,7 +89,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                plotting.scatter_hue(dat, ref, title=fname_i + "\n" + log, fname=fname_i, **plot_kws)
+                    log = fname_i + "\n" +  log
+                plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
             failed = True
 
     return failed, min(err)
@@ -211,6 +213,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
+                    log = fname_i + "\n" +  log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)
@@ -438,6 +441,7 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
+                    log = fname_i + "\n" +  log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)

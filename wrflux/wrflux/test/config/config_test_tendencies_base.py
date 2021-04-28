@@ -63,7 +63,7 @@ params["vgrid_method"] = 1
 params["dt_f"] = 2  # time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
 params["spec_hfx"] = None
 
-params["input_sounding"] = "wrflux"  # name of input sounding to use (final name is then created: input_sounding_$name)
+params["input_sounding"] = "wrflux_uv"  # name of input sounding to use (final name is then created: input_sounding_$name)
 params["hm"] = 200  # mountain height (m)
 
 # other standard namelist parameters

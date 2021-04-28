@@ -709,12 +709,10 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
 
                     # reduce threshold for WENO and monotonic advection as
                     # dry theta budget is not perfectly closed
-                    elif (attrs["SCALAR_ADV_OPT"] >= 3) and (attrs["MOIST_ADV_OPT"] >= 3):
-                        kw["thresh"] = 0.94
-                    elif (attrs["SCALAR_ADV_OPT"] >= 3):
-                        kw["thresh"] = 0.8
+                    elif (attrs["SCALAR_ADV_OPT"] >= 3) or (attrs["MOIST_ADV_OPT"] >= 3):
+                        kw["thresh"] = 0.88
                     elif attrs["MOIST_ADV_OPT"] == 2:
-                        kw["thresh"] = 0.97
+                        kw["thresh"] = 0.96
 
             failed_i["budget"], err_i["budget"] = test_budget(tend, forcing, **kw)
             for thresh in ["thresh", "thresh_cartesian"]:
@@ -767,7 +765,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
                     kw["thresh"] = 0.995
 
             elif attrs["HESSELBERG_AVG"] == 0:
-                kw["thresh"] = 0.99999
+                kw["thresh"] = 0.99998
 
             kw["figloc"] = figloc / "mass"
             failed_i["mass"], err_i["mass"] = test_mass(datout_v["tend_mass"], **kw)

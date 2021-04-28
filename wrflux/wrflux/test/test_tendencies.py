@@ -100,6 +100,7 @@ def test_all():
                    "symm_y": [True]}
 
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    # test processing only one variable at the time
     s = "output_{}_fluxes"
     d = {s.format(v): [1, 2, 3] for v in tools.all_variables}
     param_names.update(d)
@@ -107,14 +108,15 @@ def test_all():
         d = {s.format(v) + suff: [0, 0, 0] for v in tools.all_variables for suff in ["", "_add"]}
         d[s.format(v)] = [1, 2, 3]
         param_grids[s.format(v) + "_debug_only"] = {s.format(v): d}
-    param_grids["dz_out no_debug"] = odict(msf=1)
-    param_grids["dz_out no_debug hor_avg"] = odict(msf=1)
-    param_grids["trb no_debug"] = odict(msf=1, timing=dict(
+    param_grids["dz_out no_debug"] = odict(msf=1, input_sounding="wrflux_u")
+    param_grids["dz_out no_debug hor_avg"] = param_grids["dz_out no_debug"].copy()
+    param_grids["trb no_debug"] = odict(msf=1, input_sounding="wrflux_u",
+        timing=dict(
         end_time=["2018-06-20_12:30:00"],
         output_streams=[{24: ["meanout", conf.params["dt_f"] / 60.],
                           0: ["instout", 10.]}]))
     param_grids["trb no_debug hor_avg"] = param_grids["trb no_debug"].copy()
-    param_grids["hor_avg no_debug msf=1"] = odict(msf=1)  # for Y=0 test
+    param_grids["hor_avg no_debug msf=1"] = param_grids["dz_out no_debug"].copy()  # for Y=0 test
     param_grids["hor_avg no_debug"] = odict()
     param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
     param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
@@ -134,7 +136,7 @@ def test_all():
         moist_adv_opt=[0, 1],
         adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
     param_grids["WENO advection"] = odict(
-        moist_adv_opt=[0, 1, 3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
+        moist_adv_opt=[3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th)
     param_grids["MP + CU"] = odict(cu_physics=16, shcu_physics=2, bl_pbl_physics=9, mp_physics=2, th=th)
     param_grids["damp2_diff6"] = odict(damp_opt=2, diff_6th_opt=1, th=th)
@@ -197,7 +199,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
             runID = "pytest_msf=1"
 
         skip_exist_i = skip_exist
-        if ((exist != "s") and (not skip_running)) or (len(param_grid) == 0):
+        if ((exist != "s") and (not skip_running)) or ("no_debug" in label):
             # if simulation is repeated or param_grid is empty (focus on different postprocessing options),
             # also repeat postprocessing
             skip_exist_i = False
@@ -487,7 +489,8 @@ def setup_test_sim(build, restore=False, random_msf=True):
         os.chdir(test_path)
 
     # IO file, input sounding, and namelist file
-    input_files = ["IO_wdiag.txt", "input_sounding_wrflux", "namelist.input"]
+    input_files = ["IO_wdiag.txt", "input_sounding_wrflux_u", "input_sounding_wrflux_uv",
+                   "namelist.input"]
     case_path = wrf_path / "test" / conf.params["ideal_case_name"]
 
     for f in input_files:

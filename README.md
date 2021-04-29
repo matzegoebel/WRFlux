@@ -21,7 +21,7 @@
 
 This is a fork of the "Weather Research and Forecast model (WRF)" available at: [https://github.com/wrf-model/WRF](https://github.com/wrf-model/WRF).
 
-**WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes in each spatial direction, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulent components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
+**WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes in each spatial direction, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulence components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
 It is continuously updated when new WRF versions are released.
 I'm currently preparing a publication that introduces WRFlux.
 
@@ -67,23 +67,24 @@ You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 An example namelist file based on the `em_les` test case can be found here:
 [`wrflux/wrflux/test/input/namelist.input.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/input/namelist.input.wrflux)
 
-In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add` you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file. Instantaneous fluxes are by default not output.
-
+In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add`, you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file (namelist setting `iofields_filename`). In this way you can save disk space, for instance, if you do not need the convection scheme tendencies or do not even have a convection scheme activated. Instantaneous fluxes are by default not output.
 
 ### Post-processing
 
-In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulent, and SGS.
+In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulence, and SGS.
 To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by [`tendency_calcs.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/tendency_calcs.py). This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
 
 The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
-- `cartesian`: advective tendencies in Cartesian instead of native form
+- `cartesian`: advective tendencies in Cartesian instead of native (terrain-following) form
 - `dz_out_x`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from horizontal flux (requires cartesian)
 - `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from vertical flux (requires cartesian)
 - `force_2nd_adv`: use 2nd-order advection
 - `theta_pert` : Compute budget for WRF's prognostic variable potential temeperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) instead of full ![](https://latex.codecogs.com/svg.latex?\theta).
+
+Except for the first one, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication that I currently prepare.
 
 For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details. For an explanation of `dz_out_x` and `dz_out_z`, see [Theory/Alternative Corrections](#alternative-corrections).
 
@@ -132,7 +133,7 @@ mpiexec -n N ./tendency_calcs.py
 ## Implementation
 
 The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux.
-If a PBL scheme is activated (including `km_opt=5`), it is responsible for the SGS vertical diffusion in WRF. We recover the vertical SGS fluxes by integrating the resulting tendencies cumulatively from the model top to the surface assuming zero flux at the top.
+If a PBL scheme is activated (including `km_opt=5`), it is responsible for the SGS vertical diffusion in WRF. The vertical SGS fluxes are reconstructed by integrating the resulting tendencies cumulatively from the model top to the surface assuming zero flux at the top.
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
@@ -144,7 +145,7 @@ When decomposing the resolved flux into mean and resolved turbulent components i
 
 When spatial averaging is switched on in the post-processing, the mean flux in the averaging direction only uses temporal averaging to allow differentiation in that direction. Then, the interior points become irrelevant and only the boundary points matter.
 
-Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html).
+Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html). Thus, WRFlux is suited for idealized and real-case applications.
 All output variables are decoupled from the map-scale factors.
 
 The online flux averaging uses potential temperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) like WRF itself.
@@ -154,7 +155,7 @@ To obtain the full ![](https://latex.codecogs.com/svg.latex?\theta) budget, the 
 ![](https://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0\left(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})\right))
 
 with the dry air mass ![](https://latex.codecogs.com/svg.latex?\mu_\mathrm{d}) and the contravariant velocity ![](https://latex.codecogs.com/svg.latex?\boldsymbol{\nu}).
-The last term on the RHS is the continuity equation. To close the budget for both, ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}) and ![](https://latex.codecogs.com/svg.latex?\theta), this term needs to vanish.
+To close the budget for both, ![](https://l atex.codecogs.com/svg.latex?\theta_\mathrm{p}) and ![](https://latex.codecogs.com/svg.latex?\theta), the last term on the RHS needs to vanish. In other words the continuity equation must be closed.
 Since WRF does not actually solve the continuity equation but instead integrates it vertically, this is not trivial. Therefore, we calculate the temporal and horizontal terms explicitly and take the vertical term as the residual.
 Using the residual instead of calculating the vertical component explicitly has only a marginal effect on the vertical component, but when the three directions are summed up, the effect is noticeable. By using the velocities averaged over the acoustic time steps when building the time-averaged velocities, the mass fluxes also include the effect of the acoustic time steps.
 In the Cartesian form of the budget, correction terms are added to the mass fluxes analogous to the correction terms of the advective fluxes described in the theory section.
@@ -198,10 +199,9 @@ WRFlux has a relatively strong impact on the runtime of the model. If all budget
 
 ## Tests
 ### Test details
-This package includes a test suite for automated testing with `pytest`. Idealized test simulations are run for one hour with a large number of different namelist settings to check all parts of the code including different combinations of `km_opt`, `bl_pbl_physics`, `isfflx`, `use_theta_m`, `output_dry_theta_fluxes`, `hesselberg_avg`, `*adv_order`, `*adv_opt`, `mp_physics`, and boundary conditions. The test simulations are based on the idealized LES test case (`em_les`). To check the output of WRFlux for consistency the following tests are carried out for these simulations:
+This package includes a test suite for automated testing with `pytest`. Idealized test simulations are run for one hour with a large number of different namelist settings to check all parts of the code including different combinations of `km_opt`, `bl_pbl_physics`, `isfflx`, `use_theta_m`, `output_dry_theta_fluxes`, `hesselberg_avg`, `*adv_order`, `*adv_opt`, `mp_physics`, `cu_physics`, `shcu_physics`, `damp_opt`, `diff_6th_opt`, `w_damping`, and boundary conditions. The test simulations are based on the idealized LES test case (`em_les`). To check the output of WRFlux for consistency, the following tests are carried out for these simulations:
 
 - closure of budget (model tendency = summed forcing) in native and Cartesian grid (e > 0.9999)
-- Cartesian = native advective tendencies if spatial directions are summed up (e > 0.99999)
 - resolved turbulent = total - mean advective tendency (e > 0.999995)
 - instantaneous vertical velocity very similar to instantaneous [diagnosed vertical velocity](#w_eq) used in the tendency calculations (e > 0.9995)
 - explicit calculation of vertical component of continuity equation very similar to residual calculation (e > 0.99999999 )

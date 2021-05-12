@@ -829,10 +829,10 @@ BENCH_START(rk_tend_tim)
                          ,grid%v_tend_pg, grid%v_tend_cor_curv                                                 &
                          ,grid%w_tend_pg, grid%w_tend_cor_curv                                                 &
                          ,grid%t_tend_damp, grid%u_tend_damp, grid%v_tend_damp, grid%w_tend_damp               &
-                         ,grid%ftx_adv, grid%fty_adv, grid%ftz_adv                                          &
-                         ,grid%fux_adv, grid%fuy_adv, grid%fuz_adv                                             &
-                         ,grid%fvx_adv, grid%fvy_adv, grid%fvz_adv                                             &
-                         ,grid%fwx_adv, grid%fwy_adv, grid%fwz_adv, moist(:,:,:,P_QV)                          &
+                         ,grid%ftx_adv, grid%fty_adv, grid%ftz_adv, grid%ftz_imp                               &
+                         ,grid%fux_adv, grid%fuy_adv, grid%fuz_adv, grid%fuz_imp                               &
+                         ,grid%fvx_adv, grid%fvy_adv, grid%fvz_adv, grid%fvz_imp                               &
+                         ,grid%fwx_adv, grid%fwy_adv, grid%fwz_adv, grid%fwz_imp, moist(:,:,:,P_QV)            &
                          ,mu_tend, grid%u_save, grid%v_save, grid%w_save, ph_save                              &
                          ,grid%t_save, mu_save, grid%rthften                                                   &
                          ,grid%ru, grid%rv, grid%rw, grid%ww, wwE, wwI                                         &
@@ -2248,7 +2248,7 @@ BENCH_START(rk_scalar_tend_tim)
                            grid%i_start(ij), grid%i_end(ij), &
                            grid%j_start(ij), grid%j_end(ij), &
                            k_start    , k_end,               &
-                           grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,         &
+                           grid%fqx_adv, grid%fqy_adv, grid%fqz_adv, grid%fqz_imp, &
                            output_fluxes, grid%q_tend_damp,                  &
                            grid%t_tend_damp, th_phy                         )
 
@@ -4836,12 +4836,12 @@ BENCH_END(bc_2d_tim)
               &   grid%t_tend_damp_mean,grid%q_tend_damp_mean,                                           &
               &   grid%u_tend_damp_mean,grid%v_tend_damp_mean,grid%w_tend_damp_mean,                     &
               &   grid%rhod_mean,grid%mut_mean,grid%z_mean,grid%dph_x_mean,grid%dph_y_mean,grid%w_diag,  &
-              &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv,                                              &
+              &   grid%ftx_adv, grid%fty_adv, grid%ftz_adv, grid%ftz_imp,                                &
               &   grid%ftx_small, grid%fty_small, grid%ftz_small,                                        &
-              &   grid%fqx_adv, grid%fqy_adv, grid%fqz_adv,                                              &
-              &   grid%fux_adv, grid%fuy_adv, grid%fuz_adv,                                              &
-              &   grid%fvx_adv, grid%fvy_adv, grid%fvz_adv,                                              &
-              &   grid%fwx_adv, grid%fwy_adv, grid%fwz_adv,                                              &
+              &   grid%fqx_adv, grid%fqy_adv, grid%fqz_adv, grid%fqz_imp,                                &
+              &   grid%fux_adv, grid%fuy_adv, grid%fuz_adv, grid%fuz_imp,                                &
+              &   grid%fvx_adv, grid%fvy_adv, grid%fvz_adv, grid%fvz_imp,                                &
+              &   grid%fwx_adv, grid%fwy_adv, grid%fwz_adv, grid%fwz_imp,                                &
               &   grid%ftx_sgs,grid%fty_sgs,grid%ftz_sgs,grid%fqx_sgs,grid%fqy_sgs,grid%fqz_sgs,         &
               &   grid%fux_sgs,grid%fuz_sgs,grid%fvx_sgs,grid%fvy_sgs,grid%fvz_sgs,grid%fwx_sgs,grid%fwy_sgs,grid%fwz_sgs,  &
               &   grid%RTHRATENLW, grid%RTHRATENSW, grid%t_tend_mp, grid%qv_diabatic,                    &

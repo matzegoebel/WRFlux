@@ -386,8 +386,11 @@ CONTAINS
        & W_TEND_PG_MEAN,W_TEND_COR_CURV_MEAN,                                                    &
        & T_TEND_DAMP_MEAN,Q_TEND_DAMP_MEAN,U_TEND_DAMP_MEAN,V_TEND_DAMP_MEAN,W_TEND_DAMP_MEAN,   &
        & RHOD_MEAN,MUT_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN,w_diag,                                 &
-       & ftx_adv, fty_adv, ftz_adv, ftx_small, fty_small, ftz_small, fqx_adv, fqy_adv, fqz_adv,  &
-       & fux_adv, fuy_adv, fuz_adv, fvx_adv, fvy_adv, fvz_adv, fwx_adv, fwy_adv, fwz_adv,        &
+       & ftx_adv, fty_adv, ftz_adv, ftz_imp, ftx_small, fty_small, ftz_small,                    &
+       & fqx_adv, fqy_adv, fqz_adv, fqz_imp,                                                     &
+       & fux_adv, fuy_adv, fuz_adv, fuz_imp,                                                     &
+       & fvx_adv, fvy_adv, fvz_adv, fvz_imp,                                                     &
+       & fwx_adv, fwy_adv, fwz_adv, fwz_imp,                                                     &
        & ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs,                                   &
        & fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs,                 &
        & t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,                                      &
@@ -469,11 +472,11 @@ CONTAINS
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_save, v_save, w_2, w_save, ru, rv, ww,              &
          th_save, t_1, Q, q_1, ph_1, ph_2, phb, zx, zy, alt,   &
-         ftx_small, fty_small, ftz_small,                      &
-         fqx_adv, fqy_adv, fqz_adv,                            &
-         fux_adv, fuy_adv, fuz_adv,                            &
-         fvx_adv, fvy_adv, fvz_adv,                            &
-         fwx_adv, fwy_adv, fwz_adv,                            &
+         ftx_small, fty_small, ftz_small, ftz_imp,             &
+         fqx_adv, fqy_adv, fqz_imp,                            &
+         fux_adv, fuy_adv, fuz_imp,                            &
+         fvx_adv, fvy_adv, fvz_imp,                            &
+         fwx_adv, fwy_adv, fwz_imp,                            &
          t_tend_radlw, t_tend_radsw, t_tend_mp, qv_tend_mp,    &
          rthcuten, rqvcuten, rucuten, rvcuten,                 &
          rthshten, rqvshten, rushten, rvshten,                 &
@@ -485,6 +488,7 @@ CONTAINS
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
     REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_adv, fty_adv, ftz_adv,  &
+                                                                            fqz_adv, fuz_adv, fvz_adv, fwz_adv, &
                                                                             dph_x, dph_y
 
     REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: fnm, fnp, c1h, c2h, c1f, c2f
@@ -500,11 +504,13 @@ CONTAINS
 
 
     REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d
-    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    rdzdt, qfac, u8w, v8w, rho8w, rw_diag, rzxu, rzyv, &
-                                                                    ftx_adv_small, fty_adv_small, ftz_adv_small
+    REAL,    DIMENSION( its-1:ite+1 , kts:kte , jts-1:jte+1 ) ::    rw_corr, rdzdt, rw_diag, rzxu, rzyv,        &
+                                                                    ftx_total, fty_total, ftz_total,            &
+                                                                    fqz_total, fuz_total, fvz_total, fwz_total, &
+                                                                    qfac, u8w, v8w, rho8w
 
     INTEGER :: i,j,k
-    REAL :: local_count, count_p1, ftz, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,       &
+    REAL :: local_count, count_p1, fz, rhom, rhox, rhoy, rhoz, rhoxy, rhoxz, rhoyz,        &
             rho_mean, rhox_mean, rhoy_mean, rhoz_mean, rhoxy_mean, rhoxz_mean, rhoyz_mean, &
             rho_mean_flx, rhox_mean_flx, rhoy_mean_flx, rhoz_mean_flx, rhoxy_mean_flx,     &
             rhoxz_mean_flx, rhoyz_mean_flx,                                                &
@@ -575,7 +581,8 @@ CONTAINS
           ENDIF
           rzxu(i,k,j) = -rho8w(i,k,j)*dph_x(i,k,j)/g
           rzyv(i,k,j) = -rho8w(i,k,j)*dph_y(i,k,j)/g
-          rw_diag(i,k,j) = rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww(i,k,j)*msfty(i,j)/(-g)
+          rw_corr(i,k,j) = rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j)
+          rw_diag(i,k,j) =  rw_corr(i,k,j) + ww(i,k,j)*msfty(i,j)/(-g)
           ! build diagnostic w with ww_m instead of ww to include sound-step in mean t-fluxes
           w_diag(i,k,j) = (rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)) / rho8w(i,k,j)
         ENDDO
@@ -586,12 +593,97 @@ CONTAINS
           DO j=jts,jte
           DO k=kts,kte
           DO i=its,ite
-            ftx_adv_small(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
-            fty_adv_small(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
-            ftz_adv_small(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
+            ftx_total(i,k,j) = ftx_adv(i,k,j) + ftx_small(i,k,j)
+            fty_total(i,k,j) = fty_adv(i,k,j) + fty_small(i,k,j)
+            ftz_total(i,k,j) = ftz_adv(i,k,j) + ftz_small(i,k,j)
           end DO
           end DO
           end DO
+          IF (config_flags%zadvect_implicit .gt. 0) THEN
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              ftz_total(i,k,j) = ftz_total(i,k,j) + ftz_imp(i,k,j)
+            end DO
+            end DO
+            end DO
+          ENDIF
+        ENDIF
+        IF (config_flags%output_qres_fluxes) THEN
+          IF (config_flags%zadvect_implicit .gt. 0) THEN
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fqz_total(i,k,j) = fqz_adv(i,k,j) + fqz_imp(i,k,j)
+            end DO
+            end DO
+            end DO
+          ELSE
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fqz_total(i,k,j) = fqz_adv(i,k,j)
+            end DO
+            end DO
+            end DO
+          ENDIF
+        ENDIF
+        IF (config_flags%output_ures_fluxes) THEN
+          IF (config_flags%zadvect_implicit .gt. 0) THEN
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fuz_total(i,k,j) = fuz_adv(i,k,j) + fuz_imp(i,k,j)
+            end DO
+            end DO
+            end DO
+          ELSE
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fuz_total(i,k,j) = fuz_adv(i,k,j)
+            end DO
+            end DO
+            end DO
+          ENDIF
+        ENDIF
+        IF (config_flags%output_vres_fluxes) THEN
+          IF (config_flags%zadvect_implicit .gt. 0) THEN
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fvz_total(i,k,j) = fvz_adv(i,k,j) + fvz_imp(i,k,j)
+            end DO
+            end DO
+            end DO
+          ELSE
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fvz_total(i,k,j) = fvz_adv(i,k,j)
+            end DO
+            end DO
+            end DO
+          ENDIF
+        ENDIF
+        IF (config_flags%output_wres_fluxes) THEN
+          IF (config_flags%zadvect_implicit .gt. 0) THEN
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fwz_total(i,k,j) = fwz_adv(i,k,j) + fwz_imp(i,k,j)
+            end DO
+            end DO
+            end DO
+          ELSE
+            DO j=jts,jte
+            DO k=kts,kte
+            DO i=its,ite
+              fwz_total(i,k,j) = fwz_adv(i,k,j)
+            end DO
+            end DO
+            end DO
+          ENDIF
         ENDIF
       ENDIF
 
@@ -722,13 +814,13 @@ CONTAINS
                 TX_MEAN(i,k,j) = (local_count*TX_MEAN(i,k,j) + thetax*rhox )/count_p1/rhox_mean
                 TY_MEAN(i,k,j) = (local_count*TY_MEAN(i,k,j) + thetay*rhoy )/count_p1/rhoy_mean
                 TT_MEAN(i,k,j) = (local_count*TT_MEAN(i,k,j) + (th_save(i,k,j) - t0)**2 )/count_p1
-                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_adv_small(i,k,j) )/count_p1*fqx_dfac
-                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_adv_small(i,k,j) )/count_p1*fqy_dfac
+                FTX_ADV_MEAN(i,k,j)  = (local_count*FTX_ADV_MEAN(i,k,j) + ftx_total(i,k,j) )/count_p1*fqx_dfac
+                FTY_ADV_MEAN(i,k,j)  = (local_count*FTY_ADV_MEAN(i,k,j) + fty_total(i,k,j) )/count_p1*fqy_dfac
               ENDIF
 
               TZ_MEAN(i,k,j) = (local_count*TZ_MEAN(i,k,j) + thetaz*rhoz )/count_p1/rhoz_mean
-              ftz = rw_diag(i,k,j)*thetaz + ftz_small(i,k,j)*msfty(i,j)/(-g)
-              FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + ftz )/count_p1/rhoz_mean_flx
+              fz = rw_corr(i,k,j)*thetaz + ftz_total(i,k,j)*msfty(i,j)/(-g)
+              FTZ_ADV_MEAN(i,k,j)  = (local_count*FTZ_ADV_MEAN(i,k,j) + fz )/count_p1/rhoz_mean_flx
               FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu(i,k,j)*thetaz )/count_p1
               FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*thetaz )/count_p1
               CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt(i,k,j)*thetaz )/count_p1
@@ -764,9 +856,6 @@ CONTAINS
                                              ids, ide, jds, jde, kds, kde,             &
                                              ims, ime, jms, jme, kms, kme              )
 
-              !use ww_m instead of ww
-              rw_diag_s = rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)
-
               !build averages
               IF (k .lt. kde) THEN
                 Q_MEAN(i,k,j) = (local_count*Q_MEAN(i,k,j) + Q(i,k,j)*rhom )/count_p1/rho_mean
@@ -777,7 +866,8 @@ CONTAINS
                 FQY_ADV_MEAN(i,k,j)  = (local_count*FQY_ADV_MEAN(i,k,j) + fqy_adv(i,k,j) )/count_p1*fqy_dfac
               ENDIF
               QZ_MEAN(i,k,j) = (local_count*QZ_MEAN(i,k,j) + qz*rhoz )/count_p1/rhoz_mean
-              FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + rw_diag_s*qz )/count_p1/rhoz_mean_flx
+              fz = rw_corr(i,k,j)*qz + fqz_total(i,k,j)*msfty(i,j)/(-g)
+              FQZ_ADV_MEAN(i,k,j)  = (local_count*FQZ_ADV_MEAN(i,k,j) + fz )/count_p1/rhoz_mean_flx
               FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + rzxu(i,k,j)*qz )/count_p1
               FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*qz )/count_p1
               CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + rdzdt(i,k,j)*qz )/count_p1
@@ -793,6 +883,8 @@ CONTAINS
                 ENDIF
                 ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                 rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
+                !use ww_m instead of ww
+                rw_diag_s = rw_corr(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)
                 FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/count_p1*fqx_dfac
                 FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/count_p1*fqy_dfac
                 FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/count_p1/rhoz_mean_flx
@@ -822,7 +914,6 @@ CONTAINS
               rzxu_s = 0.5*(rzxu(i,k,j)/msfty(i,j) + rzxu(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
               rzyv_s = 0.5*(rzyv(i,k,j)/msfty(i,j) + rzyv(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
               rdzdt_s = 0.5*(rdzdt(i,k,j)/msfty(i,j) + rdzdt(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
-              rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
 
               !build averages
               UX_MEAN(i,k,j) = (local_count*UX_MEAN(i,k,j) + ux*rhom  )/count_p1/rho_mean
@@ -830,7 +921,8 @@ CONTAINS
               UZ_MEAN(i,k,j) = (local_count*UZ_MEAN(i,k,j) + uz*rhoxz )/count_p1/rhoxz_mean
               FUX_ADV_MEAN(i,k,j)  = (local_count*FUX_ADV_MEAN(i,k,j) + fux_adv(i,k,j) )/count_p1*fux_dfac
               FUY_ADV_MEAN(i,k,j)  = (local_count*FUY_ADV_MEAN(i,k,j) + fuy_adv(i,k,j) )/count_p1*fuy_dfac
-              FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + rw_diag_s*uz )/count_p1/rhoxz_mean_flx
+              fz = (rzxu_s + rzyv_s + rdzdt_s)*uz + fuz_total(i,k,j)*msfuy(i,j)/(-g)
+              FUZ_ADV_MEAN(i,k,j)  = (local_count*FUZ_ADV_MEAN(i,k,j) + fz )/count_p1/rhoxz_mean_flx
               FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + rzxu_s*uz )/count_p1
               FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv_s*uz )/count_p1
               CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt_s*uz )/count_p1
@@ -846,6 +938,7 @@ CONTAINS
                 ENDIF
                 ru8z = rhoxz*u8w(i,k,j)
                 rv8z = rhoxz*0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
+                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
                 FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/count_p1*fux_dfac
                 FUY_ADV_MEAN_2ND(i,k,j) = (local_count*FUY_ADV_MEAN_2ND(i,k,j) + rv_d*uy2 )/count_p1*fuy_dfac
                 FUZ_ADV_MEAN_2ND(i,k,j) = (local_count*FUZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*uz2 )/count_p1/rhoxz_mean_flx
@@ -875,7 +968,6 @@ CONTAINS
               rzxu_s = 0.5*(rzxu(i,k,j)/msfty(i,j) + rzxu(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
               rzyv_s = 0.5*(rzyv(i,k,j)/msfty(i,j) + rzyv(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
               rdzdt_s = 0.5*(rdzdt(i,k,j)/msfty(i,j) + rdzdt(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
-              rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
 
               !build averages
               VX_MEAN(i,k,j) = (local_count*VX_MEAN(i,k,j) + vx*rhoxy )/count_p1/rhoxy_mean
@@ -883,7 +975,8 @@ CONTAINS
               VZ_MEAN(i,k,j) = (local_count*VZ_MEAN(i,k,j) + vz*rhoyz )/count_p1/rhoyz_mean
               FVX_ADV_MEAN(i,k,j)  = (local_count*FVX_ADV_MEAN(i,k,j) + fvx_adv(i,k,j) )/count_p1*fvx_dfac
               FVY_ADV_MEAN(i,k,j)  = (local_count*FVY_ADV_MEAN(i,k,j) + fvy_adv(i,k,j) )/count_p1*fvy_dfac
-              FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + rw_diag_s*vz )/count_p1/rhoyz_mean_flx
+              fz = (rzxu_s + rzyv_s + rdzdt_s)*vz + fvz_total(i,k,j)*msfvy(i,j)/(-g)
+              FVZ_ADV_MEAN(i,k,j)  = (local_count*FVZ_ADV_MEAN(i,k,j) + fz )/count_p1/rhoyz_mean_flx
               FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + rzxu_s*vz )/count_p1
               FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv_s*vz )/count_p1
               CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt_s*vz )/count_p1
@@ -899,6 +992,7 @@ CONTAINS
                 ENDIF
                 ru8z = rhoyz*0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
                 rv8z = rhoyz*v8w(i,k,j)
+                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
                 FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/count_p1*fvx_dfac
                 FVY_ADV_MEAN_2ND(i,k,j) = (local_count*FVY_ADV_MEAN_2ND(i,k,j) + ( rv_d*vy2 ) )/count_p1*fvy_dfac
                 FVZ_ADV_MEAN_2ND(i,k,j) = (local_count*FVZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*vz2 )/count_p1/rhoyz_mean_flx
@@ -947,9 +1041,9 @@ CONTAINS
                 rzxu_s = 0.5*(rzxu(i,k+1,j)+rzxu(i,k,j))
                 rzyv_s = 0.5*(rzyv(i,k+1,j)+rzyv(i,k,j))
                 rdzdt_s = 0.5*(rdzdt(i,k+1,j)+rdzdt(i,k,j))
-                rw_diag_s = 0.5*(rw_diag(i,k+1,j) + rw_diag(i,k,j))
                 WZ_MEAN(i,k,j) = (local_count*WZ_MEAN(i,k,j) + wz*rhom  )/count_p1/rho_mean
-                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + rw_diag_s*wz )/count_p1/rho_mean_flx
+                fz = (rzxu_s + rzyv_s + rdzdt_s)*wz + fwz_total(i,k,j)*msfty(i,j)/(-g)
+                FWZ_ADV_MEAN(i,k,j)  = (local_count*FWZ_ADV_MEAN(i,k,j) + fz )/count_p1/rho_mean_flx
                 FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + rzxu_s*wz )/count_p1
                 FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + rzyv_s*wz )/count_p1
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt_s*wz )/count_p1
@@ -971,6 +1065,7 @@ CONTAINS
                   ENDIF
                   ru8z = rhom*0.5*(u_save(i,k,j) + u_save(i+1,k,j))
                   rv8z = rhom*0.5*(v_save(i,k,j) + v_save(i,k,j+1))
+                  rw_diag_s = 0.5*(rw_diag(i,k+1,j) + rw_diag(i,k,j))
                   FWX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWX_CORR_MEAN_DZOUT(i,k,j) + ru8z*wz )/count_p1
                   FWY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWY_CORR_MEAN_DZOUT(i,k,j) + rv8z*wz )/count_p1
                   FWZ_ADV_MEAN_2ND(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*wz2 )/count_p1/rho_mean_flx
@@ -1212,17 +1307,56 @@ CONTAINS
         ENDIF
       endif
 
+      ! update instantaneous t-fluxes
       IF (config_flags%output_tres_fluxes) THEN
-        ! update instantaneous t-fluxes
         DO j=jts,jte
         DO k=kts,kte
         DO i=its,ite
-          ftx_adv(i,k,j) = ftx_adv_small(i,k,j)
-          fty_adv(i,k,j) = fty_adv_small(i,k,j)
-          ftz_adv(i,k,j) = ftz_adv_small(i,k,j)
+          ftx_adv(i,k,j) = ftx_total(i,k,j)
+          fty_adv(i,k,j) = fty_total(i,k,j)
+          ftz_adv(i,k,j) = ftz_total(i,k,j)
         end DO
         end DO
         end DO
+      ENDIF
+
+      IF (config_flags%zadvect_implicit .gt. 0) THEN
+        IF (config_flags%output_qres_fluxes) THEN
+          DO j=jts,jte
+          DO k=kts,kte
+          DO i=its,ite
+            fqz_adv(i,k,j) = fqz_total(i,k,j)
+          end DO
+          end DO
+          end DO
+        ENDIF
+        IF (config_flags%output_ures_fluxes) THEN
+          DO j=jts,jte
+          DO k=kts,kte
+          DO i=its,ite
+            fuz_adv(i,k,j) = fuz_total(i,k,j)
+          end DO
+          end DO
+          end DO
+        ENDIF
+        IF (config_flags%output_vres_fluxes) THEN
+          DO j=jts,jte
+          DO k=kts,kte
+          DO i=its,ite
+            fvz_adv(i,k,j) = fvz_total(i,k,j)
+          end DO
+          end DO
+          end DO
+        ENDIF
+        IF (config_flags%output_wres_fluxes) THEN
+          DO j=jts,jte
+          DO k=kts,kte
+          DO i=its,ite
+            fwz_adv(i,k,j) = fwz_total(i,k,j)
+          end DO
+          end DO
+          end DO
+        ENDIF
       ENDIF
     endif
 

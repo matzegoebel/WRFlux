@@ -702,8 +702,8 @@ RETURN
 END SUBROUTINE advect_ph_implicit
 !-------------------------------------------------------------------------------
 !
-SUBROUTINE advect_s_implicit( s, s_old, tendency,            &
-                              ru, rv, rom,                   &
+SUBROUTINE advect_s_implicit( s, s_old, tendency, fqz,       &
+                              output_fluxes, ru, rv, rom,    &
                               c1, c2,                        &
                               mut_old, mut, mut_new,         &
                               config_flags,                  &
@@ -742,7 +742,8 @@ SUBROUTINE advect_s_implicit( s, s_old, tendency,            &
 
 !-------------------------------------------------------------------------------
    
-   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency, &
+                                                                      fqz
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -760,6 +761,7 @@ SUBROUTINE advect_s_implicit( s, s_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    REAL ,                                        INTENT(IN   ) :: dt_rk
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 ! Local data
    
@@ -772,6 +774,7 @@ SUBROUTINE advect_s_implicit( s, s_old, tendency,            &
    INTEGER :: horz_order, vert_order
 
    REAL    :: mrdx, mrdy, ub, vb, uw, vw, dvm, dvp, wiL, wiR, dz
+   REAL    :: total_tend, ieva_tend
 
    REAL(KIND=8), DIMENSION(its:ite,kts:kte) :: at, bt, ct, rt, bb   
    REAL(KIND=8), DIMENSION(its:ite)         :: btmp
@@ -819,13 +822,17 @@ SUBROUTINE advect_s_implicit( s, s_old, tendency,            &
       
      CALL tridiag2D(at, bt, ct, rt, bb, its, ite, i_start, i_end, kts, kte, kts, ktf) 
 
+     IF (output_fluxes) THEN
+       fqz(:,kts,j) = 0.
+     ENDIF
      DO k = kts, ktf
        DO i = i_start, i_end
-
-         ! Rescale tendency with old column mass for consistency in update step.
-     
-         tendency(i,k,j) = sngl(bb(i,k)) / dt_rk
-       
+         total_tend = sngl(bb(i,k)) / dt_rk
+         IF (output_fluxes) THEN
+           ieva_tend = total_tend - tendency(i,k,j)
+           fqz(i,k+1,j) = -ieva_tend/rdzw(k) + fqz(i,k,j)
+         ENDIF
+         tendency(i,k,j) = total_tend
        ENDDO
      ENDDO
        
@@ -835,8 +842,8 @@ RETURN
 END SUBROUTINE advect_s_implicit
 !-------------------------------------------------------------------------------
 !
-SUBROUTINE advect_u_implicit( u, u_old, tendency,            &
-                              ru, rv, rom,                   &
+SUBROUTINE advect_u_implicit( u, u_old, tendency, fuz,       &
+                              output_fluxes, ru, rv, rom,    &
                               c1, c2,                        &
                               muu_old, muu, muu_new,         &
                               config_flags,                  &
@@ -876,7 +883,8 @@ SUBROUTINE advect_u_implicit( u, u_old, tendency,            &
 
 !-------------------------------------------------------------------------------
 
-   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency, &
+                                                                      fuz
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -894,6 +902,7 @@ SUBROUTINE advect_u_implicit( u, u_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    REAL ,                                        INTENT(IN   ) :: dt_rk
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
    ! Local data
    
@@ -906,7 +915,8 @@ SUBROUTINE advect_u_implicit( u, u_old, tendency,            &
    INTEGER :: horz_order, vert_order
 
    REAL    :: wiL, wiR, dz
-   
+   REAL    :: total_tend, ieva_tend
+
    REAL(KIND=8), DIMENSION(its:ite,kts:kte) :: at, bt, ct, rt, bb
    REAL(KIND=8), DIMENSION(its:ite)         :: btmp
       
@@ -963,11 +973,17 @@ SUBROUTINE advect_u_implicit( u, u_old, tendency,            &
    
      CALL tridiag2D(at, bt, ct, rt, bb, its, ite, i_start, i_end, kts, kte, kts, ktf) 
 
+     IF (output_fluxes) THEN
+       fuz(:,kts,j) = 0.
+     ENDIF
      DO k = kts, ktf
        DO i = i_start, i_end
-     
-         tendency(i,k,j) = sngl(bb(i,k)) / dt_rk / msfuy(i,j)
-                
+         total_tend = sngl(bb(i,k)) / dt_rk / msfuy(i,j)
+         IF (output_fluxes) THEN
+           ieva_tend = total_tend - tendency(i,k,j)
+           fuz(i,k+1,j) = -ieva_tend/rdzw(k) + fuz(i,k,j)
+         ENDIF
+         tendency(i,k,j) = total_tend
        ENDDO
      ENDDO
         
@@ -977,8 +993,8 @@ RETURN
 END SUBROUTINE advect_u_implicit
 !-------------------------------------------------------------------------------
 !
-SUBROUTINE advect_v_implicit( v, v_old, tendency,            &
-                              ru, rv, rom,                   &
+SUBROUTINE advect_v_implicit( v, v_old, tendency, fvz,       &
+                              output_fluxes, ru, rv, rom,    &
                               c1, c2,                        &
                               muv_old, muv, muv_new,         &
                               config_flags,                  &
@@ -1018,7 +1034,8 @@ SUBROUTINE advect_v_implicit( v, v_old, tendency,            &
 
 !-------------------------------------------------------------------------------
 
-   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency, &
+                                                                      fvz
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -1036,6 +1053,7 @@ SUBROUTINE advect_v_implicit( v, v_old, tendency,            &
    REAL ,                                        INTENT(IN   ) :: rdx,  &
                                                                   rdy
    REAL ,                                        INTENT(IN   ) :: dt_rk
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 ! Local data
    
@@ -1048,6 +1066,7 @@ SUBROUTINE advect_v_implicit( v, v_old, tendency,            &
    INTEGER :: horz_order, vert_order
 
    REAL    :: mrdx, mrdy, ub, vb, uw, vw, dvm, dvp, wiL, wiR, dz
+   REAL    :: total_tend, ieva_tend
 
    REAL(KIND=8), DIMENSION(its:ite,kts:kte) :: at, bt, ct, rt, bb
    REAL(KIND=8), DIMENSION(its:ite)         :: btmp
@@ -1102,14 +1121,20 @@ SUBROUTINE advect_v_implicit( v, v_old, tendency,            &
       
      CALL tridiag2D(at, bt, ct, rt, bb, its, ite, i_start, i_end, kts, kte, kts, ktf) 
 
+     IF (output_fluxes) THEN
+       fvz(:,kts,j) = 0.
+     ENDIF
      DO k = kts, ktf
        DO i = i_start, i_end
-     
-       tendency(i,k,j) = sngl(bb(i,k)) / dt_rk / msfvx(i,j)
-       
-       ENDDO     
+         total_tend = sngl(bb(i,k)) / dt_rk / msfvx(i,j)
+         IF (output_fluxes) THEN
+           ieva_tend = total_tend - tendency(i,k,j)
+           fvz(i,k+1,j) = -ieva_tend/rdzw(k) + fvz(i,k,j)
+         ENDIF
+         tendency(i,k,j) = total_tend
+       ENDDO
      ENDDO
-          
+
    ENDDO
     
 RETURN
@@ -1117,7 +1142,8 @@ END SUBROUTINE advect_v_implicit
 
 !-------------------------------------------------------------------------------
 ! 
-SUBROUTINE advect_w_implicit( w, w_old, tendency,            &
+SUBROUTINE advect_w_implicit( w, w_old, tendency, fwz,       &
+                              output_fluxes,                 &
                               utend, vtend, ht, rom,         &
                               ph_new, ph_old, ph_tend,       &
                               c1, c2,                        &
@@ -1163,7 +1189,8 @@ SUBROUTINE advect_w_implicit( w, w_old, tendency,            &
 
 !-------------------------------------------------------------------------------
    
-   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency
+   REAL , DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) :: tendency, &
+                                                                      fwz
 
    REAL , DIMENSION( ims:ime , jms:jme ) ,         INTENT(IN   ) :: msfux,  &
                                                                     msfuy,  &
@@ -1186,6 +1213,7 @@ SUBROUTINE advect_w_implicit( w, w_old, tendency,            &
                                                                   cf3
                                                                   
    REAL ,                                        INTENT(IN   ) :: dt_rk
+   LOGICAL ,                                     INTENT(IN   ) :: output_fluxes
 
 ! Local data
    
@@ -1193,6 +1221,7 @@ SUBROUTINE advect_w_implicit( w, w_old, tendency,            &
    INTEGER :: i_start, i_end, j_start, j_end
    INTEGER :: i_start_f, i_end_f, j_start_f, j_end_f
    REAL    :: wiL, wiR, dz, dw
+   REAL    :: total_tend, ieva_tend
 
    REAL(KIND=8), DIMENSION(its:ite,kts:kte) :: at, bt, ct, rt, bb
    REAL(KIND=8), DIMENSION(its:ite)         :: btmp
@@ -1257,11 +1286,17 @@ SUBROUTINE advect_w_implicit( w, w_old, tendency,            &
 
      CALL tridiag2D(at, bt, ct, rt, bb, its, ite, i_start, i_end, kts, kte, kts+1, ktf) 
 
+     IF (output_fluxes) THEN
+       fwz(:,kts,j) = 0.
+     ENDIF
      DO k = kts+1, ktf
        DO i = i_start, i_end
-     
-         tendency(i,k,j) = sngl(bb(i,k)) / dt_rk / msfty(i,j)
-                         
+         total_tend = sngl(bb(i,k)) / dt_rk / msfty(i,j)
+         IF (output_fluxes) THEN
+           ieva_tend = total_tend - tendency(i,k,j)
+           fwz(i,k,j) = -ieva_tend/rdzu(k) + fwz(i,k-1,j)
+         ENDIF
+         tendency(i,k,j) = total_tend
        ENDDO
      ENDDO
      

@@ -195,8 +195,11 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                          v_tend_pg,v_tend_cor_curv,                       &
                          w_tend_pg,w_tend_cor_curv,                       &
                          t_tend_damp,u_tend_damp,v_tend_damp,w_tend_damp, &
-                         ftx, fty, ftz,                                   &
-                         fux, fuy, fuz, fvx, fvy, fvz, fwx, fwy, fwz, qv, &
+                         ftx, fty, ftz, ftz_imp,                          &
+                         fux, fuy, fuz, fuz_imp,                          &
+                         fvx, fvy, fvz, fvz_imp,                          &
+                         fwx, fwy, fwz, fwz_imp,                          &
+                         qv,                                              &
                          mu_tend, u_save, v_save, w_save, ph_save,        &
                          t_save, mu_save, RTHFTEN,                        &
                          ru, rv, rw, ww, wwE, wwI,                        &
@@ -282,10 +285,10 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                        u_tend_pg,u_tend_cor_curv, &
                                        v_tend_pg,v_tend_cor_curv, &
                                        w_tend_pg,w_tend_cor_curv, &
-                                                  ftx, fty, ftz,  &
-                                                  fux, fuy, fuz,  &
-                                                  fvx, fvy, fvz,  &
-                                                  fwx, fwy, fwz
+                                          ftx, fty, ftz, ftz_imp, &
+                                          fux, fuy, fuz, fuz_imp, &
+                                          fvx, fvy, fvz, fvz_imp, &
+                                          fwx, fwy, fwz, fwz_imp
 
 
    REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) ,               &
@@ -358,6 +361,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    REAL, INTENT( OUT ) :: max_vert_cfl
 
    REAL , DIMENSION( ims:ime , kms:kme, jms:jme  ) :: t_tend_dummy,        &
+                                                      th_save_old,         &
                                                       ru_tend_old,         &
                                                       rv_tend_old,         &
                                                       rw_tend_old
@@ -367,7 +371,7 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    INTEGER :: time_step
    INTEGER :: rk_order
    REAL    :: dt_step
-   LOGICAL :: output_fluxes, advect_thdry, &
+   LOGICAL :: output_fluxes, output_fluxes_s, advect_thdry,   &
               save_ttend, save_utend, save_vtend, save_wtend, &
               save_utend_end, save_vtend_end, save_wtend_end
 
@@ -553,7 +557,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
    IF( ieva ) THEN
 
-     CALL advect_u_implicit ( u, u_old, ru_tend, ru, rv, wwI,  &
+     CALL advect_u_implicit ( u, u_old, ru_tend, fuz_imp,      &
+                              output_fluxes, ru, rv, wwI,      &
                               c1h, c2h,                        &
                               muu_old, muu, muu_new,           &
                               config_flags,                    &
@@ -603,7 +608,8 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
 
    IF( ieva ) THEN
      
-     CALL advect_v_implicit ( v, v_old, rv_tend, ru, rv, wwI,  &
+     CALL advect_v_implicit ( v, v_old, rv_tend, fvz_imp,      &
+                              output_fluxes, ru, rv, wwI,      &
                               c1h, c2h,                        &
                               muv_old, muv, muv_new,           &
                               config_flags,                    &
@@ -671,12 +677,22 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
          ENDDO
          ENDDO
          ENDDO
+         IF( ieva ) THEN
+            DO j = jms,jme
+            DO k = kms,kme
+            DO i = ims,ime
+               th_save_old(i,k,j) = (t_old(i,k,j)+t0)/(1.+rvovrd*qv(i,k,j)) - t0
+            ENDDO
+            ENDDO
+            ENDDO
+         ENDIF
       ELSE
          th_save(:,:,:) = t(:,:,:)
       ENDIF
    ELSE
       output_fluxes = .false.
    ENDIF
+   output_fluxes_s = output_fluxes
 
 ! 11/2016 ERM: Use WENO for theta flux on 3rd RK step if using WENO_SCALAR or WENOPD_SCALAR
 ! to be consistent with other scalar fluxes
@@ -699,12 +715,12 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                     ids, ide, jds, jde, kds, kde,  &
                                     ims, ime, jms, jme, kms, kme,  &
                                     its, ite, jts, jte, kts, kte  )
-           output_fluxes = .false.
+           output_fluxes_s = .false.
         ENDIF
 ! also use weno for monotonic scalar option so that the h_ and z_tendency arrays are not needed
 
      CALL advect_scalar_weno ( t, t, t_tend, ftx, fty, ftz,   &
-                               output_fluxes, ru, rv, wwE,    &
+                               output_fluxes_s, ru, rv, wwE,    &
                                c1h, c2h, mut, time_step,      &
                                config_flags,                  &
                                msfux, msfuy, msfvx, msfvy,    &
@@ -728,11 +744,11 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                              ids, ide, jds, jde, kds, kde, &
                              ims, ime, jms, jme, kms, kme, &
                              its, ite, jts, jte, kts, kte )
-        output_fluxes = .false.
+        output_fluxes_s = .false.
      ENDIF
 
      CALL advect_scalar ( t, t, t_tend, ftx, fty, ftz,  &
-                          output_fluxes, ru, rv, wwE,   &
+                          output_fluxes_s, ru, rv, wwE, &
                           c1h, c2h,                     &
                           mut, time_step, config_flags, &
                           msfux, msfuy, msfvx, msfvy,   &
@@ -745,8 +761,25 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
    ENDIF
 
    IF( ieva ) THEN
-      
-     CALL advect_s_implicit ( t, t_old, t_tend, ru, rv, wwI,  &
+     IF (advect_thdry) THEN
+        CALL advect_s_implicit ( th_save, th_save_old,           &
+                                 t_tend_dummy, ftz_imp,          &
+                                 output_fluxes, ru, rv, wwI,     &
+                                 c1h, c2h,                       &
+                                 mut_old, mut, mut_new,          &
+                                 config_flags,                   &
+                                 msfux, msfuy, msfvx, msfvy,     &
+                                 msftx, msfty,                   &
+                                 fnm, fnp,                       &
+                                 dt_step,                        &
+                                 rdx, rdy, rdnw,                 &
+                                 ids, ide, jds, jde, kds, kde,   &
+                                 ims, ime, jms, jme, kms, kme,   &
+                                 its, ite, jts, jte, kts, kte )
+        output_fluxes = .false.
+     ENDIF
+     CALL advect_s_implicit ( t, t_old, t_tend, ftz_imp,      &
+                              output_fluxes, ru, rv, wwI,     &
                               c1h, c2h,                       &
                               mut_old, mut, mut_new,          &
                               config_flags,                   &
@@ -806,8 +839,13 @@ SUBROUTINE rk_tendency ( config_flags, rk_step,                           &
                                   its, ite, jts, jte, kts, kte )
 
      IF (non_hydrostatic) THEN
-      
-       CALL advect_w_implicit ( w, w_old, rw_tend,              &
+      IF ((rk_step == config_flags%rk_ord) .and. config_flags%output_wres_fluxes) THEN
+        output_fluxes = .true.
+      ELSE
+        output_fluxes = .false.
+      ENDIF
+       CALL advect_w_implicit ( w, w_old, rw_tend, fwz_imp,     &
+                                output_fluxes,                  &
                                 ru_tend, rv_tend, ht, wwI,      &
                                 ph, ph_old, ph_tend,            &
                                 c1f, c2f, cf1, cf2, cf3,        &
@@ -1357,7 +1395,8 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
                             ids, ide, jds, jde, kds, kde,    &
                             ims, ime, jms, jme, kms, kme,    &
                             its, ite, jts, jte, kts, kte,    &
-                            fqx, fqy, fqz, output_fluxes_in, &
+                            fqx, fqy, fqz, fqz_imp,          &
+                            output_fluxes_in,                &
                             q_tend_damp, t_tend_damp, th_phy )
 
    IMPLICIT NONE
@@ -1432,7 +1471,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
    LOGICAL, OPTIONAL, INTENT(IN   ) :: output_fluxes_in
    REAL, OPTIONAL,DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(OUT  ) :: q_tend_damp,  &
                                                                            th_phy,       &
-                                                                           fqx, fqy, fqz
+                                                                           fqx, fqy, fqz, fqz_imp
    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme  ), INTENT(INOUT) :: t_tend_damp
 
    ! Local data
@@ -1607,6 +1646,7 @@ SUBROUTINE rk_scalar_tend ( scs, sce, config_flags,          &
        CALL advect_s_implicit ( scalar(ims,kms,jms,im),         &
                                 scalar_old(ims,kms,jms,im),     &
                                 advect_tend(ims,kms,jms),       &
+                                fqz_imp, output_fluxes,         &
                                 ru, rv, wwI,                    &
                                 c1h, c2h,                       &
                                 mut_old, mut, mut,              &

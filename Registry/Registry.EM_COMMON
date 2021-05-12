@@ -3465,7 +3465,7 @@ period    PERIOD_EM_DA dyn_em 2:ru_m,rv_m,ww_m,mut,muts
 period    PERIOD_EM_F dyn_em 2:muus,muvs
 period    PERIOD_EM_G dyn_em 2:msftx,msfux,msfvy
 period    PERIOD_EM_THETAM dyn_em 3:h_diabatic
-period    PERIOD_BDY_EM_WRFLUX dyn_em 2:u_save,v_save,w_save,dph_x,dph_y
+period    PERIOD_BDY_EM_WRFLUX dyn_em 2:u_save,v_save,w_save,dph_x,dph_y,fuz_imp,fvz_imp
 
 #
 #swap SWAP_ETAMP_NEW  dyn_em 1:dz8w,p_phy,pi_phy,rho,th_phy,moist,F_ICE_PHY,F_RAIN_PHY,F_RIMEF_PHY,RAINNC,RAINNCV,SR,LOWLYR

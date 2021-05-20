@@ -130,8 +130,8 @@ SUBROUTINE small_step_prep( u_1, u_2, v_1, v_2, w_1, w_2, &
 
     IF ((rk_step == 1) ) THEN
 
-      DO j=j_start, j_end
-      DO i=i_start, i_end
+      DO j=j_start, j_endv
+      DO i=i_start, i_endu
         MU_1(i,j)=MU_2(i,j)
         ww_save(i,kde,j) = 0.
         ww_save(i,1,j) = 0.

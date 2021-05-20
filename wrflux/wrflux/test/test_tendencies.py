@@ -56,7 +56,7 @@ tests = testing.all_tests
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 #          "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
 #          "no_model_change"]
-
+# tests = ["periodic"]
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
     avg_dims_error=["y", "bottom_top", "Time"],  # dimensions over which to calculate error norms
@@ -160,9 +160,9 @@ def test_all():
                                           hm=hm, spec_hfx=[0.2], input_sounding="free"))
     param_grids["symmetric BC y hor_avg"] = param_grids["symmetric BC y"].copy()
 
-    failed, failed_short, err, err_short, err_diff = run_and_test(param_grids, param_names, avg_dims=["y"])
+    failed, failed_short, err, err_short, err_diff, err_ratio = run_and_test(param_grids, param_names, avg_dims=["y"])
 
-    return failed, failed_short, err, err_short, err_diff
+    return failed, failed_short, err, err_short, err_diff, err_ratio
 
 
 # %% run_and_test
@@ -366,6 +366,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     err_previous = glob.glob(str(test_results / "test_scores_*.csv"))
     err_previous = sorted([f for f in err_previous if "failsonly" not in f and now not in f])
     err_diff = None
+    err_ratio = None
     if len(err_previous) > 0:
         err_previous = pd.read_csv(err_previous[-1], header=0, index_col=(0, 1))
         # delete Y=0 test
@@ -374,7 +375,9 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         err_clean = err_clean.loc[[t for t in err_clean.index if t[0] != "Y=0"]]
         err_clean = err_clean.astype(float)
         err_diff = err_clean - err_previous
+        err_ratio = (1 - err_clean) / (1 - err_previous)
         err_diff = err_diff.dropna(0, "all").dropna(1, "all")
+        err_ratio = err_ratio.dropna(0, "all").dropna(1, "all")
 
     if save_results:
         failed.to_csv(test_results / ("test_results_" + now + ".csv"))
@@ -388,7 +391,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         if raise_error:
             raise RuntimeError(message)
 
-    return failed, failed_short, err, err_short, err_diff
+    return failed, failed_short, err, err_short, err_diff, err_ratio
 
 
 # %% misc
@@ -529,7 +532,7 @@ def setup_test_sim(build, restore=False, random_msf=True):
 
 # %%main
 if __name__ == "__main__":
-    failed, failed_short, err, err_short, err_diff = test_all()
+    failed, failed_short, err, err_short, err_diff, err_ratio = test_all()
 
     err_dict = {}
     err_short_dict = {}

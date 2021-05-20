@@ -137,7 +137,7 @@ If a PBL scheme is activated (including `km_opt=5`), it is responsible for the S
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
-This recalculated w is almost identical to the prognostic w since we adapted the vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification will be published as a namelist option (`phi_adv_z`) in WRF's next major release (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/)).
+This recalculated w is almost identical to the prognostic w since we adapted the vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification is available as a namelist option (`phi_adv_z`) in WRF v4.3 (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/) for details).
 The vertical component of the diagnostic w equation is still calculated in a slightly different way than in the geopotential equation to be more consistent with the vertical advection of other variables. The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
 For potential temperature, fluxes from the acoustic step (`module_small_step_em.F`) are added.
 

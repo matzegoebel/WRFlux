@@ -43,7 +43,7 @@ CONTAINS
     USE module_surface_driver, ONLY : surface_driver
     USE module_cumulus_driver, ONLY : cumulus_driver
     USE module_shallowcu_driver, ONLY : shallowcu_driver
-    USE module_pbl_driver, ONLY : pbl_driver, fluxes_from_bl_tend
+    USE module_pbl_driver, ONLY : pbl_driver
     USE module_fr_fire_driver_wrf, ONLY : fire_driver_em_step
     USE module_fddagd_driver, ONLY : fddagd_driver
     USE module_em, ONLY : init_zero_tendency

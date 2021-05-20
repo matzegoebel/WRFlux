@@ -81,7 +81,7 @@
  /
 
  &dynamics
- hybrid_opt                          = 0, 
+ hybrid_opt                          = 0,
  rk_ord                              = 3,
  diff_opt                            = 2,      2,      2,
  km_opt                              = 2,      2,      2,
@@ -116,12 +116,12 @@
  /
 
  &bdy_control
- periodic_x                          = .true., 
+ periodic_x                          = .true.,
  symmetric_xs                        = .false.,
  symmetric_xe                        = .false.,
  open_xs                             = .false.,
  open_xe                             = .false.,
- periodic_y                          = .true., 
+ periodic_y                          = .true.,
  symmetric_ys                        = .false.,
  symmetric_ye                        = .false.,
  open_ys                             = .false.,

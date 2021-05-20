@@ -773,9 +773,11 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
             failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv_noavgdir, **kw)
             if "thresh" in kw:
                 del kw["thresh"]
+
         if "adv_2nd" in tests:
             kw["figloc"] = figloc / "adv_2nd"
             failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
+
         if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
             # only do test once: for last variable
             kw["figloc"] = figloc / "w"

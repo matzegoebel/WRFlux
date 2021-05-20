@@ -297,6 +297,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     bm = bm + budget_methods_dzout
                 elif "dz_out" in tests_i:
                     tests_i.remove("dz_out")
+                if ("chunking" in label) and ("periodic" in tests_i):
+                    tests_i.remove("periodic")
 
                 if all(param_comb[i + "_adv_order"] == 2 for i in ["h_sca", "v_sca", "h_mom", "v_mom"]):
                     bm = bm + budget_methods_2nd

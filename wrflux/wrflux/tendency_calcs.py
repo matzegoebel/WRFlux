@@ -66,7 +66,7 @@ chunks = None
 
 # tests to perform
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", dz_out", "adv_2nd",
-#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change"]
+#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change", "periodic"]
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim_coords", "Y=0"]
 # %% set calculation methods
 

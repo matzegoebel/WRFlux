@@ -15,7 +15,7 @@ from functools import partial
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
              "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
-             "no_model_change"]
+             "no_model_change", "periodic"]
 
 
 # %% test functions
@@ -579,6 +579,30 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
     return res
 
 
+def test_periodic(datout, attrs, var, avg_dims_error=None,
+                  thresh=0.99999999, loc=None, iloc=None, **kw):
+    failed = False
+    for k, ds in datout.items():
+        if isinstance(ds, xr.DataArray):
+            ds = ds.to_dataset()
+        for dim in ["x", "y"]:
+            dim_s = dim + "_stag"
+            if attrs["PERIODIC_{}".format(dim.upper())]:
+                for v in ds.variables:
+                    if v == dim_s:
+                        continue
+                    if dim_s in ds[v].dims:
+                        ref = ds[v][{dim_s: 0}]
+                        dat = ds[v][{dim_s: -1}]
+                        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
+                        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
+                        e = R2(dat, ref, dim=avg_dims_error).min().values
+                        if e < thresh:
+                            log = (f"test_periodic: {dim}-bounds not periodic for "
+                                   f" {v} in {k}: min. R2 less than {thresh}: {e:.10f}")
+                            print(log)
+                            failed = True
+    return failed
 # %% run_tests
 
 def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
@@ -772,6 +796,9 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
             if "thresh" in kw:
                 del kw["thresh"]
 
+        if "periodic" in tests:
+            kw["figloc"] = figloc / "mass"
+            failed_i["periodic"] = test_periodic(datout_v, attrs, var, **kw)
         if "NaN" in tests:
             failed_i["NaN"] = test_nan(datout_v)
 

@@ -89,6 +89,7 @@ def test_all():
     # names of parameter values for output filenames
     # either dictionaries or lists (not for composite parameters)
     param_names = {"th": ["thd", "thm", "thdm"],
+                   "ieva": ["1"],
                    "h_adv_order": [2, 3],
                    "v_adv_order": [2, 3],
                    "adv_order": o,
@@ -135,6 +136,10 @@ def test_all():
     param_grids["simple and positive-definite advection"] = odict(
         moist_adv_opt=[0, 1],
         adv_order=dict(h_sca_adv_order=o, v_sca_adv_order=o, h_mom_adv_order=o, v_mom_adv_order=o))
+    dx = 1000
+    param_grids["ieva"] = odict(use_theta_m=1, ieva=dict(zadvect_implicit=1, dt_f=10, dx=dx,
+                                lx=20*dx, ly=20*dx, dzmax=100, nz=None, hm=0, spec_hfx=0.3))
+
     param_grids["WENO advection"] = odict(
         moist_adv_opt=[3, 4], scalar_adv_opt=[3], momentum_adv_opt=[3], th=th)
     param_grids["monotonic advection"] = odict(moist_adv_opt=[2], v_sca_adv_order=[3, 5], th=th)

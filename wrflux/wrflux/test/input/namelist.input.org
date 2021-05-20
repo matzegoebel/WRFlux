@@ -112,6 +112,7 @@
  pert_coriolis                       = .true., .true., .true.,
  use_theta_m                         = 1,
  phi_adv_z                           = 2,
+ zadvect_implicit                    = 0
  /
 
  &bdy_control

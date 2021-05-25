@@ -39,7 +39,7 @@ with open(here.parents[1] / 'README.md', encoding='utf-8') as f:
 
 setup(
     name='wrflux',
-    version='1.2.1',
+    version='1.3',
     description='With this package time-averaged tendencies of the WRF model can be retrieved '
     'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
     long_description=long_description,

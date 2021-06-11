@@ -125,7 +125,9 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
 def fix_coords(data, dx, dy):
     """Assign time and space coordinates to dataset/dataarray."""
     # assign time coordinate
-    if ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
+    if "XTIME" in data.dims:
+        data = data.rename(XTIME="Time")
+    elif ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
         data = data.assign_coords(Time=data.XTIME)
     else:
         time = data.Times.astype(str).values

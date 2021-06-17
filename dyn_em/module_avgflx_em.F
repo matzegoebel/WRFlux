@@ -576,8 +576,8 @@ CONTAINS
         DO i=its-1,ite
           !diagnostic velocity
           IF (k .eq. kts) THEN
-            dph_x(i,k,j) = -g*0.5*msftx(i,j)*(zx(i,k,j)*u8w(i,k,j) + zx(i+1,k,j)*u8w(i+1,k,j))
-            dph_y(i,k,j) = -g*0.5*msfty(i,j)*(zy(i,k,j)*v8w(i,k,j) + zy(i,k,j+1)*v8w(i,k,j+1))
+            dph_x(i,k,j) = -g*0.25*msftx(i,j)*(zx(i,k,j) + zx(i+1,k,j))*(u8w(i+1,k,j) + u8w(i,k,j))
+            dph_y(i,k,j) = -g*0.25*msfty(i,j)*(zy(i,k,j) + zy(i,k,j+1))*(v8w(i,k,j+1) + v8w(i,k,j))
           ENDIF
           rzxu(i,k,j) = -rho8w(i,k,j)*dph_x(i,k,j)/g
           rzyv(i,k,j) = -rho8w(i,k,j)*dph_y(i,k,j)/g

@@ -608,7 +608,7 @@ def destagger(data, dim, new_coord, rename=True):
     return data
 
 
-def diff(data, dim, new_coord, rename=True, cyclic=False):
+def diff(data, dim, new_coord=None, rename=True, cyclic=False):
     """
     Calculate first order differences along given dimension and assign new coordinates.
 
@@ -618,7 +618,7 @@ def diff(data, dim, new_coord, rename=True, cyclic=False):
         input data.
     dim : str
         dimension over which to calculate the finite difference.
-    new_coord : array-like
+    new_coord : array-like, optional
         new coordinate to assign
     rename : boolean, optional
         remove/add "_stag" from dimension name. The default is True.
@@ -649,8 +649,12 @@ def diff(data, dim, new_coord, rename=True, cyclic=False):
         if rename and (dim != "Time"):
             new_dim = dim[:dim.index("_stag")]
             out = out.rename({dim: new_dim})
+        if new_coord is None:
+            new_coord = np.arange(len(out[new_dim]))
         out[new_dim] = new_coord
     else:
+        if new_coord is None:
+            new_coord = np.arange(len(out[dim]) + 1)
         # if we go from unstaggered to staggered: fill boundary values
         out = post_stagger(out, dim, new_coord, rename=rename, cyclic=cyclic)
 

@@ -135,7 +135,7 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
         Test statistic R2
 
     """
-    data = adv.sel(dir="sum")
+    data = adv.sel(dir="sum", comp=corr.comp)
     ref = data.sel(ID="native")
     dat = data.sel(ID="cartesian") - corr.sel(ID="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
@@ -667,7 +667,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
     avg_dims = None
     if hor_avg:
         avg_dims = []
-        dat = datout[variables[0]]["adv"]
+        dat = datout[variables[0]]["tend"]["adv"]
         for d in tools.xy:
             if (d not in dat.dims) and (d + "_stag" not in dat.dims):
                 avg_dims.append(d)
@@ -709,8 +709,8 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
         err_i = {}
 
         if "budget" in tests:
-            tend = datout_v["tend"].sel(comp="tendency")
-            forcing = datout_v["tend"].sel(comp="forcing")
+            tend = datout_v["tend"]["net"].sel(side="tendency")
+            forcing = datout_v["tend"]["net"].sel(side="forcing")
             kw["figloc"] = figloc / "budget"
             if (var == "w") and ("open BC y hor_avg" in sim_id):
                 kw["thresh"] = 0.995
@@ -742,7 +742,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
             for thresh in ["thresh", "thresh_cartesian"]:
                 if thresh in kw:
                     del kw[thresh]
-        adv = datout_v["adv"]
+        adv = datout_v["tend"]["adv"]
         if "decomp_sumdir" in tests:
             if attrs["HESSELBERG_AVG"] == 0:
                 kw["thresh"] = 0.995
@@ -805,7 +805,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
             failed_i["NaN"] = test_nan(datout_v)
 
         if "sgs" in tests:
-            sgs_sum = datout_v["sgs"].sum("dir")
+            sgs_sum = datout_v["tend"]["adv"].sel(comp="trb_s").sum("dir")
             if np.allclose(sgs_sum[0], sgs_sum[1], atol=1e-7, rtol=1e-5):
                 failed_i["sgs"] = False
             else:

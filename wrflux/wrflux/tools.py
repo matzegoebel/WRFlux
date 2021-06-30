@@ -67,7 +67,7 @@ rvovrd = 461.6 / 287.04
 stagger_const = ["FNP", "FNM", "CF1", "CF2", "CF3", "CFN", "CFN1"]
 
 # output datasets/dataarrays of postprocessing
-outfiles = ["grid", "adv", "flux", "tend", "sources", "sgs", "sgsflux", "corr", "tend_mass"]
+outfiles = ["grid", "flux", "tend", "corr", "tend_mass"]
 # attributes of WRF output variables to delete
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
@@ -2027,7 +2027,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
             else:
                 datout_c["flux"], datout_c["adv"], vmean, var_stag, corr, tend_mass = dat
 
-            datout_c["tend"] = total_tend
+            datout_c["net"] = total_tend
 
             if c["cartesian"]:
                 out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
@@ -2035,13 +2035,13 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                                             total_tend, tend_mass, cyclic, dz_out=dz_out,
                                             theta_pert=c["theta_pert"],
                                             hor_avg=hor_avg, avg_dims=avg_dims)
-                datout_c["adv"], datout_c["tend"], datout_c["corr"], tend_mass = out
+                datout_c["adv"], datout_c["net"], datout_c["corr"], tend_mass = out
             # add all forcings
             datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
 
-            if "dim" in datout_c["tend"].coords:
+            if "dim" in datout_c["net"].coords:
                 # remove inappropriate coordinate
-                datout_c["tend"] = datout_c["tend"].drop("dim")
+                datout_c["net"] = datout_c["net"].drop("dim")
 
             if tend_mass is not None:
                 datout_c["tend_mass"] = tend_mass
@@ -2054,32 +2054,46 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 else:
                     datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
 
-        datout["tend"] = datout["tend"].expand_dims(comp=["tendency"])
-        datout["forcing"] = datout["forcing"].expand_dims(comp=["forcing"])
-        datout["tend"] = xr.concat([datout["tend"], datout["forcing"]], "comp")
-        del datout["forcing"]
-        adv_sum = datout["adv"].sum("dir")
-        datout["adv"] = datout["adv"].reindex(dir=[*XYZ, "sum"])
-        datout["adv"].loc[{"dir": "sum"}] = adv_sum
+        # merge resolved and sgs tendencies and fluxes
+        datout["adv"] = datout["adv"].to_dataset(name="adv")
+        sgs = sgs.to_dataset(name="adv")
+        for sgs_dat, v in zip([sgs, sgsflux], ["adv", "flux"]):
+            sgs_dat_new = sgs_dat.reindex(ID=datout[v].ID)
+            datout[v] = datout[v].reindex(comp=[*datout[v].comp.values, "trb_s"])
+            for dv in datout[v].data_vars:
+                for ID in sgs_dat_new.ID.values:
+                    if "cartesian" in ID:
+                        IDs = "cartesian"
+                    else:
+                        IDs = "native"
+                    sgs_dat_new[dv].loc[{"ID": ID}] = sgs_dat[dv].sel(ID=IDs)
+                datout[v][dv].loc[{"comp": "trb_s"}] = sgs_dat_new[dv]
+        adv = datout["adv"].to_array().isel(variable=0, drop=True)
+        adv = adv.reindex(dir=[*XYZ, "sum"])
+        adv_sum = adv.sum("dir")
+        adv.loc[{"dir": "sum"}] = adv_sum
+
+        net = datout["net"].expand_dims(side=["tendency"])
+        forcing = datout["forcing"].expand_dims(side=["forcing"])
+        net = xr.concat([net, forcing], "side")
 
         # set units and descriptions
         units = units_dict_tend[var]
         units_flx = units_dict_flux[var]
-        datout["sgsflux"] = sgsflux.assign_attrs(description="SGS {}-flux".format(VAR),
-                                                 units=units_flx)
-        datout["flux"] = datout["flux"].assign_attrs(description="resolved {}-flux".format(VAR),
+        datout["flux"] = datout["flux"].assign_attrs(description="{}-flux".format(VAR),
                                                      units=units_flx)
-        datout["adv"] = datout["adv"].assign_attrs(description="advective {}-tendency".format(VAR),
-                                                   units=units)
-        datout["sgs"] = sgs.assign_attrs(description="SGS {}-tendency".format(VAR), units=units)
-        datout["tend"] = datout["tend"].assign_attrs(description="{}-tendency".format(VAR),
-                                                     units=units)
-        datout["sources"] = sources.assign_attrs(description="{}-tendency sources".format(VAR),
+        datout["tend"] = sources.assign_attrs(description="{}-tendency sources".format(VAR),
+                                              units=units)
+        datout["tend"]["adv"] = adv.assign_attrs(description="advective {}-tendency".format(VAR),
                                                  units=units)
+        datout["tend"]["net"] = net.assign_attrs(description="total {}-tendency".format(VAR),
+                                                 units=units)
+        del datout["forcing"], datout["net"], datout["adv"]
+
         if VAR == "T":
             datout["tend_mass"] = datout["tend_mass"].assign_attrs(units="kg m-3 s-1",
                    description="Components of continuity equation")
-        if c["cartesian"]:
+        if "corr" in datout:
             datout["corr"] = datout["corr"].assign_attrs(
                 description="{}-tendency correction".format(VAR), units=units)
         grid["MU_STAG_MEAN"] = grid["MU_STAG_MEAN"].assign_attrs(

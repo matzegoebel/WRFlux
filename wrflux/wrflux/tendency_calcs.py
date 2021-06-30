@@ -114,7 +114,7 @@ if rank == 0:
     if not (failed == "FAIL").any().any():
         print("\nAll tests passed")
     # %% plotting
-    pdat = datout["t"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
+    pdat = datout["t"]["tend"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp", sharex=False)
     plt.savefig(outpath_wrf / "tend_profile.pdf")

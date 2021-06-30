@@ -40,7 +40,7 @@ outpath_wrf = Path(__file__).parent / "example"
 outpath = outpath_wrf / "postprocessed"
 a = "out_d01_2018-06-20_12:00:00"
 mean_file = "mean" + a
-inst_file = "wrf" + a
+inst_file = "inst" + a
 
 variables = ["t", "q", "u", "v", "w"]  # budget variables, q,t,u,v,w
 avg_dims = ["y"]  # spatial averaging dimension, x and/or y

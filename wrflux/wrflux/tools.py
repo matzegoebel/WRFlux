@@ -72,7 +72,7 @@ outfiles = ["grid", "flux", "tend", "corr", "tend_mass"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "dz_out_x", "dz_out_z", "force_2nd_adv"]
+budget_settings = ["cartesian", "adv_form", "adv_form_exp", "dz_out_x", "dz_out_z", "force_2nd_adv"]
 # abbreviations for settings
 settings_short_names = {"2nd": "force_2nd_adv"}
 
@@ -1232,7 +1232,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
 
 
 def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
-             hor_avg=False, avg_dims=None, cartesian=True,
+             hor_avg=False, avg_dims=None, calc_mass=False, cartesian=True,
              force_2nd_adv=False,  dz_out_x=False, dz_out_z=False):
     """Compute advective tendencies decomposed into mean and resolved turbulence.
 
@@ -1259,6 +1259,8 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
         Averaging dimensions if hor_avg=True. The default is None.
+    calc_mass : bool, optional
+        Calculate mass tendencies. The default is False.
     cartesian : bool, optional
         Calculate Cartesian tendencies. The default is False.
     force_2nd_adv : bool, optional
@@ -1358,27 +1360,30 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         else:
             rho = dat_mean["RHOD_MEAN"]
 
+        rho_stag = stagger_like(rho, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
+        vel_stag = stagger_like(vmean[d] * rho_stag, ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
+        if (VAR == "W") and (d in XY):
+            vel_stag[{"bottom_top_stag": 0}] = 0
+        if calc_mass:
+            rho_stag = stagger_like(rho, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
+            mass_flux[d] = vel_stag / rho_stag
         rho_m = rho
         if hor_avg and (d.lower() not in avg_dims):  # TODO: use normal rho for var_stag...?
             # average horizontally, but only if current dimension is not averaging dimension
             var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
+            vel_stag = avg_xy(vel_stag, avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             rho_m = avg_xy(rho, avg_dims, cyclic=cyclic, **grid[stagger_const])
 
-        rho_stag = stagger_like(rho_m, ref=vmean[d], cyclic=cyclic, **grid[stagger_const], fill_nearest=True)
-        vel_stag = stagger_like(vmean[d] * rho_stag, ref=var_stag[d], cyclic=cyclic, **grid[stagger_const])
-        if (VAR == "W") and (d in XY):
-            vel_stag[{"bottom_top_stag": 0}] = 0
         rho_stag = stagger_like(rho_m, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
         mean_flux[d] = var_stag[d] * vel_stag / rho_stag
-
         if hor_avg and (d.lower() in avg_dims):
             # now average over dimension that has been skipped before
             var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
 
     fluxes = {"adv_r": tot_flux, "mean": mean_flux}
-    if VAR == "T":
+    if calc_mass:
         # mass flux for advection of constant base state
         fluxes["mass"] = mass_flux
     if ("trb_exp" in attrs) and (attrs["trb_exp"] == 1):
@@ -1462,7 +1467,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     flux["comp"] = list(fluxes.keys())
 
     tend_mass = None
-    if VAR == "T":
+    if calc_mass:
         # continuity equation
         dt = attrs["AVG_INTERVAL"] * 60
         if dz_out:
@@ -1567,7 +1572,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         rho_stag = avg_xy(rho_stag, avg_dims, cyclic=cyclic)
     corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
 
-    if VAR == "T":
+    if tend_mass is not None:
         corr = corr.reindex(comp=[*corr.comp.values, "mass"])
 
     # mean component
@@ -1579,16 +1584,16 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         else:
             corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
         corr.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
-        if VAR == "T":
+        if tend_mass is not None:
             corr.loc["mass", D] = rho_stag * corr_d
     if dz_out:
         corr.loc["mean", "T"] = corr.loc["adv_r", "T"]
-        if VAR == "T":
+        if tend_mass is not None:
             corr.loc["mass", "T"] = rho_stag
     else:
         dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
         corr.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
-        if VAR == "T":
+        if tend_mass is not None:
             corr.loc["mass", "T"] = rho_stag * dzdt
 
     # resolved turbulence component as residual
@@ -1606,7 +1611,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
     if dz_out:
         dcorr_dz = dcorr_dz * stagger_like(grid["dzdd"], dcorr_dz,
                                            cyclic=cyclic, **grid[stagger_const])
-    if VAR == "T":
+    if tend_mass is not None:
         mass_corr = dcorr_dz.sel(comp="mass")
         if VAR == "T":
             for comp in ["adv_r", "mean"]:
@@ -1698,7 +1703,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
 
     total_tend = total_tend / rho_m
 
-    return total_tend
+    return total_tend, vard
 
 
 def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartesian",
@@ -2000,12 +2005,12 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                     raise ValueError("dz_out can only be used for Cartesian calculations!")
                 if c["dz_out_x"] and c["dz_out_z"]:
                     raise ValueError("dz_out_x and dz_out_z cannot be used at the same time!")
-
-            total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
-                                        hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
+            total_tend, vard = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
+                                              hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
             # advective tendency
+            calc_mass = (var == "t") or ("adv_form" in budget_method)
             dat = adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
-                           hor_avg=hor_avg, avg_dims=avg_dims,
+                           hor_avg=hor_avg, avg_dims=avg_dims, calc_mass=calc_mass,
                            cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
                            dz_out_x=c["dz_out_x"], dz_out_z=c["dz_out_z"])
             if dat is None:
@@ -2021,6 +2026,86 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                                             total_tend, tend_mass, cyclic, dz_out=dz_out,
                                             hor_avg=hor_avg, avg_dims=avg_dims)
                 datout_c["adv"], datout_c["net"], datout_c["corr"], tend_mass = out
+            if tend_mass is not None:
+                datout_c["tend_mass"] = tend_mass
+                # transform flux-form to advective form
+                if c["adv_form"]:
+                    var_mean_c = dat_mean[VAR + "_MEAN"]
+                    if hor_avg:
+                        var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)
+                    var_mean = var_stag
+                    if VAR == "T":
+                        var_mean_c = var_mean_c + 300
+                        var_mean = var_mean + 300
+
+                    var_mean = stagger_like(var_mean, ref=var_mean_c, cyclic=cyclic, **grid[stagger_const])
+                    var_mean["T"] = var_mean_c
+                    var_mean = var_mean.to_array("dir")
+                    trans = tend_mass.copy(deep=True)
+                    trans.loc["Z"] = trans.loc["T"] - trans.loc["X"] - trans.loc["Y"]
+                    trans = var_mean_c * trans / grid["RHOD_STAG_MEAN"]
+
+                    datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] = datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] \
+                        - trans.sel(dir=["X","Y","Z"])
+                    datout_c["net"] = datout_c["net"] - trans.sel(dir="T", drop=True)
+                elif c["adv_form_exp"]:
+                    var_mean_c = dat_mean[VAR + "_MEAN"]
+                    if hor_avg:
+                        var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)
+                    adv = datout_c["adv"]
+                    net = datout_c["net"]
+                    dt = attrs["AVG_INTERVAL"] * 60.
+                    if hor_avg:
+                        vard = avg_xy(vard, avg_dims, cyclic=cyclic)
+                    net = vard.diff("Time") / dt
+                    # only keep end points of averaging intervals
+                    net = net.isel(Time=slice(None, None, 2))
+                    vmean_c = xr.Dataset()
+                    dd = xr.Dataset()
+                    grad = xr.Dataset()
+                    grad["T"] = net
+                    for dim in XYZ:
+                        ds = dim.lower()
+                        if dim == "Z":
+                            ds = "bottom_top"
+                        cyc = cyclic[ds]
+                        d = ds
+                        if ds in var_mean_c.dims:
+                            ds = ds + "_stag"
+                        else:
+                            d = d + "_stag"
+                        if dim == "Z":
+                            dd[dim] = diff(grid["Z_STAG"], d, new_coord=datout_c["flux"][ds], cyclic=cyc)
+                        else:
+                            dd[dim] = grid["D" + dim]
+
+                        if d in adv.dims:
+                            grad[dim] = diff(var_mean_c, d, new_coord=datout_c["flux"][ds], cyclic=cyc) / dd[dim]
+                            vmean_c[dim] = stagger_like(vmean[dim], ref=grad[dim], cyclic=cyclic, **grid[stagger_const])
+
+                    for dim in XYZ:
+                        if dim in grad:
+                            adv_s = - vmean_c[dim] * grad[dim]
+                            adv.loc[{"dir": dim, "comp": "mean"}] = stagger_like(adv_s, ref=adv, cyclic=cyclic, **grid[stagger_const])
+                    for dim in ["X", "Y", "T"]:
+                        if dim in grad:
+                            if dim == "T":
+                                corr = grid["dzdd"].loc["T"]
+                            else:
+                                corr = grid[f"dzdt_{dim.lower()}"]
+                            corr = grad["Z"]*stagger_like(corr, ref=grad["Z"], cyclic=cyclic, **grid[stagger_const])
+                            corr = stagger_like(corr, ref=adv, cyclic=cyclic, **grid[stagger_const])
+                            if dim == "T":
+                                grad["T"] = grad["T"] - corr
+                            else:
+                                adv.loc[{"dir": dim, "comp": "mean"}] = adv.loc[{"dir": dim, "comp": "mean"}] - corr
+                        else:
+                            adv.loc[{"dir": dim, "comp": "mean"}] = 0
+
+                    adv.loc[{"comp": "adv_r"}] = adv.loc[{"comp": "mean"}] + adv.loc[{"comp": "trb_r"}]
+                    datout_c["adv"] = adv
+                    datout_c["net"] = grad["T"].drop("dir")
+
             # add all forcings
             datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
 
@@ -2028,8 +2113,6 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 # remove inappropriate coordinate
                 datout_c["net"] = datout_c["net"].drop("dim")
 
-            if tend_mass is not None:
-                datout_c["tend_mass"] = tend_mass
             # aggregate output of different IDs
             loc = dict(ID=[budget_method])
             for dn in datout_c.keys():
@@ -2075,7 +2158,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                                                  units=units)
         del datout["forcing"], datout["net"], datout["adv"]
 
-        if VAR == "T":
+        if tend_mass is not None:
             datout["tend_mass"] = datout["tend_mass"].assign_attrs(units="kg m-3 s-1",
                    description="Components of continuity equation")
         if "corr" in datout:

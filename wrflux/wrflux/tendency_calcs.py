@@ -77,6 +77,7 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim
 # dz_out_z: use alternative cartesian corrections with dz taken out of derivative
 #           horizontal corrections derived from vertical flux (requires cartesian)
 # force_2nd_adv : use second order advection
+# adv_form : transform tendencies to advective form using the mass tendencies
 
 # all budget calculation methods to apply as a list of str
 # each item is a combination of setting strings from above separated by a space

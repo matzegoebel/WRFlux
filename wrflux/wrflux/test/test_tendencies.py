@@ -72,7 +72,7 @@ kw = dict(
 
 
 # %% budget calculation methods
-budget_methods = ["", "cartesian"]
+budget_methods = ["", "cartesian", "cartesian adv_form"]
 budget_methods_2nd = ["cartesian 2nd"]
 budget_methods_dzout = ["cartesian dz_out_x", "cartesian dz_out_z"]
 

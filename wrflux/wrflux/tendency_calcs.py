@@ -77,8 +77,6 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim
 # dz_out_z: use alternative cartesian corrections with dz taken out of derivative
 #           horizontal corrections derived from vertical flux (requires cartesian)
 # force_2nd_adv : use second order advection
-# theta_pert : Compute budget for WRF's prognostic variable theta perturbation = theta - 300K
-#              instead of full theta.
 
 # all budget calculation methods to apply as a list of str
 # each item is a combination of setting strings from above separated by a space

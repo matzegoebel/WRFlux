@@ -124,7 +124,6 @@ def test_all():
     param_grids["chunking x hor_avg no_debug"] = param_grids["chunking x no_debug"].copy()
     param_grids["no density-weighting"] = odict(hesselberg_avg=[False])  # TODO also skip hessel in postproc?
     param_grids["serial"] = odict(lx=[5000], ly=[5000])
-    param_grids["theta - 300K no_debug"] = odict(th=th, theta_pert=True)
     param_grids["avg_interval"] = odict(avg_interval=20, output_streams=[{24: ["meanout", 30.], 0: ["instout", 10.]}])
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
     param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
@@ -192,11 +191,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
             chunks = param_grid.pop("chunks")
         else:
             chunks = None
-        if "theta_pert" in param_grid:
-            theta_pert = param_grid.pop("theta_pert")
-            runID = "pytest_theta_pert"
-        else:
-            theta_pert = False
         rmsf = random_msf
         if ("msf" in param_grid.keys()) and (param_grid["msf"] == 1):
             rmsf = False
@@ -304,9 +298,6 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     bm = bm + budget_methods_2nd
                 elif "adv_2nd" in tests_i:
                     tests_i.remove("adv_2nd")
-
-                if theta_pert:
-                    bm = [b + " theta_pert" for b in bm]
 
                 t_avg = False
                 t_avg_interval = None

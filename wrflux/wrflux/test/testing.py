@@ -680,17 +680,9 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
         datout_lim[v] = {}
         for n, dat in datout_v.items():
             if "ID" in dat.dims:
-                # remove theta_pert label from budget method IDs if this does not lead to duplicate labels
                 IDs = []
                 for ID in dat.ID.values:
                     ID = ID.split(" ")
-                    if "theta_pert" in ID:
-                        ID_new = ID.copy()
-                        ID_new.remove("theta_pert")
-                        if len(ID_new) == 0:
-                            ID_new = ["native"]
-                        if ID_new not in dat.ID:
-                            ID = ID_new
                     IDs.append(" ".join(ID))
                 dat["ID"] = IDs
             if "dim_coords" in tests:

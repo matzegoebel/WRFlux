@@ -82,7 +82,6 @@ horizontal corrections derived from horizontal flux (requires cartesian)
 - `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from vertical flux (requires cartesian)
 - `force_2nd_adv`: use 2nd-order advection
-- `theta_pert` : Compute budget for WRF's prognostic variable potential temeperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) instead of full ![](https://latex.codecogs.com/svg.latex?\theta).
 
 Except for the first one, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication that I currently prepare.
 
@@ -149,7 +148,7 @@ Map-scale factors are taken care of as described in WRF's [technical note](https
 All output variables are decoupled from the map-scale factors.
 
 The online flux averaging uses potential temperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) like WRF itself.
-In the post-processing, however, the tendency calculations are done for full ![](https://latex.codecogs.com/svg.latex?\theta) for better interpretation unless the budget option `theta_pert` is used.
+In the post-processing, however, the tendency calculations are done for full ![](https://latex.codecogs.com/svg.latex?\theta) for better interpretation.
 To obtain the full ![](https://latex.codecogs.com/svg.latex?\theta) budget, the advection equation is split up into advection of the perturbation and of the constant base state:
 
 ![](https://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0\left(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})\right))

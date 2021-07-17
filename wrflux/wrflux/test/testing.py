@@ -21,7 +21,8 @@ all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 # %% test functions
 
 def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartesian=None,
-                budget_methods=("native", "cartesian"), loc=None, iloc=None, plot=True, **plot_kws):
+                budget_methods=("native", "cartesian", "cartesian adv_form"),
+                loc=None, iloc=None, plot=True, **plot_kws):
     """
     Test closure of budget: tend = forcing.
 
@@ -44,7 +45,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
         Use different threshold value for Cartesian coordinate system.
         The default is None, for which 'thresh' is used in both formulations.
     budget_methods : list of str
-        Budget methods to consider. By default, only "native" and "cartesian" are tested.
+        Budget methods to consider. By default, only "native", "cartesian", and "cartesian adv_form" are tested.
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional

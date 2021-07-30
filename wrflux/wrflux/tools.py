@@ -734,7 +734,8 @@ def load_data(outpath_wrf, inst_file, mean_file,
     return dat_mean, dat_inst
 
 
-def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg_end=False):
+def load_postproc(outpath, var, cartesian, adv_form, hor_avg=False,
+                  avg_dims=None, hor_avg_end=False):
     """
     Load already postprocessed data.
 
@@ -747,6 +748,8 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg
     cartesian : bool
         If post-processed data includes calculations in Cartesian form,
         the file 'corr' will be loaded, as well.
+    adv_form : bool
+        Tendencies are in advective form
     hor_avg : bool, optional
         Load horizontally averaged output. The default is False.
     avg_dims : str or list of str, optional
@@ -772,7 +775,7 @@ def load_postproc(outpath, var, cartesian, hor_avg=False, avg_dims=None, hor_avg
     for f in outfiles:
         if (f == "corr") and (not cartesian):
             continue
-        if (f == "tend_mass") and (var != "t"):
+        if (f == "tend_mass") and (var != "t") and (not adv_form):
             continue
         file = outpath / (f + avg + ".nc")
         try:
@@ -1783,11 +1786,13 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
     else:
         skip = False
     cartesian = "cartesian" in " ".join(make_list(budget_methods))
+    adv_form = "adv_form" in " ".join(make_list(budget_methods))
+
     for outfile in outfiles:
         if (outfile == "corr") and (not cartesian):
             continue
         for var in variables:
-            if (outfile == "tend_mass") and (var != "t"):
+            if (outfile == "tend_mass") and (var != "t") and (not adv_form):
                 continue
             fpath = outpath / var.upper() / (outfile + avg + ".nc")
             if fpath.exists():
@@ -1802,7 +1807,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
 
     if skip:
         print("Postprocessed output already available!")
-        out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+        out = {var: load_postproc(outpath, var, cartesian, adv_form, hor_avg=hor_avg,
                                   avg_dims=avg_dims, hor_avg_end=hor_avg_end) for var in variables}
         if return_model_output:
             print("Load model output")
@@ -1853,7 +1858,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
 
         if rank == 0:
             print("Load entire postprocessed output")
-            out = {var: load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+            out = {var: load_postproc(outpath, var, cartesian, adv_form, hor_avg=hor_avg,
                                       avg_dims=avg_dims, hor_avg_end=hor_avg_end) for var in variables}
             if return_model_output:
                 dat_mean, dat_inst = load_data(outpath_wrf, **load_kw)
@@ -1939,6 +1944,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
 
     budget_methods = make_list(budget_methods)
     cartesian = "cartesian" in " ".join(budget_methods)
+    adv_form = "adv_form" in " ".join(make_list(budget_methods))
 
     # select tile
     if tile is not None:
@@ -1975,14 +1981,14 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
             for outfile in outfiles:
                 if (outfile == "corr") and (not cartesian):
                     continue
-                if (outfile == "tend_mass") and (var != "t"):
+                if (outfile == "tend_mass") and (var != "t") and (not adv_form):
                     continue
                 fpath = outpath / VAR / (outfile + avg + ".nc")
                 if not fpath.exists():
                     skip = False
             if skip:
                 print("Postprocessed output already available!")
-                datout_all[var] = load_postproc(outpath, var, cartesian, hor_avg=hor_avg,
+                datout_all[var] = load_postproc(outpath, var, cartesian, adv_form, hor_avg=hor_avg,
                                                 avg_dims=avg_dims, hor_avg_end=hor_avg_end)
                 continue
 

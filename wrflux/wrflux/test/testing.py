@@ -85,7 +85,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
             log = "test_budget for ID='{}': min. R2 less than {}: {:.10f}\n".format(ID, thresh_i, e)
             print(log)
             if plot:
-                dat.name = dat.description[:2] + "forcing"
+                dat.name = dat.description[:8] + "forcing"
                 ref.name = ref.description
                 fname_i = fname
                 if fname is not None:
@@ -505,11 +505,12 @@ def test_y0(adv, thresh=(5e-6, 5e-3)):
     dims = [d for d in adv.dims if d not in ["dir", "ID", "comp"]]
     f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).median(dims)
     for ID, thresh_i in zip(["native", "cartesian"], thresh):
-        for comp in f.comp.values:
-            fi = f.sel(ID=ID, comp=comp).values
-            if fi > thresh_i:
-                print("test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(ID, comp, fi, thresh_i))
-                failed = True
+        if ID in f.ID:
+            for comp in f.comp.values:
+                fi = f.sel(ID=ID, comp=comp).values
+                if fi > thresh_i:
+                    print("test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(ID, comp, fi, thresh_i))
+                    failed = True
     return failed, f.max("comp").values
 
 

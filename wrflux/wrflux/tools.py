@@ -72,7 +72,7 @@ outfiles = ["grid", "flux", "tend", "corr", "tend_mass"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "adv_form", "dz_out_x", "dz_out_z", "force_2nd_adv"]
+budget_settings = ["cartesian", "adv_form", "adv_form_2nd_stag_first", "adv_form_2nd_mult_first", "dz_out_x", "dz_out_z", "force_2nd_adv", "no_rho"]
 # abbreviations for settings
 settings_short_names = {"2nd": "force_2nd_adv"}
 
@@ -1703,7 +1703,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
 
     total_tend = total_tend / rho_m
 
-    return total_tend
+    return total_tend, vard
 
 
 def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartesian",
@@ -2005,11 +2005,11 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                     raise ValueError("dz_out can only be used for Cartesian calculations!")
                 if c["dz_out_x"] and c["dz_out_z"]:
                     raise ValueError("dz_out_x and dz_out_z cannot be used at the same time!")
-
-            total_tend = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
-                                        hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
+            total_tend, vard = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
+                                              hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic,
+                                              no_rho=c["no_rho"])
             # advective tendency
-            calc_mass = (var == "t") or c["adv_form"]
+            calc_mass = (var == "t") or ("adv_form" in budget_method)
             dat = adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
                            hor_avg=hor_avg, avg_dims=avg_dims, calc_mass=calc_mass,
                            cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
@@ -2025,33 +2025,123 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
                                             total_tend, tend_mass, cyclic, dz_out=dz_out,
-                                            hor_avg=hor_avg, avg_dims=avg_dims)
+                                            hor_avg=hor_avg, avg_dims=avg_dims, no_rho=c["no_rho"])
                 datout_c["adv"], datout_c["net"], datout_c["corr"], tend_mass = out
             if tend_mass is not None:
                 datout_c["tend_mass"] = tend_mass
                 # transform flux-form to advective form
                 if c["adv_form"]:
                     var_mean_c = dat_mean[VAR + "_MEAN"]
+                    if hor_avg:
+                        var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)
                     var_mean = var_stag
                     if VAR == "T":
                         var_mean_c = var_mean_c + 300
                         var_mean = var_mean + 300
-                    if hor_avg:
-                        var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)
+
                     var_mean = stagger_like(var_mean, ref=var_mean_c, cyclic=cyclic, **grid[stagger_const])
                     var_mean["T"] = var_mean_c
                     var_mean = var_mean.to_array("dir")
-                    trans = var_mean * tend_mass / grid["RHOD_STAG_MEAN"]
+                    trans = tend_mass.copy(deep=True)
+                  #   trans.loc["Z"] = trans.loc["T"] - trans.loc["X"] - trans.loc["Y"]
+                    trans = var_mean_c * trans / grid["RHOD_STAG_MEAN"]
+
                     datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] = datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] \
                         - trans.sel(dir=["X","Y","Z"])
                     datout_c["net"] = datout_c["net"] - trans.sel(dir="T", drop=True)
+                elif "adv_form" in budget_method:
+                    var_mean_c = dat_mean[VAR + "_MEAN"]
+                    if hor_avg:
+                        var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)
+                    adv = datout_c["adv"]
+                    net = datout_c["net"]
+                    dt = attrs["AVG_INTERVAL"] * 60.
+                    if hor_avg:
+                        vard = avg_xy(vard, avg_dims, cyclic=cyclic)
+                    net = vard.diff("Time") / dt
+                    # only keep end points of averaging intervals
+                    net = net.isel(Time=slice(None, None, 2))
+                    vmean_c = xr.Dataset()
+                    dd = xr.Dataset()
+                    grad = xr.Dataset()
+                    grad["T"] = net
+                    if c["adv_form_2nd_mult_first"]:
+                        for dim in XYZ:
+                            ds = dim.lower()
+                            if dim == "Z":
+                                ds = "bottom_top"
+                            cyc = cyclic[ds]
+                            d = ds
+                            if ds in var_mean_c.dims:
+                                ds = ds + "_stag"
+                            else:
+                                d = d + "_stag"
+                            if dim == "Z":
+                                dd[dim] = diff(grid["Z_STAG"], d, new_coord=datout_c["flux"][ds], cyclic=cyc)
+                            else:
+                                dd[dim] = grid["D" + dim]
+
+                            if d in adv.dims:
+                                grad[dim] = diff(var_mean_c, d, new_coord=datout_c["flux"][ds], cyclic=cyc) / dd[dim]
+                                vmean_c[dim] = stagger_like(vmean[dim], ref=grad[dim], cyclic=cyclic, **grid[stagger_const])
+
+                        for dim in XYZ:
+                            if dim in grad:
+                                adv_s = - vmean_c[dim] * grad[dim]
+                                adv.loc[{"dir": dim, "comp": "mean"}] = stagger_like(adv_s, ref=adv, cyclic=cyclic, **grid[stagger_const])
+                        for dim in ["X", "Y", "T"]:
+                            if dim in grad:
+                                if dim == "T":
+                                    corr = grid["dzdd"].loc["T"]
+                                else:
+                                    corr = grid[f"dzdt_{dim.lower()}"]
+                                corr = grad["Z"]*stagger_like(corr, ref=grad["Z"], cyclic=cyclic, **grid[stagger_const])
+                                corr = stagger_like(corr, ref=adv, cyclic=cyclic, **grid[stagger_const])
+                                if dim == "T":
+                                    grad["T"] = grad["T"] - corr
+                                else:
+                                    adv.loc[{"dir": dim, "comp": "mean"}] = adv.loc[{"dir": dim, "comp": "mean"}] - corr
+                            else:
+                                adv.loc[{"dir": dim, "comp": "mean"}] = 0
+                    elif c["adv_form_2nd_stag_first"]:
+                        for dim in XYZ:
+                            ds = dim.lower()
+                            if dim == "Z":
+                                ds = "bottom_top"
+                            cyc = cyclic[ds]
+                            d = ds
+                            if ds in var_stag[d].dims:
+                                ds = ds + "_stag"
+                            else:
+                                d = d + "_stag"
+                            if dim == "Z":
+                                dd[dim] = diff(grid["ZW"], ds, new_coord=adv[d], cyclic=cyc)
+                            else:
+                                dd[dim] = grid["D" + dim]
+
+                            if d in adv.dims:
+                                grad[dim] = diff(var_stag[dim], ds, new_coord=adv[d], cyclic=cyc) / dd[dim]
+                                vmean_c[dim] = stagger_like(vmean[dim], ref=adv, cyclic=cyclic, **grid[stagger_const])
+
+                        dzdd = stagger_like(grid["dzdd"], ref=adv, cyclic=cyclic, **grid[stagger_const])
+                        for dim in ["X", "Y", "T"]:
+                            if dim in grad:
+                                grad[dim] = grad[dim] - grad["Z"]*dzdd.loc[dim]
+                        for dim in XYZ:
+                            if dim in grad:
+                                adv.loc[{"dir": dim, "comp": "mean"}] = - vmean_c[dim] * grad[dim]
+                            else:
+                                adv.loc[{"dir": dim, "comp": "mean"}] = 0
+                    adv.loc[{"comp": "adv_r"}] = adv.loc[{"comp": "mean"}] + adv.loc[{"comp": "trb_r"}]
+                    datout_c["adv"] = adv
+                    datout_c["net"] = grad["T"].drop("dir")
+
             # add all forcings
             datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
 
             if "dim" in datout_c["net"].coords:
                 # remove inappropriate coordinate
                 datout_c["net"] = datout_c["net"].drop("dim")
-
 
             # aggregate output of different IDs
             loc = dict(ID=[budget_method])

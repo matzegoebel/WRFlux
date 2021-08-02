@@ -1303,7 +1303,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         Mean velocities.
     var_stag : xarray Dataset
         Averaged variable VAR staggered to the grid of the three spatial fluxes.
-    corr : xarray Dataarray
+    corr_flx : xarray Dataarray
         Cartesian correction fluxes.
     tend_mass : xarray DataArray
         Components of continuity equation.z
@@ -1343,16 +1343,16 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
                           cyclic=cyclic, **grid[stagger_const])
 
     # Standard Cartesian corrections
-    corr = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
+    corr_flx = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
     if force_2nd_adv:
-        corr = [corri + "_2ND" for corri in corr]
-    corr = dat_mean[corr]
-    corr = corr.to_array("dir")
-    corr["dir"] = ["X", "Y", "T"]
+        corr_flx = [corri + "_2ND" for corri in corr_flx]
+    corr_flx = dat_mean[corr_flx]
+    corr_flx = corr_flx.to_array("dir")
+    corr_flx["dir"] = ["X", "Y", "T"]
 
     if not cartesian:
         # corrections were already included in vertical flux: remove them
-        tot_flux["Z"] = tot_flux["Z"] - (corr.loc["X"] + corr.loc["Y"] + corr.loc["T"]) / rhod8z
+        tot_flux["Z"] = tot_flux["Z"] - (corr_flx.loc["X"] + corr_flx.loc["Y"] + corr_flx.loc["T"]) / rhod8z
         tot_flux = tot_flux.drop("dir")
 
     # Use alternative corrections
@@ -1360,15 +1360,15 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     if dz_out_x or dz_out_z:
         dz_out = True
         if dz_out_z:
-            corr.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
-            corr.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
+            corr_flx.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
+            corr_flx.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
         else:
             corr_new = tot_flux[XY]
             corr_new = rhod8z * stagger_like(corr_new, rhod8z, cyclic=cyclic, **grid[stagger_const])
-            corr.loc["X"] = corr_new["X"]
-            corr.loc["Y"] = corr_new["Y"]
+            corr_flx.loc["X"] = corr_new["X"]
+            corr_flx.loc["Y"] = corr_new["Y"]
         corr_t = rhod8z * dat_mean[VAR + "Z_MEAN"]
-        corr.loc["T"] = corr_t
+        corr_flx.loc["T"] = corr_t
 
     #  mean advective fluxes
     mean_flux = xr.Dataset()
@@ -1526,10 +1526,10 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
     adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
 
-    return flux, adv, vmean, var_stag, corr, tend_mass
+    return flux, adv, vmean, var_stag, corr_flx, tend_mass
 
 
-def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv, tend, tend_mass,
+def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid, adv, tend, tend_mass,
                           cyclic=None, dz_out=False, hor_avg=False, avg_dims=None):
     """
     Compute cartesian corrections and apply them to advective and total tendencies.
@@ -1540,7 +1540,7 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         Variable to process.
     dim_stag : str
         Staggering dimension of variable.
-    corr : xarray Dataarray
+    corr_flx : xarray Dataarray
         Cartesian correction fluxes.
     var_stag : xarray Dataset
         Averaged variable VAR staggered to the grid of the three spatial fluxes.
@@ -1575,7 +1575,9 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
         with Cartesian corrections included.
     tend : xarray Dataarray
         Total tendency of VAR with Cartesian correction included.
-    dcorr_dz : xarray Dataarray
+    corr_flx : xarray Dataarray
+        Cartesian correction fluxes with mean and resolved turbulent components included.
+    corr : xarray Dataarray
         Cartesian corrections as vertical derivative of correction fluxes.
     tend_mass : xarray DataArray
         Components of continuity equation with Cartesian correction included.
@@ -1587,12 +1589,12 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
 
     # total
     if hor_avg:
-        corr = avg_xy(corr, avg_dims, cyclic=cyclic)
+        corr_flx = avg_xy(corr_flx, avg_dims, cyclic=cyclic)
         rho_stag = avg_xy(rho_stag, avg_dims, cyclic=cyclic)
-    corr = corr.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
+    corr_flx = corr_flx.expand_dims(comp=["adv_r"]).reindex(comp=["adv_r", "mean", "trb_r"])
 
     if tend_mass is not None:
-        corr = corr.reindex(comp=[*corr.comp.values, "mass"])
+        corr_flx = corr_flx.reindex(comp=[*corr_flx.comp.values, "mass"])
 
     # mean component
     for d, v in zip(xy, ["U", "V"]):
@@ -1602,55 +1604,55 @@ def cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean, rhodm, grid, adv
             corr_d = stagger_like(vmean[D], **kw)
         else:
             corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
-        corr.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
+        corr_flx.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
         if tend_mass is not None:
-            corr.loc["mass", D] = rho_stag * corr_d
+            corr_flx.loc["mass", D] = rho_stag * corr_d
     if dz_out:
-        corr.loc["mean", "T"] = corr.loc["adv_r", "T"]
+        corr_flx.loc["mean", "T"] = corr_flx.loc["adv_r", "T"]
         if tend_mass is not None:
-            corr.loc["mass", "T"] = rho_stag
+            corr_flx.loc["mass", "T"] = rho_stag
     else:
         dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
-        corr.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
+        corr_flx.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
         if tend_mass is not None:
-            corr.loc["mass", "T"] = rho_stag * dzdt
+            corr_flx.loc["mass", "T"] = rho_stag * dzdt
 
     # resolved turbulence component as residual
-    corr.loc["trb_r"] = corr.loc["adv_r"] - corr.loc["mean"]
+    corr_flx.loc["trb_r"] = corr_flx.loc["adv_r"] - corr_flx.loc["mean"]
 
     # correction flux to tendency: take vertical derivative
     if "W" in VAR:
-        dcorr_dz = diff(corr, "bottom_top", grid["ZNW"]) / grid["DN"]
-        dcorr_dz[{"bottom_top_stag": 0}] = 0.
-        dcorr_dz[{"bottom_top_stag": -1}] = -(2 * corr.isel(bottom_top=-1) / grid["DN"][-2]).values
+        corr = diff(corr_flx, "bottom_top", grid["ZNW"]) / grid["DN"]
+        corr[{"bottom_top_stag": 0}] = 0.
+        corr[{"bottom_top_stag": -1}] = -(2 * corr_flx.isel(bottom_top=-1) / grid["DN"][-2]).values
     else:
-        dcorr_dz = diff(corr, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
-    dcorr_dz = dcorr_dz * (-g) / grid["MU_STAG_MEAN"]
+        corr = diff(corr_flx, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
+    corr = corr * (-g) / grid["MU_STAG_MEAN"]
 
     if dz_out:
-        dcorr_dz = dcorr_dz * stagger_like(grid["dzdd"], dcorr_dz,
+        corr = corr * stagger_like(grid["dzdd"], corr,
                                            cyclic=cyclic, **grid[stagger_const])
     if tend_mass is not None:
-        mass_corr = dcorr_dz.sel(comp="mass")
+        mass_corr = corr.sel(comp="mass")
         if VAR == "T":
             for comp in ["adv_r", "mean"]:
                 # add correction for constant base state
-                dcorr_dz.loc[comp] = dcorr_dz.loc[comp] + 300 * mass_corr
+                corr.loc[comp] = corr.loc[comp] + 300 * mass_corr
                 # finish residual calculation started in adv_tend
                 adv.loc["Z", comp] = adv.loc["Z", comp] - 300 * mass_corr.sum("dir")
-        dcorr_dz = dcorr_dz.reindex(comp=adv.comp.values)
+        corr = corr.reindex(comp=adv.comp.values)
         # corrections to continuity equation
         mass_corr.loc["T"] = - mass_corr.loc["T"]
-        for D in dcorr_dz.dir:
+        for D in corr.dir:
             tend_mass.loc[D] = tend_mass.loc[D] + mass_corr.loc[D] * grid["RHOD_STAG_MEAN"]
 
     # apply corrections to horizontal advection and total tendency
     for i, d in enumerate(XY):
-        adv.loc[d] = adv.loc[d] + dcorr_dz.sel(dir=d)
-    dcorr_dz.loc[:, "T"] = - dcorr_dz.loc[:, "T"]
-    tend = tend + dcorr_dz.sel(comp="adv_r", dir="T", drop=True)
+        adv.loc[d] = adv.loc[d] + corr.sel(dir=d)
+    corr.loc[:, "T"] = - corr.loc[:, "T"]
+    tend = tend + corr.sel(comp="adv_r", dir="T", drop=True)
 
-    return adv, tend, dcorr_dz, tend_mass
+    return adv, tend, corr_flx, corr, tend_mass
 
 
 def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
@@ -2038,16 +2040,17 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
             if dat is None:
                 continue
             else:
-                datout_c["flux"], datout_c["adv"], vmean, var_stag, corr, tend_mass = dat
+                datout_c["flux"], datout_c["adv"], vmean, var_stag, corr_flx, tend_mass = dat
 
             datout_c["net"] = total_tend
 
             if c["cartesian"]:
-                out = cartesian_corrections(VAR, dim_stag, corr, var_stag, vmean,
+                out = cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
                                             total_tend, tend_mass, cyclic, dz_out=dz_out,
                                             hor_avg=hor_avg, avg_dims=avg_dims)
-                datout_c["adv"], datout_c["net"], datout_c["corr"], tend_mass = out
+                datout_c["adv"], datout_c["net"], corr_flx, datout_c["corr"], tend_mass = out
+
             if tend_mass is not None:
                 datout_c["tend_mass"] = tend_mass
                 # transform flux-form to advective form

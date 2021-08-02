@@ -2128,8 +2128,25 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                     datout_c["adv"] = adv
                     datout_c["net"] = grad["T"].drop("dir")
 
+            # merge resolved and sgs tendencies and fluxes
+            datout_c["adv"] = datout_c["adv"].to_dataset(name="adv")
+            if isinstance(sgs, xr.DataArray):
+                sgs = sgs.to_dataset(name="adv")
+            for sgs_dat, v in zip([sgs, sgsflux], ["adv", "flux"]):
+                datout_c[v] = datout_c[v].reindex(comp=[*datout_c[v].comp.values, "trb_s"])
+                for dv in datout_c[v].data_vars:
+                    if c["cartesian"]:
+                        IDs = "cartesian"
+                    else:
+                        IDs = "native"
+                    datout_c[v][dv].loc[{"comp": "trb_s"}] = sgs_dat[dv].sel(ID=IDs)
+            adv = datout_c["adv"].to_array().isel(variable=0, drop=True).reindex(dir=[*XYZ, "sum"])
+            adv_sum = adv.sum("dir")
+            adv.loc[{"dir": "sum"}] = adv_sum
+            datout_c["adv"] = adv
+
             # add all forcings
-            datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", drop=True).sum("dir") + sources_sum
+            datout_c["forcing"] = datout_c["adv"].sel(comp="adv_r", dir="sum", drop=True) + sources_sum
 
             if "dim" in datout_c["net"].coords:
                 # remove inappropriate coordinate
@@ -2144,25 +2161,6 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 else:
                     datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
 
-        # merge resolved and sgs tendencies and fluxes
-        datout["adv"] = datout["adv"].to_dataset(name="adv")
-        sgs = sgs.to_dataset(name="adv")
-        for sgs_dat, v in zip([sgs, sgsflux], ["adv", "flux"]):
-            sgs_dat_new = sgs_dat.reindex(ID=datout[v].ID)
-            datout[v] = datout[v].reindex(comp=[*datout[v].comp.values, "trb_s"])
-            for dv in datout[v].data_vars:
-                for ID in sgs_dat_new.ID.values:
-                    if "cartesian" in ID:
-                        IDs = "cartesian"
-                    else:
-                        IDs = "native"
-                    sgs_dat_new[dv].loc[{"ID": ID}] = sgs_dat[dv].sel(ID=IDs)
-                datout[v][dv].loc[{"comp": "trb_s"}] = sgs_dat_new[dv]
-        adv = datout["adv"].to_array().isel(variable=0, drop=True)
-        adv = adv.reindex(dir=[*XYZ, "sum"])
-        adv_sum = adv.sum("dir")
-        adv.loc[{"dir": "sum"}] = adv_sum
-
         net = datout["net"].expand_dims(side=["tendency"])
         forcing = datout["forcing"].expand_dims(side=["forcing"])
         net = xr.concat([net, forcing], "side")
@@ -2174,7 +2172,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                                                      units=units_flx)
         datout["tend"] = sources.assign_attrs(description="{}-tendency sources".format(VAR),
                                               units=units)
-        datout["tend"]["adv"] = adv.assign_attrs(description="advective {}-tendency".format(VAR),
+        datout["tend"]["adv"] = datout["adv"].assign_attrs(description="advective {}-tendency".format(VAR),
                                                  units=units)
         datout["tend"]["net"] = net.assign_attrs(description="total {}-tendency".format(VAR),
                                                  units=units)

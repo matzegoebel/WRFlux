@@ -125,7 +125,9 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
 def fix_coords(data, dx, dy):
     """Assign time and space coordinates to dataset/dataarray."""
     # assign time coordinate
-    if "XTIME" in data.dims:
+    if ("Time" in data.dims) and (type(data.Time.values[0]) == np.datetime64):
+        pass
+    elif "XTIME" in data.dims:
         data = data.rename(XTIME="Time")
     elif ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
         data = data.assign_coords(Time=data.XTIME)
@@ -150,11 +152,18 @@ def fix_coords(data, dx, dy):
                 coord = coord.assign_attrs({"units": "m"})
                 data = data.assign_coords({dim_old: coord})
                 data = data.rename({dim_old: dim_new})
+
     # assign vertical coordinate
-    if ("ZNW" in data) and ("bottom_top_stag" in data.dims):
-        data = data.assign_coords(bottom_top_stag=data["ZNW"].isel(Time=0, drop=True))
-    if ("ZNU" in data) and ("bottom_top" in data.dims):
-        data = data.assign_coords(bottom_top=data["ZNU"].isel(Time=0, drop=True))
+    for v, dim in zip(["ZNU", "ZNW"], ["bottom_top", "bottom_top_stag"]):
+        if (v in data) and (dim in data.dims):
+            coord = data[v]
+            if "Time" in coord.dims:
+                coord = coord.isel(Time=0, drop=True)
+            if "record" in coord.dims:
+                if (coord.isel(record=0) != coord).any():
+                    continue
+                coord = coord.isel(record=0, drop=True)
+            data = data.assign_coords({dim: coord})
 
     return data
 
@@ -557,10 +566,9 @@ def post_stagger(data_stag, dim, new_coord, rename=True, data=None, cyclic=False
     # fill boundary values
     if dim == "bottom_top":
         if interp_const != {}:
-            data_stag[{dim_s: 0}] = interp_const["CF1"] * data[{dim: 0}] + \
-                interp_const["CF2"] * data[{dim: 1}] + interp_const["CF3"] * data[{dim: 2}]
-            data_stag[{dim_s: -1}] = interp_const["CFN"] * \
-                data[{dim: -1}] + interp_const["CFN1"] * data[{dim: -2}]
+            data_stag[{dim_s: 0}] = data[{dim: 0}]*interp_const["CF1"] + \
+                data[{dim: 1}]*interp_const["CF2"] + data[{dim: 2}]*interp_const["CF3"]
+            data_stag[{dim_s: -1}] = data[{dim: -1}]*interp_const["CFN"] + data[{dim: -2}]*interp_const["CFN1"]
     elif cyclic:
         # set second boundary point equal to first
         data_stag.loc[{dim_s: c[-1]}] = data_stag.loc[{dim_s: c[0]}]
@@ -723,7 +731,7 @@ def load_data(outpath_wrf, inst_file, mean_file,
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
 
-    dims = ["Time", "bottom_top", "bottom_top_stag", "y", "y_stag", "x", "x_stag"]
+    dims = ["record", "Time", "bottom_top", "bottom_top_stag", "y", "y_stag", "x", "x_stag"]
     dims_mean = [*[d for d in dims if d in dat_mean.dims],
                  *[d for d in dat_mean.dims if d not in dims]]
     dims_inst = [*[d for d in dims if d in dat_inst.dims],
@@ -869,13 +877,21 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
     # computational grid
     grid = dat_inst[["ZNU", "ZNW", "DNW", "DN", "C1H", "C2H",
                      "C1F", "C2F", *stagger_const]].isel(Time=0, drop=True)
-    grid["DN"] = grid["DN"].rename(bottom_top="bottom_top_stag").assign_coords(
-        bottom_top_stag=grid["ZNW"][:-1]).reindex(bottom_top_stag=grid["ZNW"])
+    if "record" in grid.dims:
+        for v in ["ZNU", "ZNW"]:
+            if (grid[v].isel(record=0) != grid[v]).any():
+                raise ValueError("If record dim is present in input data, eta levels "
+                                 "needs to be identical for all records!")
+            else:
+                grid[v] = grid[v].isel(record=0, drop=True)
+
+    dn = grid["DN"].rename(bottom_top="bottom_top_stag").assign_coords(bottom_top_stag=grid["bottom_top_stag"][:-1])
+    grid["DN"] = dn.reindex(bottom_top_stag=grid["bottom_top_stag"])
     grid["DX"] = attrs["DX"]
     grid["DY"] = attrs["DY"]
-
     dat_mean = dat_mean.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
     dat_inst = dat_inst.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
+    grid = grid.assign_coords(bottom_top=grid["ZNU"], bottom_top_stag=grid["ZNW"])
 
     dat_mean = dat_mean.rename(ZWIND_MEAN="W_MEAN")
     rhod = stagger(dat_mean["RHOD_MEAN"], "bottom_top",

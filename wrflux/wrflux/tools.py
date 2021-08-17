@@ -1851,6 +1851,8 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
         done = 0
         if len(tiles) == 0:
             done = 1
+            print("No tiles to process!")
+
         if comm is not None:
             # exclude finished processors from MPI communicator
             local_comm = comm.Split(done)
@@ -1866,6 +1868,8 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
             calc_tendencies_core(variables, outpath_wrf, outpath, tile=tile,
                                  task=task, comm=local_comm, **kwargs)
             done = int(i == len(tiles) - 1)
+            if done:
+                print("All tiles processed!")
             if comm is not None:
                 # exclude finished processors from MPI communicator
                 local_comm = local_comm.Split(done)
@@ -1971,7 +1975,6 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
         dat_inst = dat_inst_all[tile]
         # periodic BC cannot be used in tiling dimensions
         cyclic = {d: cyclic[d] and (d not in tile) for d in cyclic.keys()}
-
     if np.prod(list(dat_mean.sizes.values())) == 0:
         raise ValueError("At least one dimension is empy after indexing!")
 
@@ -2113,7 +2116,8 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                             adv_s = - vmean_c[dim] * grad[dim]
                             adv.loc[{"dir": dim, "comp": "mean"}] = stagger_like(adv_s, ref=adv, cyclic=cyclic, **grid[stagger_const])
                     for dim in ["X", "Y", "T"]:
-                        if dim in grad:
+                        if (dim in grad) and c["cartesian"]:
+
                             if dim == "T":
                                 corr = grid["dzdd"].loc["T"]
                             else:
@@ -2124,9 +2128,8 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                                 grad["T"] = grad["T"] - corr
                             else:
                                 adv.loc[{"dir": dim, "comp": "mean"}] = adv.loc[{"dir": dim, "comp": "mean"}] - corr
-                        else:
+                        elif dim not in grad:
                             adv.loc[{"dir": dim, "comp": "mean"}] = 0
-
                     adv.loc[{"comp": "adv_r"}] = adv.loc[{"comp": "mean"}] + adv.loc[{"comp": "trb_r"}]
                     datout_c["adv"] = adv
                     datout_c["net"] = grad["T"].drop("dir")

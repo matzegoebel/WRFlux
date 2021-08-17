@@ -517,27 +517,24 @@ def test_y0(adv, thresh=(5e-6, 5e-3)):
 def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
     """
     Test if dimension coordinates in postprocessed output are the same as in instantaneous WRF output.
-
-    Exclude Time, ID, dir, and comp.
+    Exclude Time.
 
     """
     for dim in dat.dims:
+        if (dim not in dat_inst.dims) or (dim == "Time"):
+            continue
         c = dat[dim].values
-        if dim in ["Time", "ID", "dir", "comp"]:
-            cr = None
-        elif dim in dat_inst.dims:
-            cr = dat_inst[dim].values
-        if cr is not None:
-            if (len(c) != len(cr)) or (c != cr).any():
-                print("Coordinates for dimension {} in data {} of variable {}"
-                      " differs between postprocessed output and WRF output:"
-                      "\n {} vs. {}".format(dim, dat_name, variable, c, cr))
-                f = "FAIL"
-            else:
-                f = "pass"
-            f0 = failed.loc[variable, "dim_coords"]
-            if (f0 == "") or (f0 == "pass"):
-                failed.loc[variable, "dim_coords"] = f
+        cr = dat_inst[dim].values
+        if (len(c) != len(cr)) or (c != cr).any():
+            print("Coordinates for dimension {} in data {} of variable {}"
+                  " differs between postprocessed output and WRF output:"
+                  "\n {} vs. {}".format(dim, dat_name, variable, c, cr))
+            f = "FAIL"
+        else:
+            f = "pass"
+        f0 = failed.loc[variable, "dim_coords"]
+        if (f0 == "") or (f0 == "pass"):
+            failed.loc[variable, "dim_coords"] = f
 
 
 def test_no_model_change(outpath, ID, inst_file, mean_file):

@@ -1221,7 +1221,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
             mf = mapfac["Y"]
         else:
             flux8z = stagger(flux8v, d3, grid["ZNW"], **grid[stagger_const])
-            flux8z[:, [0, -1]] = 0
+            flux8z[{d3s: [0, -1]}] = 0
 
         # build Cartesian correction
         corr_sgs = diff(flux8z, d3s, new_coord=vcoord) / dn
@@ -1232,12 +1232,12 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
         else:
             # vertical flux is in Cartesian coordinate system
             # -> transform to native by vertical integration of correction
-            dfz = (corr_sgs * dn)[:, ::-1].cumsum(d3)[:, ::-1]
+            dfz = (corr_sgs * dn)[{d3: slice(None, None, -1)}].cumsum(d3)[{d3: slice(None, None, -1)}]
             if VAR == "W":
-                fz = fz + dfz[:, 1:].values
+                fz = fz + dfz[{d3: slice(1, None)}].values
             else:
                 # top flux is zero: only set values below
-                fz[:, :-1] = fz[:, :-1] + dfz.values
+                fz[{d3s: slice(None, -1)}] = fz[{d3s: slice(None, -1)}] + dfz.values
     # vertical flux derivative
     sgsflux["Z"] = fz
     sgs["Z"] = -diff(fz, d3s, new_coord=vcoord) / dn / grid["MU_STAG_MEAN"] * (-g)
@@ -1459,7 +1459,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
             adv_i["Z"] = -diff(fz, "bottom_top", grid["ZNW"]) / grid["DN"]
             # set sfc and top point correctly
             adv_i["Z"][{"bottom_top_stag": 0}] = 0.
-            adv_i["Z"][{"bottom_top_stag": -1}] = (2 * fz.isel(bottom_top=-1) / grid["DN"][-2]).values
+            adv_i["Z"][{"bottom_top_stag": -1}] = (2 * fz.isel(bottom_top=-1) / grid["DN"].isel(bottom_top_stag=-2)).values
 
         else:
             adv_i["Z"] = -diff(fz, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
@@ -1624,7 +1624,7 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
     if "W" in VAR:
         corr = diff(corr_flx, "bottom_top", grid["ZNW"]) / grid["DN"]
         corr[{"bottom_top_stag": 0}] = 0.
-        corr[{"bottom_top_stag": -1}] = -(2 * corr_flx.isel(bottom_top=-1) / grid["DN"][-2]).values
+        corr[{"bottom_top_stag": -1}] = -(2 * corr_flx.isel(bottom_top=-1) / grid["DN"].isel(bottom_top_stag=-2)).values
     else:
         corr = diff(corr_flx, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
     corr = corr * (-g) / grid["MU_STAG_MEAN"]

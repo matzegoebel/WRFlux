@@ -129,13 +129,12 @@ def fix_coords(data, dx, dy):
         pass
     elif "XTIME" in data.dims:
         data = data.rename(XTIME="Time")
-    elif ("XTIME" in data) and (type(data.XTIME.values[0]) == np.datetime64):
-        data = data.assign_coords(Time=data.XTIME)
-    else:
+    elif "Times" in data:
         time = data.Times.astype(str).values
         time = pd.DatetimeIndex([datetime.fromisoformat(str(t)) for t in time])
         data = data.assign_coords(Time=time)
-
+    else:
+        data = data.assign_coords(Time=data.XTIME)
     for v in ["XTIME", "Times"]:
         if v in data:
             data = data.drop(v)

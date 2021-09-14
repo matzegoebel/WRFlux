@@ -917,9 +917,9 @@ def prepare(dat_mean, dat_inst, variables, cyclic=None,
     if attrs["AVG_INTERVAL"] == -1:
         # averaging interval is output interval of dat_mean
         avg_interval = (dat_mean.Time[1:].values - dat_mean.Time[:-1].values).mean()
-        attrs["AVG_INTERVAL"] = int(avg_interval) / 60e9
+        attrs["AVG_INTERVAL"] = int(avg_interval) / 1e9
     else:
-        avg_interval = np.timedelta64(int(attrs["AVG_INTERVAL"] * 60e9))
+        avg_interval = np.timedelta64(int(attrs["AVG_INTERVAL"] * 1e9))
 
     # select start and end time of averaging intervals
     Times = []
@@ -1058,7 +1058,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
                        cyclic=cyclic[d]) / grid["D" + D]
 
     zw_inst = (dat_inst["PH"] + dat_inst["PHB"]) / g
-    dt = attrs["AVG_INTERVAL"] * 60
+    dt = attrs["AVG_INTERVAL"]
     # only keep end points of averaging intervals
     dzdd["T"] = zw_inst.diff("Time").isel(Time=slice(None, None, 2)) / dt
     dzdd = stagger_like(dzdd, ref, ignore=["bottom_top_stag"], cyclic=cyclic)
@@ -1488,7 +1488,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     tend_mass = None
     if calc_mass:
         # continuity equation
-        dt = attrs["AVG_INTERVAL"] * 60
+        dt = attrs["AVG_INTERVAL"]
         if dz_out:
             rhom = grid["RHOD_STAG_MEAN"]
             rho_tend = dat_inst["RHOD_STAG"].diff("Time") / dt
@@ -1714,7 +1714,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
     rvar = vard * rho
 
     # total tendency
-    dt = attrs["AVG_INTERVAL"] * 60.
+    dt = attrs["AVG_INTERVAL"]
     total_tend = rvar.diff("Time") / dt
     # only keep end points of averaging intervals
     total_tend = total_tend.isel(Time=slice(None, None, 2))

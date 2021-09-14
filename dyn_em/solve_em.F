@@ -4768,7 +4768,7 @@ BENCH_END(bc_2d_tim)
       ELSE
          last_timestep = .false.
       ENDIF
-      num = INT(config_flags%avg_interval * 60. * precision)
+      num = INT(config_flags%avg_interval * precision)
       den = precision
       CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
       !$OMP PARALLEL DO   &

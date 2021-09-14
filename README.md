@@ -36,7 +36,7 @@ The following namelist variables are available:
 - **`output_{t,q,u,v,w}_fluxes`** (default: 0): controls calculation and output for each variable;
  								  0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
 - **`output_{t,q,u,v,w}_fluxes_add`** (default: 0): if 1, output additional fluxes using 2nd order advection and different correction forms for comparison (see [Theory/Alternative Corrections](#alternative-corrections)).
-- **`avg_interval`**: averaging interval in minutes. If -1 (default), use the output interval of the auxhist24 output stream.
+- **`avg_interval`**: averaging interval in seconds. If -1 (default), use the output interval of the auxhist24 output stream.
 - **`output_dry_theta_fluxes`** (default: .true.): if .true., output fluxes and tendencies based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
 - **`hesselberg_avg`** (default: .true.): if .true., budget variables are averaged with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
 
@@ -52,7 +52,7 @@ The other source terms that are output beside resolved and SGS fluxes for `outpu
 
 Convection includes tendencies from the cumulus and shallow cumulus schemes.
 
-All variables are output to the auxiliary output stream `auxhist24`. The output interval can be set with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`. The averaging starts `avg_interval` minutes before each output time of this output stream. If `avg_interval=-1`, the averaging interval is set equal to the output interval.
+All variables are output to the auxiliary output stream `auxhist24`. The output interval can be set with the namelist variables `auxhist24_interval_m` and `auxhist24_interval_s`. The averaging starts `avg_interval` seconds before each output time of this output stream. If `avg_interval=-1`, the averaging interval is set equal to the output interval.
 
 To calculate the budget in the post-processing, the instantaneous output (history stream) must contain the following variables:
 

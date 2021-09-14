@@ -2264,7 +2264,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
     if tile is None:
         out = datout_all
         if return_model_output:
-            out = [out, dat_inst, dat_mean]
+            out = [out, dat_inst_all, dat_mean_all]
         return out
     # in case of tiling: load output later
 

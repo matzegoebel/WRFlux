@@ -489,10 +489,13 @@ def setup_test_sim(build, restore=False, random_msf=True):
             raise RuntimeError("WRF compilation failed!")
         os.chdir(test_path)
 
-    # IO file, input sounding, and namelist file
-    input_files = ["IO_wdiag.txt", "input_sounding_wrflux_u", "input_sounding_wrflux_uv",
-                   "namelist.input"]
     case_path = wrf_path / "test" / conf.params["ideal_case_name"]
+
+    # IO file, input sounding, and namelist file
+    input_files = ["IO_wdiag.txt", "namelist.input"]
+    for f in os.listdir(input_path):
+        if "input_sounding" in f:
+            input_files.append(f)
 
     for f in input_files:
         fpath = case_path / f

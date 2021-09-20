@@ -61,12 +61,12 @@ CONTAINS
     REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_rum,avgflx_rvm,avgflx_wwm
 
-    REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
+    REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1
 
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
 
-    REAL, OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::                       &
+    REAL,  DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(OUT) ::                       &
        t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,               &
        q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,               &
        u_mean,ux_mean,uy_mean,uz_mean,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,                       &
@@ -100,7 +100,7 @@ CONTAINS
        t_tend_damp_mean,q_tend_damp_mean,u_tend_damp_mean,v_tend_damp_mean,w_tend_damp_mean,        &
        rhod_mean,z_mean,dph_x_mean,dph_y_mean
 
-    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
+    REAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: mut_mean
 
     INTEGER :: i,j,k
 
@@ -116,9 +116,7 @@ CONTAINS
     end DO
     endif
 
-    if ((config_flags%do_avgflx_cugd .EQ. 1) .and. &
-         & present(avgflx_cfu1) .and. present(avgflx_cfd1) .and. present(avgflx_dfu1) &
-         & .and. present(avgflx_efu1) .and. present(avgflx_dfd1) .and. present(avgflx_efd1) ) then
+    if (config_flags%do_avgflx_cugd .EQ. 1) then
        DO j=jts,jte
           DO k=kts,kte
              DO i=its,ite
@@ -133,7 +131,7 @@ CONTAINS
        end DO
     end if
 
-    if (present(z_mean) .and. config_flags%output_avgfluxes) then
+    if (config_flags%output_avgfluxes) then
       DO j=jts,jte
       DO i=its,ite
           mut_mean(i,j) = 0.
@@ -422,16 +420,16 @@ CONTAINS
     REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_rum,avgflx_rvm,avgflx_wwm
 
-    REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) ::    &
+    REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(IN) ::    &
          cfu1,cfd1,dfu1,efu1,dfd1,efd1
-    REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
+    REAL,     DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::    &
          avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1
 
 
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
     LOGICAL, INTENT(IN) :: do_avg
 
-    REAL,     OPTIONAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
+    REAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
        T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN,          &
        Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
        U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                  &
@@ -465,11 +463,11 @@ CONTAINS
        T_TEND_DAMP_MEAN,Q_TEND_DAMP_MEAN,U_TEND_DAMP_MEAN,V_TEND_DAMP_MEAN,W_TEND_DAMP_MEAN,   &
        RHOD_MEAN,Z_MEAN,DPH_X_MEAN,DPH_Y_MEAN
 
-    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: MUT_MEAN
+    REAL, DIMENSION( ims:ime , jms:jme ) , INTENT(OUT) :: MUT_MEAN
 
-    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
+    REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(OUT) :: w_diag
 
-    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
+    REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(IN) :: &
          u_save, v_save, w_2, w_save, ru, rv, ww,              &
          th_save, t_1, Q, q_1, ph_1, ph_2, phb, zx, zy, alt,   &
          ftx_small, fty_small, ftz_small, ftz_imp,             &
@@ -487,20 +485,20 @@ CONTAINS
          ftx_sgs, fty_sgs, ftz_sgs, fqx_sgs, fqy_sgs, fqz_sgs, &
          fux_sgs, fuz_sgs, fvx_sgs, fvy_sgs, fvz_sgs, fwx_sgs, fwy_sgs, fwz_sgs
 
-    REAL, OPTIONAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_adv, fty_adv, ftz_adv,  &
+    REAL, DIMENSION(ims:ime, kms:kme, jms:jme) , INTENT(INOUT) :: ftx_adv, fty_adv, ftz_adv,  &
                                                                             fqz_adv, fuz_adv, fvz_adv, fwz_adv, &
                                                                             dph_x, dph_y
 
-    REAL , DIMENSION( kms:kme ) , OPTIONAL, INTENT(IN   ) :: fnm, fnp, c1h, c2h, c1f, c2f
-    REAL , DIMENSION( ims:ime, jms:jme ), OPTIONAL, INTENT(IN   ) :: mut
-    REAL, OPTIONAL, INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
-    REAL, OPTIONAL, DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) :: msfuy,  &
+    REAL , DIMENSION( kms:kme ) , INTENT(IN   ) :: fnm, fnp, c1h, c2h, c1f, c2f
+    REAL , DIMENSION( ims:ime, jms:jme ), INTENT(IN   ) :: mut
+    REAL,  INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
+    REAL,  DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) ::          msfuy,  &
                                                                        msfvx,  &
                                                                        msfvy,  &
                                                                        msftx,  &
                                                                        msfty
 
-    LOGICAL, OPTIONAL, INTENT(IN) :: last_timestep
+    LOGICAL, INTENT(IN) :: last_timestep
 
 
     REAL,    DIMENSION(ims:ime, kms:kme, jms:jme) ::    rho_d
@@ -534,7 +532,7 @@ CONTAINS
     local_count = real(avgflx_count)
     count_p1 = local_count + 1.
 
-    if (present(dt) .and. config_flags%output_avgfluxes) then
+    if (config_flags%output_avgfluxes) then
 
       DO j=jts-1,jte
       DO k=kts,min(kte,kde-1)
@@ -1372,11 +1370,7 @@ CONTAINS
     end DO
     endif
 
-    if (do_cu .and. &
-         & present(avgflx_cfu1) .and. present(avgflx_cfd1) .and. present(avgflx_dfu1) &
-         & .and. present(avgflx_efu1) .and. present(avgflx_dfd1) .and. present(avgflx_efd1) &
-         & .and. present(cfu1) .and. present(cfd1) .and. present(dfu1) &
-         & .and. present(efu1) .and. present(dfd1) .and. present(efd1) ) then
+    if (do_cu) then
        DO j=jts,jte
           DO k=kts,kte
              DO i=its,ite

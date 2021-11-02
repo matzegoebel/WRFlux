@@ -1029,7 +1029,8 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         mapfac["F" + d] = stagger_like(mf, flx, cyclic=cyclic)
 
     # get missing sgs flux
-    dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
+    if "FVX_SGS_MEAN" in dat_mean:
+        dat_mean["FUY_SGS_MEAN"] = dat_mean["FVX_SGS_MEAN"]
 
     # density and dry air mass
     mut = dat_inst["MU"] + dat_inst["MUB"]

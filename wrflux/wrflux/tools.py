@@ -111,7 +111,10 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
             raise e
     ds.close()
     if fix_c:
-        dx, dy = ds.DX, ds.DY
+        if "DX" in ds:
+            dx, dy = ds.DX, ds.DY
+        else:
+            dx, dy = None, None
         ds = fix_coords(ds, dx=dx, dy=dy)
 
     if del_attrs:
@@ -122,7 +125,7 @@ def open_dataset(file, del_attrs=True, fix_c=True, **kwargs):
     return ds
 
 
-def fix_coords(data, dx, dy):
+def fix_coords(data, dx=None, dy=None):
     """Assign time and space coordinates to dataset/dataarray."""
     # assign time coordinate
     if ("Time" in data.dims) and (type(data.Time.values[0]) == np.datetime64):
@@ -140,6 +143,8 @@ def fix_coords(data, dx, dy):
             data = data.drop(v)
     # assign x and y coordinates and rename dimensions
     for dim_old, res, dim_new in zip(["south_north", "west_east"], [dy, dx], ["y", "x"]):
+        if res is None:
+            continue
         for stag in [False, True]:
             if stag:
                 dim_old = dim_old + "_stag"
@@ -1725,6 +1730,7 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
 
     return total_tend, vard
 
+#%% main
 
 def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartesian",
                     t_avg=False, t_avg_interval=None, hor_avg=False, avg_dims=None, hor_avg_end=False,

@@ -15,7 +15,7 @@ from functools import partial
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
              "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
-             "no_model_change", "periodic"]
+             "no_model_change", "periodic", "adv_form"]
 
 
 # %% test functions
@@ -448,6 +448,126 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
     return failed, min(err)
 
 
+def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=None,
+                  avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
+    """Compare implicit and explicit advective form calculations
+
+    Explicitly calculate 2nd order mean advection in advective form and compare with
+    implicit calculation.
+
+    Parameters
+    ----------
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
+    datout : nested dict
+        Postprocessed output for all variables.
+    var : str
+        Variable to process.
+    cyclic : dict of booleans for xy or None, optional
+        Defines which dimensions have periodic boundary conditions.
+        Use periodic boundary conditions to fill lateral boundary points.
+        The default is None.
+    hor_avg : bool, optional
+        Horizontal averaging was used in postprocessing. The default is False.
+    avg_dims : str or list of str, optional
+        Averaging dimensions if hor_avg=True. The default is None.
+    avg_dims_error : str or list of str, optional
+        Dimensions over which to calculate the R2. The default is None.
+    thresh : float, optional
+        Threshold value for R2 below which the test fails
+    loc : dict, optional
+        Mapping for label based indexing before running the test. The default is None.
+    iloc : dict, optional
+        Mapping for integer-location based indexing before running the test. The default is None.
+    plot : bool, optional
+        Create scatter plot if test fails. The default is True.
+    **plot_kws :
+        keyword arguments passed to plotting.scatter_hue.
+
+    Returns
+    -------
+    failed : bool
+        Test failed.
+    err : float
+        Test statistic R2
+
+    """
+
+    adv, flux, grid = datout["tend"]["adv"], datout["flux"], datout["grid"]
+    dat_mean["bottom_top"] = flux["bottom_top"]
+    dat_mean["bottom_top_stag"] = flux["bottom_top_stag"]
+    vmean = xr.Dataset({"X": dat_mean["U_MEAN"], "Y": dat_mean["V_MEAN"], "Z": dat_mean["WD_MEAN"]})
+    if var == "w":
+        v = "ZWIND"
+    else:
+        v = var.upper()
+    var_mean = dat_mean[v + "_MEAN"]
+    if hor_avg:
+        var_mean = tools.avg_xy(var_mean, avg_dims, cyclic=cyclic)
+
+    vmean_c = xr.Dataset()
+    dd = xr.Dataset()
+    grad = xr.Dataset()
+    tend = xr.Dataset()
+    for dim in tools.XYZ:
+        if hor_avg:
+            vmean[dim] = tools.avg_xy(vmean[dim], avg_dims, cyclic=cyclic, **grid[tools.stagger_const])
+        ds = dim.lower()
+        if dim == "Z":
+            ds = "bottom_top"
+        cyc = cyclic[ds]
+        d = ds
+        if ds in var_mean.dims:
+            ds = ds + "_stag"
+        else:
+            d = d + "_stag"
+        if dim == "Z":
+            dd[dim] = tools.diff(grid["Z_STAG"], d, new_coord=flux[ds], cyclic=cyc)
+        else:
+            dd[dim] = grid["D" + dim]
+
+        if d in adv.dims:
+            grad[dim] = tools.diff(var_mean, d, new_coord=flux[ds], cyclic=cyc) / dd[dim]
+            vmean_c[dim] = tools.stagger_like(vmean[dim], ref=grad[dim], cyclic=cyclic, **grid[tools.stagger_const])
+
+    for dim in tools.XYZ:
+        if dim in grad:
+            adv_s = - vmean_c[dim] * grad[dim]
+            tend[dim] = tools.stagger_like(adv_s, ref=adv, cyclic=cyclic, **grid[tools.stagger_const])
+    for dim in ["X", "Y"]:
+        if dim in grad:
+            corr = grid[f"dzdt_{dim.lower()}"]
+            corr = grad["Z"]*tools.stagger_like(corr, ref=grad["Z"], cyclic=cyclic, **grid[tools.stagger_const])
+            corr = tools.stagger_like(corr, ref=adv, cyclic=cyclic, **grid[tools.stagger_const])
+            tend[dim] = tend[dim] - corr
+
+    tend = tend.to_array("dir")
+
+    fname = None
+    if "fname" in plot_kws:
+        fname = plot_kws.pop("fname")
+
+    dat = tools.loc_data(adv.sel(ID="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc)
+    ref = tools.loc_data(tend, loc=loc, iloc=iloc)
+    dat = dat.sel(dir=ref.dir)
+    if var == "w":
+        dat = dat.isel(bottom_top_stag=slice(1, None))
+        ref = ref.isel(bottom_top_stag=slice(1, None))
+    err = R2(dat, ref, dim=avg_dims_error).min().values
+    failed = False
+    if err < thresh:
+        failed = True
+        log = "test_adv_form: mean advective component: min. R2 less than {}: {:.10f}".format(thresh, err)
+        print(log)
+        if plot:
+            dat.name = "Implicit calculation"
+            ref.name = "Explicit calculation"
+            if fname is not None:
+                log = fname + "\n" +  log
+            plotting.scatter_hue(dat, ref, title=log, fname=fname, **plot_kws)
+    return failed, err
+
+
 def test_nan(datout, cut_bounds=None):
     """Test for NaN and inf values in postprocessed data.
     If invalid values occur, print reduced dataset to show their locations.
@@ -604,7 +724,7 @@ def test_periodic(datout, attrs, var, avg_dims_error=None,
     return failed
 # %% run_tests
 
-def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
+def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=False,
               hor_avg=False, chunks=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
@@ -662,6 +782,8 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
     if attrs["PERIODIC_Y"] == 0:
         if "Y=0" in tests:
             tests.remove("Y=0")
+    cyclic = {d: bool(attrs["PERIODIC_{}".format(d.upper())]) for d in tools.xy}
+    cyclic["bottom_top"] = False
 
     avg_dims = None
     if hor_avg:
@@ -698,6 +820,7 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
         figloc = fpath / "figures" / var
         failed_i = {}
         err_i = {}
+        dat_mean = dat_mean.sel(Time=datout_v["tend"]["Time"])
 
         if "budget" in tests:
             tend = datout_v["tend"]["net"].sel(side="tendency")
@@ -789,6 +912,14 @@ def run_tests(datout, tests, dat_inst=None, sim_id="", trb_exp=False,
             if "thresh" in kw:
                 del kw["thresh"]
 
+        if "adv_form" in tests:
+            kw["figloc"] = figloc / "adv_form"
+            if var in ["u", "w"]:
+                kw["thresh"] = 0.995
+            failed_i["adv_form"], err_i["adv_form"] = test_adv_form(dat_mean, datout_v, var, cyclic,
+                                                                    hor_avg=hor_avg, avg_dims=avg_dims, **kw)
+            if "thresh" in kw:
+                del kw["thresh"]
         if "periodic" in tests:
             kw["figloc"] = figloc / "mass"
             failed_i["periodic"] = test_periodic(datout_v, attrs, var, **kw)

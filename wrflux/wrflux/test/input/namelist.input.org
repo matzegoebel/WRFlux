@@ -17,7 +17,7 @@
  end_second                          = 00,   00,   00,
  history_interval_m                  = 60,   10,   1,
  history_interval_s                  = 00,   00,   1,
- frames_per_outfile                  = 1000, 1000, 1000,
+ frames_per_outfile                  = 10000, 1000, 1000,
  restart                             = .false.,
  restart_interval_m                  = 60,
  io_form_history                     = 2
@@ -28,7 +28,7 @@
  auxhist24_outname                   = "meanout_d<domain>_<date>"
  auxhist24_interval_m                = 30,
  auxhist24_interval_s                = 0,
- frames_per_auxhist24                = 1000,
+ frames_per_auxhist24                = 10000,
  io_form_auxhist24                   = 2
  iofields_filename                   = "NONE_SPECIFIED"
  debug_level                         = 0

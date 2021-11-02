@@ -55,8 +55,7 @@ random_msf = True
 tests = testing.all_tests
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 #          "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
-#          "no_model_change"]
-# tests = ["periodic"]
+#          "no_model_change", "periodic", "adv_form"]
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
     avg_dims_error=["y", "bottom_top", "Time"],  # dimensions over which to calculate error norms
@@ -72,8 +71,9 @@ kw = dict(
 
 
 # %% budget calculation methods
-budget_methods = ["", "cartesian", "cartesian adv_form"]
+budget_methods = ["", "cartesian"]
 budget_methods_2nd = ["cartesian 2nd"]
+budget_methods_advform = ["cartesian adv_form"]
 budget_methods_dzout = ["cartesian dz_out_x", "cartesian dz_out_z"]
 
 
@@ -118,6 +118,10 @@ def test_all():
                           0: ["instout", 10.]}]))
     param_grids["trb no_debug hor_avg"] = param_grids["trb no_debug"].copy()
     param_grids["hor_avg no_debug msf=1"] = param_grids["dz_out no_debug"].copy()  # for Y=0 test
+    param_grids["adv_form hor_avg no_debug"] = odict(msf=1, input_sounding="wrflux_u",
+                                                     adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2],
+                                                                    h_mom_adv_order=[2], v_mom_adv_order=[2]))
+    param_grids["adv_form hor_avg no_debug"] = param_grids["adv_form no_debug"].copy()
     param_grids["hor_avg no_debug"] = odict()
     param_grids["chunking xy no_debug"] = odict(chunks={"x": 10, "y": 10})
     param_grids["chunking x no_debug"] = odict(chunks={"x": 10})
@@ -293,11 +297,15 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     tests_i.remove("dz_out")
                 if ("chunking" in label) and ("periodic" in tests_i):
                     tests_i.remove("periodic")
-
                 if all(param_comb[i + "_adv_order"] == 2 for i in ["h_sca", "v_sca", "h_mom", "v_mom"]):
                     bm = bm + budget_methods_2nd
                 elif "adv_2nd" in tests_i:
                     tests_i.remove("adv_2nd")
+                if "adv_form" in label:
+                    bm = budget_methods + budget_methods_advform
+                    tests_i.remove("adv_2nd")
+                elif "adv_form" in tests_i:
+                    tests_i.remove("adv_form")
 
                 t_avg = False
                 t_avg_interval = None
@@ -317,8 +325,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     tests_i.remove("Y=0")
                 kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
                 kw["close"] = True  # always close figures
-                failed_i, err_i = testing.run_tests(datout, tests_i, dat_inst=dat_inst, sim_id=ind,
-                                                    hor_avg=hor_avg, trb_exp=t_avg,
+                failed_i, err_i = testing.run_tests(datout, tests_i, dat_mean=dat_mean, dat_inst=dat_inst,
+                                                    sim_id=ind, hor_avg=hor_avg, trb_exp=t_avg,
                                                     chunks=chunks, **kw)
 
                 for var in variables:

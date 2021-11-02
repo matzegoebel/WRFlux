@@ -30,14 +30,19 @@ CONTAINS
        & fwx_corr,fwy_corr,corr_dwdt,                                                                 &
        & ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
        & ftx_corr_dzout,fty_corr_dzout,                                                               &
+       & dudx_t_mean,dvdy_t_mean,dwdz_t_mean,                                                         &
        & fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
        & fqx_corr_dzout,fqy_corr_dzout,                                                               &
+       & dudx_q_mean,dvdy_q_mean,dwdz_q_mean,                                                         &
        & fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd, fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd, &
        & fux_corr_dzout,fuy_corr_dzout,                                                               &
+       & dudx_u_mean,dvdy_u_mean,dwdz_u_mean,                                                         &
        & fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd, fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd, &
        & fvx_corr_dzout,fvy_corr_dzout,                                                               &
+       & dudx_v_mean,dvdy_v_mean,dwdz_v_mean,                                                         &
        & fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
        & fwx_corr_dzout,fwy_corr_dzout,                                                               &
+       & dudx_w_mean,dvdy_w_mean,dwdz_w_mean,                                                         &
        & ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
        & fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
        & fux_sgs_mean,fuz_sgs_mean,                                                                   &
@@ -79,14 +84,19 @@ CONTAINS
        fwx_corr,fwy_corr,corr_dwdt,                                                                 &
        ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
        ftx_corr_dzout,fty_corr_dzout,                                                               &
+       dudx_t_mean,dvdy_t_mean,dwdz_t_mean,                                                         &
        fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
        fqx_corr_dzout,fqy_corr_dzout,                                                               &
+       dudx_q_mean,dvdy_q_mean,dwdz_q_mean,                                                         &
        fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd, fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd, &
        fux_corr_dzout,fuy_corr_dzout,                                                               &
+       dudx_u_mean,dvdy_u_mean,dwdz_u_mean,                                                         &
        fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd, fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd, &
        fvx_corr_dzout,fvy_corr_dzout,                                                               &
+       dudx_v_mean,dvdy_v_mean,dwdz_v_mean,                                                         &
        fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
        fwx_corr_dzout,fwy_corr_dzout,                                                               &
+       dudx_w_mean,dvdy_w_mean,dwdz_w_mean,                                                         &
        ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
        fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
        fux_sgs_mean,fuz_sgs_mean,                                                                   &
@@ -155,7 +165,12 @@ CONTAINS
             fty_corr(i,k,j) = 0.
             corr_dtdt(i,k,j) = 0.
 
-            IF (config_flags%output_t_fluxes_add == 1) THEN
+            IF ((config_flags%output_t_fluxes_add == 1) .or. (config_flags%output_t_fluxes_add == 3)) THEN
+              dudx_t_mean(i,k,j) = 0.
+              dvdy_t_mean(i,k,j) = 0.
+              dwdz_t_mean(i,k,j) = 0.
+            ENDIF
+            IF (config_flags%output_t_fluxes_add .ge. 2) THEN
               !2nd order fluxes
               ftx_adv_mean_2nd(i,k,j) = 0.
               fty_adv_mean_2nd(i,k,j) = 0.
@@ -194,7 +209,12 @@ CONTAINS
             fqy_corr(i,k,j) = 0.
             corr_dqdt(i,k,j) = 0.
 
-            IF (config_flags%output_q_fluxes_add == 1) THEN
+            IF ((config_flags%output_q_fluxes_add == 1) .or. (config_flags%output_q_fluxes_add == 3)) THEN
+              dudx_q_mean(i,k,j) = 0.
+              dvdy_q_mean(i,k,j) = 0.
+              dwdz_q_mean(i,k,j) = 0.
+            ENDIF
+            IF (config_flags%output_q_fluxes_add .ge. 2) THEN
               !2nd order fluxes
               fqx_adv_mean_2nd(i,k,j) = 0.
               fqy_adv_mean_2nd(i,k,j) = 0.
@@ -230,7 +250,12 @@ CONTAINS
             fuy_corr(i,k,j) = 0.
             corr_dudt(i,k,j) = 0.
 
-            IF (config_flags%output_u_fluxes_add == 1) THEN
+            IF ((config_flags%output_u_fluxes_add == 1) .or. (config_flags%output_u_fluxes_add == 3)) THEN
+              dudx_u_mean(i,k,j) = 0.
+              dvdy_u_mean(i,k,j) = 0.
+              dwdz_u_mean(i,k,j) = 0.
+            ENDIF
+            IF (config_flags%output_u_fluxes_add .ge. 2) THEN
               !2nd order fluxes
               fux_adv_mean_2nd(i,k,j) = 0.
               fuy_adv_mean_2nd(i,k,j) = 0.
@@ -267,7 +292,12 @@ CONTAINS
             fvy_corr(i,k,j) = 0.
             corr_dvdt(i,k,j) = 0.
 
-            IF (config_flags%output_v_fluxes_add == 1) THEN
+            IF ((config_flags%output_v_fluxes_add == 1) .or. (config_flags%output_v_fluxes_add == 3)) THEN
+              dudx_v_mean(i,k,j) = 0.
+              dvdy_v_mean(i,k,j) = 0.
+              dwdz_v_mean(i,k,j) = 0.
+            ENDIF
+            IF (config_flags%output_v_fluxes_add .ge. 2) THEN
               !2nd order fluxes
               fvx_adv_mean_2nd(i,k,j) = 0.
               fvy_adv_mean_2nd(i,k,j) = 0.
@@ -306,7 +336,12 @@ CONTAINS
             fwy_corr(i,k,j) = 0.
             corr_dwdt(i,k,j) = 0.
 
-            IF (config_flags%output_w_fluxes_add == 1) THEN
+            IF ((config_flags%output_w_fluxes_add == 1) .or. (config_flags%output_w_fluxes_add == 3)) THEN
+              dudx_w_mean(i,k,j) = 0.
+              dvdy_w_mean(i,k,j) = 0.
+              dwdz_w_mean(i,k,j) = 0.
+            ENDIF
+            IF (config_flags%output_w_fluxes_add .ge. 2) THEN
               !2nd order fluxes
               fwx_adv_mean_2nd(i,k,j) = 0.
               fwy_adv_mean_2nd(i,k,j) = 0.
@@ -352,6 +387,7 @@ CONTAINS
        & cfu1,cfd1,dfu1,efu1,dfd1,efd1,          &
        & avgflx_cfu1,avgflx_cfd1,avgflx_dfu1,avgflx_efu1,avgflx_dfd1,avgflx_efd1,   &
        & config_flags,                                                              &
+       & rdx, rdy, rdz, rdzw, rdn, rdnw,                                            &
        & T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN,              &
        & Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,              &
        & U_MEAN,UX_MEAN,UY_MEAN,UZ_MEAN,FUX_ADV_MEAN,FUY_ADV_MEAN,FUZ_ADV_MEAN,                      &
@@ -364,14 +400,19 @@ CONTAINS
        & FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                 &
        & FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
        & FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
+       & DUDX_T_MEAN,DVDY_T_MEAN,DWDZ_T_MEAN,                                                                        &
        & FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
        & FQX_CORR_MEAN_DZOUT,FQY_CORR_MEAN_DZOUT,                                                                    &
+       & DUDX_Q_MEAN,DVDY_Q_MEAN,DWDZ_Q_MEAN,                                                                        &
        & FUX_ADV_MEAN_2ND,FUY_ADV_MEAN_2ND,FUZ_ADV_MEAN_2ND,FUX_CORR_MEAN_2ND,FUY_CORR_MEAN_2ND,CORR_DUDT_MEAN_2ND,  &
        & FUX_CORR_MEAN_DZOUT,FUY_CORR_MEAN_DZOUT,                                                                    &
+       & DUDX_U_MEAN,DVDY_U_MEAN,DWDZ_U_MEAN,                                                                        &
        & FVX_ADV_MEAN_2ND,FVY_ADV_MEAN_2ND,FVZ_ADV_MEAN_2ND,FVX_CORR_MEAN_2ND,FVY_CORR_MEAN_2ND,CORR_DVDT_MEAN_2ND,  &
        & FVX_CORR_MEAN_DZOUT,FVY_CORR_MEAN_DZOUT,                                                                    &
+       & DUDX_V_MEAN,DVDY_V_MEAN,DWDZ_V_MEAN,                                                                        &
        & FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
        & FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
+       & DUDX_W_MEAN,DVDY_W_MEAN,DWDZ_W_MEAN,                                                                        &
        & FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
        & FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
        & FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
@@ -401,7 +442,7 @@ CONTAINS
        & u_save, v_save, w_2, w_save, ru, rv, ww, th_save, t_1, Q, q_1,                          &
        & ph_1, ph_2, phb, zx, zy, alt, dph_x, dph_y,                                             &
        & fnm, fnp, mut, c1h, c2h, c1f, c2f, cf1, cf2, cf3, cfn, cfn1,                            &
-       & msfuy, msfvx, msfvy, msftx, msfty,                                                      &
+       & msfux, msfuy, msfvx, msfvy, msftx, msfty,                                               &
        & last_timestep, dt                                                                       )
 
     IMPLICIT NONE
@@ -429,6 +470,9 @@ CONTAINS
     TYPE(grid_config_rec_type), INTENT(IN   ) :: config_flags
     LOGICAL, INTENT(IN) :: do_avg
 
+    REAL, INTENT(IN) :: rdx,rdy
+    REAL, DIMENSION( ims:ime, kms:kme, jms:jme ), INTENT( IN ) ::  rdz, rdzw
+    REAL, DIMENSION( kms:kme ), INTENT( IN ) ::  rdn, rdnw
     REAL, DIMENSION( ims:ime , kms:kme , jms:jme ) , INTENT(INOUT) ::            &
        T_MEAN,TX_MEAN,TY_MEAN,TZ_MEAN,TT_MEAN,FTX_ADV_MEAN,FTY_ADV_MEAN,FTZ_ADV_MEAN,          &
        Q_MEAN,QX_MEAN,QY_MEAN,QZ_MEAN,QQ_MEAN,FQX_ADV_MEAN,FQY_ADV_MEAN,FQZ_ADV_MEAN,          &
@@ -442,14 +486,19 @@ CONTAINS
        FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                                 &
        FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
        FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
+       DUDX_T_MEAN,DVDY_T_MEAN,DWDZ_T_MEAN,                                                                        &
        FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
        FQX_CORR_MEAN_DZOUT,FQY_CORR_MEAN_DZOUT,                                                                    &
+       DUDX_Q_MEAN,DVDY_Q_MEAN,DWDZ_Q_MEAN,                                                                        &
        FUX_ADV_MEAN_2ND,FUY_ADV_MEAN_2ND,FUZ_ADV_MEAN_2ND,FUX_CORR_MEAN_2ND,FUY_CORR_MEAN_2ND,CORR_DUDT_MEAN_2ND,  &
        FUX_CORR_MEAN_DZOUT,FUY_CORR_MEAN_DZOUT,                                                                    &
+       DUDX_U_MEAN,DVDY_U_MEAN,DWDZ_U_MEAN,                                                                        &
        FVX_ADV_MEAN_2ND,FVY_ADV_MEAN_2ND,FVZ_ADV_MEAN_2ND,FVX_CORR_MEAN_2ND,FVY_CORR_MEAN_2ND,CORR_DVDT_MEAN_2ND,  &
        FVX_CORR_MEAN_DZOUT,FVY_CORR_MEAN_DZOUT,                                                                    &
+       DUDX_V_MEAN,DVDY_V_MEAN,DWDZ_V_MEAN,                                                                        &
        FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
        FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
+       DUDX_W_MEAN,DVDY_W_MEAN,DWDZ_W_MEAN,                                                                        &
        FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
        FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
        FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
@@ -492,7 +541,8 @@ CONTAINS
     REAL , DIMENSION( kms:kme ) , INTENT(IN   ) :: fnm, fnp, c1h, c2h, c1f, c2f
     REAL , DIMENSION( ims:ime, jms:jme ), INTENT(IN   ) :: mut
     REAL,  INTENT(IN) :: dt, cf1, cf2, cf3, cfn, cfn1
-    REAL,  DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) ::          msfuy,  &
+    REAL,  DIMENSION( ims:ime , jms:jme ) ,  INTENT(IN   ) :: msfux,  &
+                                                                       msfuy,  &
                                                                        msfvx,  &
                                                                        msfvy,  &
                                                                        msftx,  &
@@ -519,14 +569,14 @@ CONTAINS
             fwx_dfac, fwy_dfac,                                                            &
             thetax, thetay, thetaz, qx, qy, qz, ux, uy, uz, vx, vy, vz, wx, wy, wz,        &
             ru_d, rv_d, ww_d,                                                              &
-            rzxu_s, rzyv_s, ru8z, rv8z, rdzdt_s, cu_tend, cu_tend_q
+            rzxu_s, rzyv_s, rzxu_s1, rzyv_s1, ru8z, rv8z, rdzdt_s, cu_tend, cu_tend_q
 
     REAL :: thetax2, thetay2, thetaz2,                 &
             qx2, qy2, qz2,                             &
             ux2, uy2, uz2,                             &
             vx2, vy2, vz2,                             &
             wx2, wy2, wz2,                             &
-            rw_diag_s
+            rw_diag_s, tend, th
 
 
     local_count = real(avgflx_count)
@@ -827,7 +877,23 @@ CONTAINS
               FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*thetaz )/count_p1
               CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt(i,k,j)*thetaz )/count_p1
 
-              IF (config_flags%output_t_fluxes_add == 1) THEN
+              IF ((config_flags%output_t_fluxes_add == 1) .or. (config_flags%output_t_fluxes_add == 3)) THEN
+                !2nd order advective form tendency
+                IF (k .lt. kde) THEN
+                  !to get advective form in postprocessing
+                  th = th_save(i,k,j) + 300
+                  tend = -rdx*(ru_m(i+1,k,j) - ru_m(i,k,j))
+                  tend =  th * (tend - g*rdnw(k)*(rzxu(i,k+1,j)-rzxu(i,k,j)))
+                  DUDX_T_MEAN(i,k,j) = (local_count*DUDX_T_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = -rdy*(rv_m(i,k,j+1) - rv_m(i,k,j))
+                  tend =  th * (tend - g*rdnw(k)*(rzyv(i,k+1,j)-rzyv(i,k,j)))
+                  DVDY_T_MEAN(i,k,j) = (local_count*DVDY_T_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = w_diag(i,k+1,j)*rho8w(i,k+1,j) - w_diag(i,k,j)*rho8w(i,k,j)
+                  tend = g*th*rdnw(k)*tend
+                  DWDZ_T_MEAN(i,k,j) = (local_count*DWDZ_T_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                ENDIF
+              ENDIF
+              IF (config_flags%output_t_fluxes_add .ge. 2) THEN
                 !2nd order fluxes
                 thetax2 = 0.5*(th_save(i-1,k,j) + th_save(i,k,j))
                 thetay2 = 0.5*(th_save(i,k,j-1) + th_save(i,k,j))
@@ -874,7 +940,21 @@ CONTAINS
               FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*qz )/count_p1
               CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + rdzdt(i,k,j)*qz )/count_p1
 
-              IF (config_flags%output_q_fluxes_add == 1) THEN
+              IF ((config_flags%output_q_fluxes_add == 1) .or. (config_flags%output_q_fluxes_add == 3)) THEN
+                IF (k .lt. kde) THEN
+                  !to get advective form in postprocessing
+                  tend = -rdx*(ru_m(i+1,k,j) - ru_m(i,k,j))
+                  tend =  Q(i,k,j) * (tend - g*rdnw(k)*(rzxu(i,k+1,j)-rzxu(i,k,j)))
+                  DUDX_Q_MEAN(i,k,j) = (local_count*DUDX_Q_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = -rdy*(rv_m(i,k,j+1) - rv_m(i,k,j))
+                  tend =  Q(i,k,j) * (tend - g*rdnw(k)*(rzyv(i,k+1,j)-rzyv(i,k,j)))
+                  DVDY_Q_MEAN(i,k,j) = (local_count*DVDY_Q_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = w_diag(i,k+1,j)*rho8w(i,k+1,j) - w_diag(i,k,j)*rho8w(i,k,j)
+                  tend = g*Q(i,k,j)*rdnw(k)*tend
+                  DWDZ_Q_MEAN(i,k,j) = (local_count*DWDZ_Q_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                ENDIF
+              ENDIF
+              IF (config_flags%output_q_fluxes_add .ge. 2) THEN
                 !2nd order fluxes
                 qx2 = 0.5*(Q(i-1,k,j) + Q(i,k,j))
                 qy2 = 0.5*(Q(i,k,j-1) + Q(i,k,j))
@@ -929,8 +1009,24 @@ CONTAINS
               FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv_s*uz )/count_p1
               CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt_s*uz )/count_p1
 
-              IF (config_flags%output_u_fluxes_add == 1) THEN
-                !2nd order fluxes
+              IF ((config_flags%output_u_fluxes_add == 1) .or. (config_flags%output_u_fluxes_add == 3)) THEN
+                IF (k .lt. kde) THEN
+                  !to get advective form in postprocessing
+                  tend = -0.5*rdx*(ru_m(i+1,k,j) - ru_m(i-1,k,j))*msfux(i,j)*msfuy(i,j)
+                  rzxu_s1 = 0.5*(rzxu(i,k+1,j)/msfty(i,j) + rzxu(i-1,k+1,j)/msfty(i-1,j))*msfuy(i,j)
+                  tend =  u_save(i,k,j) * (tend - g*rdnw(k)*(rzxu_s1-rzxu_s))
+                  DUDX_U_MEAN(i,k,j) = (local_count*DUDX_U_MEAN(i,k,j)+ tend )/count_p1/mux_mean
+                  tend = -0.5*rdy*(rv_m(i,k,j+1) + rv_m(i-1,k,j+1) - rv_m(i,k,j) - rv_m(i-1,k,j))*msfux(i,j)*msfuy(i,j)
+                  rzyv_s1 = 0.5*(rzyv(i,k+1,j)/msfty(i,j) + rzyv(i-1,k+1,j)/msfty(i-1,j))*msfuy(i,j)
+                  tend =  u_save(i,k,j) * (tend - g*rdnw(k)*(rzyv_s1-rzyv_s))
+                  DVDY_U_MEAN(i,k,j) = (local_count*DVDY_U_MEAN(i,k,j)+ tend )/count_p1/mux_mean
+                  tend = w_diag(i,k+1,j)*rho8w(i,k+1,j) + w_diag(i-1,k+1,j)*rho8w(i-1,k+1,j) &
+                       - w_diag(i,k  ,j)*rho8w(i,k  ,j) - w_diag(i-1,k  ,j)*rho8w(i-1,k  ,j)
+                  tend = g*u_save(i,k,j)*0.5*rdnw(k)*tend
+                  DWDZ_U_MEAN(i,k,j) = (local_count*DWDZ_U_MEAN(i,k,j)+ tend )/count_p1/mux_mean
+                ENDIF
+              ENDIF
+              IF (config_flags%output_u_fluxes_add .ge. 2) THEN                !2nd order fluxes
                 ux2 = 0.5*(u_save(i+1,k,j) + u_save(i,k,j))
                 uy2 = 0.5*(u_save(i,k,j-1) + u_save(i,k,j))
                 IF (( k .gt. kts) .and. (k .lt. kte)) THEN
@@ -983,7 +1079,24 @@ CONTAINS
               FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv_s*vz )/count_p1
               CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt_s*vz )/count_p1
 
-              IF (config_flags%output_v_fluxes_add == 1) THEN
+              IF ((config_flags%output_v_fluxes_add == 1) .or. (config_flags%output_v_fluxes_add == 3)) THEN
+                IF (k .lt. kde) THEN
+                  !to get advective form in postprocessing
+                  tend = -0.5*rdx*(ru_m(i+1,k,j) + ru_m(i+1,k,j-1) - ru_m(i,k,j) - ru_m(i,k,j-1))*msfvx(i,j)*msfvy(i,j)
+                  rzxu_s1 = 0.5*(rzxu(i,k+1,j)/msfty(i,j) + rzxu(i,k+1,j-1)/msfty(i,j-1))*msfuy(i,j)
+                  tend =  v_save(i,k,j) * (tend - g*rdnw(k)*(rzxu_s1-rzxu_s))
+                  DUDX_V_MEAN(i,k,j) = (local_count*DUDX_V_MEAN(i,k,j)+ tend )/count_p1/muy_mean
+                  tend = -0.5*rdy*(rv_m(i,k,j+1) - rv_m(i,k,j-1))*msfux(i,j)*msfuy(i,j)
+                  rzyv_s1 = 0.5*(rzyv(i,k+1,j)/msfty(i,j) + rzyv(i,k+1,j-1)/msfty(i,j-1))*msfuy(i,j)
+                  tend =  v_save(i,k,j) * (tend - g*rdnw(k)*(rzyv_s1-rzyv_s))
+                  DVDY_V_MEAN(i,k,j) = (local_count*DVDY_V_MEAN(i,k,j)+ tend )/count_p1/muy_mean
+                  tend = w_diag(i,k+1,j)*rho8w(i,k+1,j) + w_diag(i,k+1,j-1)*rho8w(i,k+1,j-1) &
+                       - w_diag(i,k  ,j)*rho8w(i,k  ,j) - w_diag(i,k  ,j-1)*rho8w(i,k  ,j-1)
+                  tend = g*v_save(i,k,j)*0.5*rdnw(k)*tend
+                  DWDZ_V_MEAN(i,k,j) = (local_count*DWDZ_V_MEAN(i,k,j)+ tend )/count_p1/muy_mean
+                ENDIF
+              ENDIF
+              IF (config_flags%output_v_fluxes_add .ge. 2) THEN
                 !2nd order fluxes
                 vx2 = 0.5*(v_save(i-1,k,j) + v_save(i,k,j))
                 vy2 = 0.5*(v_save(i,k,j+1) + v_save(i,k,j))
@@ -1051,7 +1164,21 @@ CONTAINS
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt_s*wz )/count_p1
               ENDIF
 
-              IF (config_flags%output_w_fluxes_add == 1) THEN
+              IF ((config_flags%output_w_fluxes_add == 1) .or. (config_flags%output_w_fluxes_add == 3)) THEN
+                IF ((k .lt. kde) .and. (k .gt. kts)) THEN
+                  !to get advective form in postprocessing
+                  tend = -0.5*rdx*(ru_m(i+1,k,j) + ru_m(i+1,k-1,j) - ru_m(i,k,j) - ru_m(i,k-1,j))*msfvx(i,j)*msfvy(i,j)
+                  tend =  w_save(i,k,j) * (tend - g*rdn(k)*0.5*(rzxu(i,k+1,j)-rzxu(i,k-1,j)))
+                  DUDX_W_MEAN(i,k,j) = (local_count*DUDX_W_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = -0.5*rdy*(rv_m(i,k,j+1) + rv_m(i,k-1,j+1) - rv_m(i,k,j) - rv_m(i,k-1,j))*msfux(i,j)*msfuy(i,j)
+                  tend =  w_save(i,k,j) * (tend - g*rdn(k)*0.5*(rzyv(i,k+1,j)-rzyv(i,k-1,j)))
+                  DVDY_W_MEAN(i,k,j) = (local_count*DVDY_W_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                  tend = w_diag(i,k+1,j)*rho8w(i,k+1,j) - w_diag(i,k-1,j)*rho8w(i,k-1,j)
+                  tend = g*w_save(i,k,j)*0.5*rdn(k)*tend
+                  DWDZ_W_MEAN(i,k,j) = (local_count*DWDZ_W_MEAN(i,k,j)+ tend )/count_p1/mu_mean
+                ENDIF
+              ENDIF
+              IF (config_flags%output_w_fluxes_add .ge. 2) THEN
                 !2nd order fluxes
                 IF (k .gt. kts) THEN
                   wx2 = 0.5*(w_save(i-1,k,j) + w_save(i,k,j))

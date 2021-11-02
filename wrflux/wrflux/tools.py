@@ -2086,8 +2086,24 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 trans = stagger_like(trans, var_mean_c, cyclic=cyclic, **grid[stagger_const])
                 trans = var_mean_c * trans / grid["RHOD_STAG_MEAN"]
                 datout_c["net"] = datout_c["net"] - trans.sel(dir="T", drop=True) # TODO need online-averaged variable?
-                datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] = datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] \
+                datout_c["adv"].loc[{"comp": "mean"}] = datout_c["adv"].loc[{"comp": "mean"}] \
                     - trans.sel(dir=["X","Y","Z"])
+
+                if f"DUDX_{VAR}_MEAN" in dat_mean:
+                    for dim in XYZ:
+                        v = dim_dict[dim.lower()]
+                        tend_d = dat_mean[f"D{v}D{dim}_{VAR}_MEAN"]
+                        if hor_avg:
+                            tend_d = avg_xy(tend_d, avg_dims, cyclic=cyclic)
+                        datout_c["adv"].loc[{"comp": "adv_r", "dir": dim}] = datout_c["adv"].loc[{"comp": "adv_r", "dir": dim}] \
+                            - tend_d
+                    datout_c["adv"].loc[{"comp": "trb_r"}] = datout_c["adv"].loc[{"comp": "adv_r"}] - datout_c["adv"].loc[{"comp": "mean"}]
+                else:
+                    print(f"WARNING: DUDX_{VAR}_MEAN not available to calculate total resolved and resolved turbulent "
+                          "advection components in advective form. Only compute mean advective component...")
+                    datout_c["adv"].loc[{"comp": "adv_r"}] = datout_c["adv"].loc[{"comp": "adv_r"}] \
+                        - trans.sel(dir=["X","Y","Z"])
+
 
             # merge resolved and sgs tendencies and fluxes
             datout_c["adv"] = datout_c["adv"].to_dataset(name="adv")

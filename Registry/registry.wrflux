@@ -212,6 +212,27 @@ state   real    fwx_sgs            ikj     dyn_em         1               XZ    
 state   real    fwy_sgs            ikj     dyn_em         1               YZ              - "FWY_SGS"             "VW-component of SGS Reynolds stress tensor"            "kg m-1 s-2"
 state   real    fwz_sgs            ikj     dyn_em         1               -               - "FWZ_SGS"             "WW-component of SGS deviatoric Reynolds stress tensor" "kg m-1 s-2"
 
+# to get advective form in postprocessing
+state   real    dudx_t_mean   ikj    dyn_em            1               -               h{24} "DUDX_T_MEAN"        "time-avg. u-convergence * dry/moist theta (T-300 K) in x direction"   "K s-1"
+state   real    dvdy_t_mean   ikj    dyn_em            1               -               h{24} "DVDY_T_MEAN"        "time-avg. v-convergence * dry/moist theta (T-300 K) in y direction"   "K s-1"
+state   real    dwdz_t_mean   ikj    dyn_em            1               -               h{24} "DWDZ_T_MEAN"        "time-avg. w-convergence * dry/moist theta (T-300 K) in z direction"   "K s-1"
+
+state   real    dudx_q_mean   ikj    dyn_em            1               -               h{24} "DUDX_Q_MEAN"        "time-avg. u-convergence * moisture in x direction"   "s-1"
+state   real    dvdy_q_mean   ikj    dyn_em            1               -               h{24} "DVDY_Q_MEAN"        "time-avg. v-convergence * moisture in y direction"   "s-1"
+state   real    dwdz_q_mean   ikj    dyn_em            1               -               h{24} "DWDZ_Q_MEAN"        "time-avg. w-convergence * moisture in z direction"   "s-1"
+
+state   real    dudx_u_mean   ikj    dyn_em            1               X               h{24} "DUDX_U_MEAN"        "time-avg. u-convergence * u in x direction"   "m s-2"
+state   real    dvdy_u_mean   ikj    dyn_em            1               X               h{24} "DVDY_U_MEAN"        "time-avg. v-convergence * u in y direction"   "m s-2"
+state   real    dwdz_u_mean   ikj    dyn_em            1               X               h{24} "DWDZ_U_MEAN"        "time-avg. w-convergence * u in z direction"   "m s-2"
+
+state   real    dudx_v_mean   ikj    dyn_em            1               Y               h{24} "DUDX_V_MEAN"        "time-avg. u-convergence * v in x direction"   "m s-2"
+state   real    dvdy_v_mean   ikj    dyn_em            1               Y               h{24} "DVDY_V_MEAN"        "time-avg. v-convergence * v in y direction"   "m s-2"
+state   real    dwdz_v_mean   ikj    dyn_em            1               Y               h{24} "DWDZ_V_MEAN"        "time-avg. w-convergence * v in z direction"   "m s-2"
+
+state   real    dudx_w_mean   ikj    dyn_em            1               Z               h{24} "DUDX_W_MEAN"        "time-avg. u-convergence * w in x direction"   "m s-2"
+state   real    dvdy_w_mean   ikj    dyn_em            1               Z               h{24} "DVDY_W_MEAN"        "time-avg. v-convergence * w in y direction"   "m s-2"
+state   real    dwdz_w_mean   ikj    dyn_em            1               Z               h{24} "DWDZ_W_MEAN"        "time-avg. w-convergence * w in z direction"   "m s-2"
+
 # tendencies from additional sources
 state   real    t_tend_radlw_mean    ikj     dyn_em          1               -               h{24} "T_TEND_RADLW_MEAN"      "time-avg. dry/moist theta tendency from RAD scheme, longwave" "K s-1"
 state   real    t_tend_radsw_mean    ikj     dyn_em          1               -               h{24} "T_TEND_RADSW_MEAN"      "time-avg. dry/moist theta tendency from RAD scheme, shortwave" "K s-1"
@@ -285,24 +306,34 @@ rconfig  logical  output_wres_fluxes   derived    max_domains  .false.  -   "out
 package  mean_t_1      output_t_fluxes==1       -  state:ftx_small,fty_small,ftz_small,th_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftz_imp,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,t_tend_radlw_mean,t_tend_radsw_mean,t_tend_mp_mean,t_tend_mp,t_tend_cu_mean,t_tend_damp,t_tend_damp_mean
 package  mean_t_2      output_t_fluxes==2       -  state:ftx_small,fty_small,ftz_small,th_save,w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,t_mean,tx_mean,ty_mean,tz_mean,tt_mean,ftx_adv,fty_adv,ftz_adv,ftz_imp,ftx_adv_mean,fty_adv_mean,ftz_adv_mean,ftx_corr,fty_corr,corr_dtdt
 package  mean_t_3      output_t_fluxes==3       -  state:rhod_mean,mut_mean,z_mean,ftx_sgs,fty_sgs,ftz_sgs,ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean
-package  mean_t_add    output_t_fluxes_add==1   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftx_corr_dzout,fty_corr_dzout,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd
+package  mean_t_add1   output_t_fluxes_add==1   -  state:dudx_t_mean,dvdy_t_mean,dwdz_t_mean
+package  mean_t_add2   output_t_fluxes_add==2   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftx_corr_dzout,fty_corr_dzout,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd
+package  mean_t_add3   output_t_fluxes_add==3   -  state:ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd,ftx_corr_dzout,fty_corr_dzout,ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd,dudx_t_mean,dvdy_t_mean,dwdz_t_mean
 
 package  mean_q_1       output_q_fluxes==1        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqz_imp,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,q_tend_mp_mean,q_tend_cu_mean,q_tend_damp,q_tend_damp_mean
 package  mean_q_2       output_q_fluxes==2        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,q_mean,qx_mean,qy_mean,qz_mean,qq_mean,fqx_adv,fqy_adv,fqz_adv,fqz_imp,fqx_adv_mean,fqy_adv_mean,fqz_adv_mean,fqx_corr,fqy_corr,corr_dqdt
 package  mean_q_3       output_q_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fqx_sgs,fqy_sgs,fqz_sgs,fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean
-package  mean_q_add     output_q_fluxes_add==1    -  state:fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd,fqx_corr_dzout,fqy_corr_dzout,fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd
+package  mean_q_add1    output_q_fluxes_add==1    -  state:dudx_q_mean,dvdy_q_mean,dwdz_q_mean
+package  mean_q_add2    output_q_fluxes_add==2    -  state:fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd,fqx_corr_dzout,fqy_corr_dzout,fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd
+package  mean_q_add3    output_q_fluxes_add==3    -  state:fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd,fqx_corr_dzout,fqy_corr_dzout,fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd,dudx_q_mean,dvdy_q_mean,dwdz_q_mean
 
 package  mean_u_1       output_u_fluxes==1        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fuz_imp,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean,u_tend_pg,u_tend_pg_mean,u_tend_cor_curv,u_tend_cor_curv_mean,u_tend_cu_mean,u_tend_damp,u_tend_damp_mean
 package  mean_u_2       output_u_fluxes==2        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,ux_mean,uy_mean,uz_mean,fux_adv,fuy_adv,fuz_adv,fuz_imp,fux_adv_mean,fuy_adv_mean,fuz_adv_mean,fux_corr,fuy_corr,corr_dudt
 package  mean_u_3       output_u_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fux_sgs,fvx_sgs,fuz_sgs,fux_sgs_mean,fvx_sgs_mean,fuz_sgs_mean
-package  mean_u_add     output_u_fluxes_add==1    -  state:fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd,fux_corr_dzout,fuy_corr_dzout,fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd
+package  mean_u_add1    output_u_fluxes_add==1    -  state:dudx_u_mean,dvdy_u_mean,dwdz_u_mean
+package  mean_u_add2    output_u_fluxes_add==2    -  state:fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd,fux_corr_dzout,fuy_corr_dzout,fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd
+package  mean_u_add3    output_u_fluxes_add==3    -  state:fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd,fux_corr_dzout,fuy_corr_dzout,fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd,dudx_u_mean,dvdy_u_mean,dwdz_u_mean
 
 package  mean_v_1       output_v_fluxes==1        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvz_imp,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean,v_tend_pg,v_tend_pg_mean,v_tend_cor_curv,v_tend_cor_curv_mean,v_tend_cu_mean,v_tend_damp,v_tend_damp_mean
 package  mean_v_2       output_v_fluxes==2        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,vx_mean,vy_mean,vz_mean,fvx_adv,fvy_adv,fvz_adv,fvz_imp,fvx_adv_mean,fvy_adv_mean,fvz_adv_mean,fvx_corr,fvy_corr,corr_dvdt
 package  mean_v_3       output_v_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fvx_sgs,fvy_sgs,fvz_sgs,fvx_sgs_mean,fvy_sgs_mean,fvz_sgs_mean
-package  mean_v_add     output_v_fluxes_add==1    -  state:fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd,fvx_corr_dzout,fvy_corr_dzout,fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd
+package  mean_v_add1    output_v_fluxes_add==1    -  state:dudx_v_mean,dvdy_v_mean,dwdz_v_mean
+package  mean_v_add2    output_v_fluxes_add==2    -  state:fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd,fvx_corr_dzout,fvy_corr_dzout,fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd
+package  mean_v_add3    output_v_fluxes_add==3    -  state:fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd,fvx_corr_dzout,fvy_corr_dzout,fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd,dudx_v_mean,dvdy_v_mean,dwdz_v_mean
 
 package  mean_w_1       output_w_fluxes==1        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwz_imp,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean,w_tend_pg,w_tend_pg_mean,w_tend_cor_curv,w_tend_cor_curv_mean,w_tend_damp,w_tend_damp_mean
 package  mean_w_2       output_w_fluxes==2        -  state:w_diag,dph_x,dph_y,dph_x_mean,dph_y_mean,rhod_mean,mut_mean,u_mean,v_mean,zwind_mean,wd_mean,ww_mean,z_mean,wx_mean,wy_mean,wz_mean,fwx_adv,fwy_adv,fwz_adv,fwz_imp,fwx_adv_mean,fwy_adv_mean,fwz_adv_mean,fwx_corr,fwy_corr,corr_dwdt
 package  mean_w_3       output_w_fluxes==3        -  state:rhod_mean,mut_mean,z_mean,fwx_sgs,fwy_sgs,fwz_sgs,fwx_sgs_mean,fwy_sgs_mean,fwz_sgs_mean
-package  mean_w_add     output_w_fluxes_add==1    -  state:fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwx_corr_dzout,fwy_corr_dzout,fwz_adv_mean_2nd,fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd
+package  mean_w_add1    output_w_fluxes_add==1    -  state:dudx_w_mean,dvdy_w_mean,dwdz_w_mean
+package  mean_w_add2    output_w_fluxes_add==2    -  state:fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwx_corr_dzout,fwy_corr_dzout,fwz_adv_mean_2nd,fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd
+package  mean_w_add3    output_w_fluxes_add==3    -  state:fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwx_corr_dzout,fwy_corr_dzout,fwz_adv_mean_2nd,fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd,dudx_w_mean,dvdy_w_mean,dwdz_w_mean

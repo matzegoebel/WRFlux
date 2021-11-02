@@ -4731,18 +4731,23 @@ BENCH_END(bc_2d_tim)
                  &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                     &
                  &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                &
                  &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                               &
+                 &   grid%dudx_t_mean,grid%dvdy_t_mean,grid%dwdz_t_mean,                                    &
                  &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                     &
                  &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                &
                  &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                               &
+                 &   grid%dudx_q_mean,grid%dvdy_q_mean,grid%dwdz_q_mean,                                    &
                  &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                     &
                  &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                &
                  &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                               &
+                 &   grid%dudx_u_mean,grid%dvdy_u_mean,grid%dwdz_u_mean,                                    &
                  &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                     &
                  &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                &
                  &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                               &
+                 &   grid%dudx_v_mean,grid%dvdy_v_mean,grid%dwdz_v_mean,                                    &
                  &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                     &
                  &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                &
                  &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                               &
+                 &   grid%dudx_w_mean,grid%dvdy_w_mean,grid%dwdz_w_mean,                                    &
                  &   grid%ftx_sgs_mean,grid%fty_sgs_mean,grid%ftz_sgs_mean,                                 &
                  &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                 &
                  &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                   &
@@ -4793,6 +4798,7 @@ BENCH_END(bc_2d_tim)
               &   grid%avgflx_cfu1,grid%avgflx_cfd1,grid%avgflx_dfu1, &
               &   grid%avgflx_efu1,grid%avgflx_dfd1,grid%avgflx_efd1, &
               &   config_flags,                                                                          &
+              &   grid%rdx, grid%rdy, grid%rdz, grid%rdzw, grid%rdn, grid%rdnw,                          &
               &   grid%t_mean,grid%tx_mean,grid%ty_mean,grid%tz_mean,grid%tt_mean,                       &
               &   grid%ftx_adv_mean,grid%fty_adv_mean,grid%ftz_adv_mean,                                 &
               &   grid%q_mean,grid%qx_mean,grid%qy_mean,grid%qz_mean,grid%qq_mean,                       &
@@ -4811,18 +4817,23 @@ BENCH_END(bc_2d_tim)
               &   grid%ftx_adv_mean_2nd,grid%fty_adv_mean_2nd,grid%ftz_adv_mean_2nd,                     &
               &   grid%ftx_corr_2nd,grid%fty_corr_2nd,grid%corr_dtdt_2nd,                                &
               &   grid%ftx_corr_dzout,grid%fty_corr_dzout,                                               &
+              &   grid%dudx_t_mean,grid%dvdy_t_mean,grid%dwdz_t_mean,                                    &
               &   grid%fqx_adv_mean_2nd,grid%fqy_adv_mean_2nd,grid%fqz_adv_mean_2nd,                     &
               &   grid%fqx_corr_2nd,grid%fqy_corr_2nd,grid%corr_dqdt_2nd,                                &
               &   grid%fqx_corr_dzout,grid%fqy_corr_dzout,                                               &
+              &   grid%dudx_q_mean,grid%dvdy_q_mean,grid%dwdz_q_mean,                                    &
               &   grid%fux_adv_mean_2nd,grid%fuy_adv_mean_2nd,grid%fuz_adv_mean_2nd,                     &
               &   grid%fux_corr_2nd,grid%fuy_corr_2nd,grid%corr_dudt_2nd,                                &
               &   grid%fux_corr_dzout,grid%fuy_corr_dzout,                                               &
+              &   grid%dudx_u_mean,grid%dvdy_u_mean,grid%dwdz_u_mean,                                    &
               &   grid%fvx_adv_mean_2nd,grid%fvy_adv_mean_2nd,grid%fvz_adv_mean_2nd,                     &
               &   grid%fvx_corr_2nd,grid%fvy_corr_2nd,grid%corr_dvdt_2nd,                                &
               &   grid%fvx_corr_dzout,grid%fvy_corr_dzout,                                               &
+              &   grid%dudx_v_mean,grid%dvdy_v_mean,grid%dwdz_v_mean,                                    &
               &   grid%fwx_adv_mean_2nd,grid%fwy_adv_mean_2nd,grid%fwz_adv_mean_2nd,                     &
               &   grid%fwx_corr_2nd,grid%fwy_corr_2nd,grid%corr_dwdt_2nd,                                &
               &   grid%fwx_corr_dzout,grid%fwy_corr_dzout,                                               &
+              &   grid%dudx_w_mean,grid%dvdy_w_mean,grid%dwdz_w_mean,                                    &
               &   grid%ftx_sgs_mean,grid%fty_sgs_mean,grid%ftz_sgs_mean,                                 &
               &   grid%fqx_sgs_mean,grid%fqy_sgs_mean,grid%fqz_sgs_mean,                                 &
               &   grid%fux_sgs_mean,grid%fuz_sgs_mean,                                                   &
@@ -4857,7 +4868,7 @@ BENCH_END(bc_2d_tim)
               &   grid%dph_x, grid%dph_y,                                                                &
               &   grid%fnm, grid%fnp, grid%mut, grid%c1h, grid%c2h,                                      &
               &   grid%c1f, grid%c2f, grid%cf1, grid%cf2, grid%cf3, grid%cfn, grid%cfn1,                 &
-              &   grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                            &
+              &   grid%msfux, grid%msfuy, grid%msfvx, grid%msfvy, grid%msftx, grid%msfty,                &
               &   last_timestep, grid%dt                                                                 )
 
          CALL wrf_debug(200,'In solve_em, after upd_avgflx call')

@@ -582,7 +582,7 @@ CONTAINS
           rw_corr(i,k,j) = rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j)
           rw_diag(i,k,j) =  rw_corr(i,k,j) + ww(i,k,j)*msfty(i,j)/(-g)
           ! build diagnostic w with ww_m instead of ww to include sound-step in mean t-fluxes
-          w_diag(i,k,j) = (rdzdt(i,k,j) + rzxu(i,k,j) + rzyv(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)) / rho8w(i,k,j)
+          w_diag(i,k,j) = (rw_corr(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)) / rho8w(i,k,j)
         ENDDO
         ENDDO
         ENDDO
@@ -722,6 +722,10 @@ CONTAINS
         rhoxz_mean_flx = 1.
         rhoyz_mean_flx = 1.
 
+        mu_mean = 1.
+        mux_mean = 1.
+        muy_mean = 1.
+        muxy_mean = 1.
         fqx_dfac = 1.
         fqy_dfac = 1.
         fux_dfac = 1.
@@ -882,7 +886,7 @@ CONTAINS
                 ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
                 rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
                 !use ww_m instead of ww
-                rw_diag_s = rw_corr(i,k,j) + ww_m(i,k,j)*msfty(i,j)/(-g)
+                rw_diag_s = w_diag(i,k,j)*rho8w(i,k,j)
                 FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/count_p1*fqx_dfac
                 FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/count_p1*fqy_dfac
                 FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/count_p1/rhoz_mean_flx

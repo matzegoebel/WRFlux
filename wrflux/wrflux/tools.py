@@ -1791,12 +1791,15 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
 
 
     """
+    avg = ""
     if hor_avg or hor_avg_end:
-        avg = "_avg_" + "".join(avg_dims)
-        if hor_avg_end:
-            avg += "_end"
-    else:
-        avg = ""
+        if (avg_dims is None) or (len(avg_dims) == 0):
+            hor_avg = False
+            hor_avg_end = False
+        else:
+            avg = "_avg_" + "".join(avg_dims)
+            if hor_avg_end:
+                avg += "_end"
 
     outpath_wrf = Path(outpath_wrf)
     if outpath is None:

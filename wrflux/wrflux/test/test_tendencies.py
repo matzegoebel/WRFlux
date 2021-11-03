@@ -40,7 +40,7 @@ restore_init_module = True
 # restart ('r') or backup files ('b').
 exist = "s"
 # skip postprocessing if data already exists
-skip_exist = False
+skip_exist = True
 # no running of simulations only postprocessing
 skip_running = False
 
@@ -89,6 +89,7 @@ def test_all():
     # names of parameter values for output filenames
     # either dictionaries or lists (not for composite parameters)
     param_names = {"th": ["thd", "thm", "thdm"],
+                   "output_streams": ["changed"],
                    "ieva": ["1"],
                    "h_adv_order": [2, 3],
                    "v_adv_order": [2, 3],
@@ -103,13 +104,18 @@ def test_all():
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     # test processing only one variable at the time
     s = "output_{}_fluxes"
-    d = {s.format(v): [1, 2, 3] for v in tools.all_variables}
+    d = {s.format(v): [2, 3] for v in tools.all_variables}
+    param_names.update(d)
+    d = {s.format(v) + "_1": [1] for v in tools.all_variables}
     param_names.update(d)
     for v in tools.all_variables:
-        d = {s.format(v) + suff: [0, 0, 0] for v in tools.all_variables for suff in ["", "_add"]}
-        d[s.format(v)] = [1, 2, 3]
-        param_grids[s.format(v) + "_debug_only"] = {s.format(v): d}
-    param_grids["flat no_debug"] = dict(msf=1, hm=0)
+        sv = s.format(v)
+        d = {s.format(vi) + suff: [0,0] for vi in tools.all_variables for suff in ["", "_add"]}
+        d[sv] = [2, 3]
+        param_grids[sv + "_debug_only"] = {sv: d}
+        d = {s.format(vi) + suff: [0] for vi in tools.all_variables for suff in ["", "_add"]}
+        d[sv] = [1]
+        param_grids[sv + "_no_org"] = {sv + "_1": d}
     param_grids["dz_out no_debug"] = odict(msf=1, input_sounding="wrflux_u")
     param_grids["dz_out no_debug hor_avg"] = param_grids["dz_out no_debug"].copy()
     param_grids["trb no_debug"] = odict(msf=1, input_sounding="wrflux_u",
@@ -187,11 +193,18 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         # initialize and run simulations
 
         builds_i = builds.copy()
+        variables_i = variables
+        for v in variables:
+            if f"output_{v}_fluxes" in label:
+                variables_i = [v]
+                break
         runID = None
         if "no_debug" in label:
             builds_i = [b for b in builds if b not in ["debug", "org"]]
         elif "debug_only" in label:
             builds_i = ["debug"]
+        elif "no_org" in label:
+            builds_i = ["normal", "debug"]
         if "chunks" in param_grid:
             chunks = param_grid.pop("chunks")
         else:
@@ -255,12 +268,12 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 log = (run_dir / "init.log").read_text()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
                     print("Error in initializing simulation!")
-                    failed[ind].loc["INIT", variables[0]] = "FAIL"
+                    failed[ind].loc["INIT", variables_i[0]] = "FAIL"
                     continue
                 log = (run_dir / "rsl.error.0000").read_text()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
                     print("Error in running simulation!")
-                    failed[ind].loc["RUN", variables[0]] = "FAIL"
+                    failed[ind].loc["RUN", variables_i[0]] = "FAIL"
                     continue
 
                 # postprocess data and run tests
@@ -279,7 +292,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     # replace build with placeholder for later formatting
                     ID_b = IDi.replace(build, "{}")
                     f = testing.test_no_model_change(conf.params["outpath"], ID_b, inst_file, mean_file)
-                    failed.loc["no_model_change", variables[0]] = f
+                    failed.loc["no_model_change", variables_i[0]] = f
 
                 if build != "normal":
                     continue
@@ -317,7 +330,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     t_avg_interval = int(param_comb["output_streams"][0][1] * 60 / param_comb["dt_f"])
 
                 datout, dat_inst, dat_mean = tools.calc_tendencies(
-                    variables, outpath_c, inst_file=inst_file, mean_file=mean_file, budget_methods=bm,
+                    variables_i, outpath_c, inst_file=inst_file, mean_file=mean_file, budget_methods=bm,
                     hor_avg=hor_avg, avg_dims=avg_dims, t_avg=t_avg, t_avg_interval=t_avg_interval,
                     skip_exist=skip_exist_i, save_output=True, return_model_output=True, chunks=chunks)
 
@@ -330,7 +343,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                                                     sim_id=ind, hor_avg=hor_avg, trb_exp=t_avg,
                                                     chunks=chunks, **kw)
 
-                for var in variables:
+                for var in variables_i:
                     for test, f in failed_i.loc[var].items():
                         failed[ind].loc[test, var] = f
                     for test, e in err_i.loc[var].items():
@@ -471,12 +484,12 @@ def setup_test_sim(build, restore=False, random_msf=True):
     fpath = wrf_path / "dyn_em" / fname
     recompile = True
     fpath_org = Path(str(fpath) + ".org")
+    input_path = test_path / "input"
     if restore:
         m = "Restore"
         if os.path.isfile(fpath_org):
             os.rename(fpath_org, fpath)
     else:
-        input_path = test_path / "input"
         org_file = fpath.read_text()
         testf = "TEST_"
         if random_msf:

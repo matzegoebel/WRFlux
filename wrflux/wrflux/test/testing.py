@@ -65,7 +65,7 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
     """
     failed = False
     err = []
-    fname = None
+    fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in budget_methods:
@@ -196,7 +196,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     failed = False
     err = []
-    fname = None
+    fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in dat.ID.values:
@@ -422,7 +422,7 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
     dat = tend_mass.sel(dir="T") - tend_mass.sel(dir="X") - tend_mass.sel(dir="Y")
     failed = False
     err = []
-    fname = None
+    fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
     for ID in dat.ID.values:
@@ -725,7 +725,7 @@ def test_periodic(datout, attrs, var, avg_dims_error=None,
 # %% run_tests
 
 def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=False,
-              hor_avg=False, chunks=None, **kw):
+              hor_avg=False, chunks=None, figloc=None, **kw):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
 
@@ -736,6 +736,8 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
     tests : list of str
         Tests to perform.
         Choices: testing.all_tests
+    dat_mean : xarray Dataset
+        WRF time-averaged output.
     dat_inst : xarray DataArray, optional
         WRF instantaneous output needed for w test. The default is None.
     sim_id : str, optional
@@ -748,6 +750,8 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
         Mapping from dimension "x" and/or "y" to chunk sizes used in postprocessing.
         If given, the boundaries in the chunking directions are pruned.
         The default is None.
+    figloc : str or path-like, optional
+        Directory to save plot in. Defaults to the parent directory of this script.
     **kw :
         Keyword arguments passed to test functions.
 
@@ -761,6 +765,9 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
     """
     if tests is None:
         tests = all_tests
+    else:
+        #drop duplicates
+        tests = list(set(tests))
     tests = tests.copy()
     for test in tests:
         if test not in all_tests:
@@ -794,8 +801,10 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
                 avg_dims.append(d)
 
     # for w test: cut first time step
-    dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
-
+    if dat_inst is not None:
+        dat_inst_lim = dat_inst.isel(Time=slice(1, None), **iloc)
+    elif ("w" in tests) or ("dim_coords" in tests):
+        raise ValueError("For tests 'w' and 'dim_coords', dat_inst needs to be given!")
     datout_lim = {}
     for v, datout_v in datout.items():
         datout_lim[v] = {}
@@ -814,13 +823,17 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
                         assert avg_dim + stag not in dat.dims
             datout_lim[v][n] = tools.loc_data(dat, iloc=iloc)
 
-    fpath = Path(__file__).parent
+    if figloc is None:
+        fpath = Path(__file__).parent
+    else:
+        fpath = Path(figloc)
     for var, datout_v in datout_lim.items():
         print("Variable: " + var)
         figloc = fpath / "figures" / var
         failed_i = {}
         err_i = {}
-        dat_mean = dat_mean.sel(Time=datout_v["tend"]["Time"])
+        if dat_mean is not None:
+            dat_mean_v = dat_mean.sel(Time=datout_v["tend"]["Time"])
 
         if "budget" in tests:
             tend = datout_v["tend"]["net"].sel(side="tendency")
@@ -892,7 +905,7 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
             kw["figloc"] = figloc / "adv_2nd"
             failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
 
-        if ("w" in tests) and (var == variables[-1]) and (dat_inst is not None):
+        if ("w" in tests) and (var == variables[-1]):
             # only do test once: for last variable
             kw["figloc"] = figloc / "w"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
@@ -916,7 +929,9 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
             kw["figloc"] = figloc / "adv_form"
             if var in ["u", "w"]:
                 kw["thresh"] = 0.995
-            failed_i["adv_form"], err_i["adv_form"] = test_adv_form(dat_mean, datout_v, var, cyclic,
+            if dat_mean is None:
+                raise ValueError("For adv_form test, dat_mean needs to be given!")
+            failed_i["adv_form"], err_i["adv_form"] = test_adv_form(dat_mean_v, datout_v, var, cyclic,
                                                                     hor_avg=hor_avg, avg_dims=avg_dims, **kw)
             if "thresh" in kw:
                 del kw["thresh"]

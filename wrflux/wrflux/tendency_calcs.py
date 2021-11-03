@@ -66,7 +66,7 @@ chunks = None
 
 # tests to perform
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", dz_out", "adv_2nd",
-#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change", "periodic"]
+#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change", "periodic", "adv_form"]
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim_coords", "Y=0"]
 # %% set calculation methods
 
@@ -104,11 +104,12 @@ if rank == 0:
         # hue="x",
         ignore_missing_hue=True,
         savefig=True,
+        figloc=outpath_wrf,
         # close = True # close figures directly
     )
 
-    failed, err = testing.run_tests(datout, tests, dat_inst=dat_inst, hor_avg=hor_avg,
-                                    chunks=chunks, **kw)
+    failed, err = testing.run_tests(datout, tests, dat_mean=dat_mean, dat_inst=dat_inst,
+                                    hor_avg=hor_avg, chunks=chunks, **kw)
 
     if not (failed == "FAIL").any().any():
         print("\nAll tests passed")

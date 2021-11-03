@@ -698,8 +698,29 @@ def test_no_model_change(outpath, ID, inst_file, mean_file):
     return res
 
 
-def test_periodic(datout, attrs, var, avg_dims_error=None,
-                  thresh=0.99999999, loc=None, iloc=None, **kw):
+def test_periodic(datout, attrs, thresh=0.99999999, **kw):
+    """Test if periodic boundary conditions are met.
+
+    If boundary conditions are periodic, check if this is really the case
+    in all postprocessed datasets: For the staggered dimensions x_stag and y_stag,
+    test whether the left boundary values are equal to the right boundary values.
+
+    Parameters
+    ----------
+    datout : dict
+        Postprocessed output.
+    attrs : dict
+        Model settings
+    thresh : float, optional
+        Threshold value for R2 below which the test fails
+    **kw :
+        other keyword arguments (not used).
+
+    Returns
+    -------
+    failed : bool
+        Test failed.
+    """
     failed = False
     for k, ds in datout.items():
         if isinstance(ds, xr.DataArray):
@@ -713,9 +734,7 @@ def test_periodic(datout, attrs, var, avg_dims_error=None,
                     if dim_s in ds[v].dims:
                         ref = ds[v][{dim_s: 0}]
                         dat = ds[v][{dim_s: -1}]
-                        dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-                        ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-                        e = R2(dat, ref, dim=avg_dims_error).min().values
+                        e = R2(dat, ref, dim=["x", "y", "bottom_top", "Time"]).min().values
                         if e < thresh:
                             log = (f"test_periodic: {dim}-bounds not periodic for "
                                    f" {v} in {k}: min. R2 less than {thresh}: {e:.10f}")
@@ -937,7 +956,7 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
                 del kw["thresh"]
         if "periodic" in tests:
             kw["figloc"] = figloc / "mass"
-            failed_i["periodic"] = test_periodic(datout_v, attrs, var, **kw)
+            failed_i["periodic"] = test_periodic(datout_v, attrs, **kw)
         if "NaN" in tests:
             failed_i["NaN"] = test_nan(datout_v)
 

@@ -6,6 +6,9 @@
 	* [Post-processing](#post-processing)
 - [Installation](#installation)
 - [Implementation](#implementation)
+	* [Extracting the fluxes](#extracting-the -fluxes)
+	* [The potential temperature budget](#the-potential-temperature-budget)
+	* [Advective form transformation](#advective-form-transformation)
 	* [List of modified files](#list-of-modified-files)
 - [Caveats and limitations](#caveats-and-limitations)
 - [Tests](#tests)
@@ -23,7 +26,7 @@ This is a fork of the "Weather Research and Forecast model (WRF)" available at: 
 
 **WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes in each spatial direction, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulence components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
 It is continuously updated when new WRF versions are released.
-I'm currently preparing a publication that introduces WRFlux.
+A publication that introduces WRFlux is currently under review: [https://gmd.copernicus.org/preprints/gmd-2021-171/](https://gmd.copernicus.org/preprints/gmd-2021-171/).
 
 ## Usage
 
@@ -33,12 +36,16 @@ The online calculations can be controlled in the namelist file or the registry f
 
 The following namelist variables are available:
 
-- **`output_{t,q,u,v,w}_fluxes`** (default: 0): controls calculation and output for each variable;
- 								  0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
+- **`output_{t,q,u,v,w}_fluxes`** (default: 0): controls calculation and output for each variable; 
+
+  0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
+
 - **`output_{t,q,u,v,w}_fluxes_add`** (default: 0): if 1, output additional fluxes using 2nd order advection and different correction forms for comparison (see [Theory/Alternative Corrections](#alternative-corrections)).
 - **`avg_interval`**: averaging interval in seconds. If -1 (default), use the output interval of the auxhist24 output stream.
-- **`output_dry_theta_fluxes`** (default: .true.): if .true., output fluxes and tendencies based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
-- **`hesselberg_avg`** (default: .true.): if .true., budget variables are averaged with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
+- **`output_dry_theta_fluxes`** (default: .true.): if .true., output potential temperature fluxes and tendencies based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
+- **`hesselberg_avg`** (default and recommended: .true.): if .true., the time averaging of the budget variables is performed with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
+
+with the budget variables potential temperature (t), water vapor mixing ratio (q) and wind speed (u,v,w).
 
 SGS fluxes include horizontal and vertical fluxes from the diffusion module depending on `km_opt` and vertical fluxes from the boundary layer scheme.
 The time-averaged fluxes are output in kinematic form (divided by mean dry air mass) and in the Cartesian coordinate system (see [Implementation](#implementation)).
@@ -59,7 +66,7 @@ To calculate the budget in the post-processing, the instantaneous output (histor
 ZNU, ZNW, DNW, DN, C1H, C2H, C1F, C2F, FNP, FNM, CF1, CF2, CF3, CFN, CFN1, MAPFAC_UY, MAPFAC_VX, MU, MUB, PH, PHB, U, V, W, QVAPOR, T, THM.
 
 These variables are all part of the history stream by default in WRF. From the last six variables you only need the ones for which you want to calculate the budget.
-The output interval of the history stream (`history_interval`) must be set in such a way that the start and end points of each averaging interval are available. This usually means that the output interval equals the averaging interval (`avg_interval`).
+The output interval of the history stream (`history_interval`) should be set in such a way that the start and end points of each averaging interval are available. This means that the averaging interval (`avg_interval`) should be a multiple of the output interval.
 
 You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 
@@ -77,22 +84,28 @@ To check the closure of the budget, all forcing terms are added and the total mo
 The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
 - `cartesian`: advective tendencies in Cartesian instead of native (terrain-following) form
+- `adv_form` : transform mean advective and total tendencies to advective form using the mass tendencies
 - `dz_out_x`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from horizontal flux (requires cartesian)
 - `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
 horizontal corrections derived from vertical flux (requires cartesian)
 - `force_2nd_adv`: use 2nd-order advection
 
-Except for the first one, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication that I currently prepare.
+Except for the first two, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication mentioned above.
 
 For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details. For an explanation of `dz_out_x` and `dz_out_z`, see [Theory/Alternative Corrections](#alternative-corrections).
 
-Since WRF uses flux-form conservation equations, the tendencies output by WRFlux are of the form (see also [Theory](#theory)):
+Since WRF uses flux-form conservation equations, the tendencies output by WRFlux are usually of the form (see also [Theory](#theory)):
 
-![](https://latex.codecogs.com/svg.latex?\frac{\partial_t\left({\rho}\psi\right)}{\rho})
+![](https://latex.codecogs.com/svg.latex?\frac{\partial_t\left({\rho}\psi\right)}{\rho}=-\frac{\nabla(\rho\mathbf{v}\psi)}{\rho}+...)
+
+With the setting `adv_form` the tendencies are transformed to the advective form:
+
+![](https://latex.codecogs.com/svg.latex?\partial_t\psi=-\mathbf{v}\nabla\psi+...)
 
 If the WRF output data is too large to fit into memory, the domain can be decomposed into xy-tiles and processed tile per tile. The tile sizes are set in the `chunks` argument.
 The tiles can also be processed in parallel:
+
 ```sh
  mpiexec -n N ./tendency_calcs.py
 ```
@@ -103,7 +116,7 @@ Other arguments of `tools.calc_tendencies` include: averaging directions (x and/
 
 ## Installation
 
-This repository contains a complete, standalone version of WRF. Since it is a fork of WRF, the whole history of WRF's master branch is included as well. Thus, you can simply merge your changes with the changes that WRFlux introduced using `git`.
+This repository contains a complete, standalone version of WRF. Since it is a fork of WRF, the whole history of WRF's master branch is included as well. Thus, you can simply merge your changes with the changes that WRFlux introduces using `git`.
 
 The post-processing package in the directory `wrflux` can be installed together with its dependencies (xarray, matplotlib, netcdf4, and bottleneck) using `pip` (inside directory `wrflux`):
 
@@ -126,38 +139,54 @@ python tendency_calcs.py
 
 or 
 ```sh
-mpiexec -n N ./tendency_calcs.py
+mpiexec -n 2 ./tendency_calcs.py
 ```
 
 ## Implementation
 
-The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux.
+### Extracting the fluxes
+
+The SGS fluxes are taken directly out of the diffusion routines in `module_diffusion_em.F`. For momentum fluxes, this is already implemented in the official WRF version with the namelist variable `m_opt`. `m_opt` is automatically turned on when using WRFlux.
 If a PBL scheme is activated (including `km_opt=5`), it is responsible for the SGS vertical diffusion in WRF. The vertical SGS fluxes are reconstructed by integrating the resulting tendencies cumulatively from the model top to the surface assuming zero flux at the top.
 
 The resolved fluxes are directly taken from the advection routines in `module_advect_em.F`, except for the vertical fluxes. 
 The vertical fluxes are output in Cartesian form by multiplying the Cartesian vertical velocity with the correctly staggered budget variable. However, instead of using the vertical velocity calculated by WRF, it is recalculated based on the [equation given in Theory/Advection equation transformations](#w_eq).
-This recalculated w is almost identical to the prognostic w since we adapted the vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) to avoid double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification is available as a namelist option (`phi_adv_z`) in WRF v4.3 (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/) for details).
+This recalculated w is almost identical to the prognostic w since we adapted the vertical advection of geopotential (subroutine `rhs_ph` in `module_big_step_utilities_em.F`) to avoid a double staggering of ![](https://latex.codecogs.com/svg.latex?\omega). This modification is available as a namelist option (`phi_adv_z`) in WRF v4.3 (see [PR 1338](https://github.com/wrf-model/WRF/pull/1338/) for details).
 The vertical component of the diagnostic w equation is still calculated in a slightly different way than in the geopotential equation to be more consistent with the vertical advection of other variables. The horizontal terms (terms 2 and 3 in the equation) are directly taken from the geopotential equation.
 For potential temperature, fluxes from the acoustic step (`module_small_step_em.F`) are added.
 
-When decomposing the resolved flux into mean and resolved turbulent components in the post-processing (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)), the turbulent component is calculated as a residual of the other two components. The same is done for the resolved advective tendency.
+When decomposing the resolved flux into mean and resolved turbulent components in the post-processing (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)), the turbulent component is calculated by subtracting the mean advective from the total advective flux. The same is done for the resolved advective tendency.
 
-When spatial averaging is switched on in the post-processing, the mean flux in the averaging direction only uses temporal averaging to allow differentiation in that direction. Then, the interior points become irrelevant and only the boundary points matter.
-
-Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html). Thus, WRFlux is suited for idealized and real-case applications.
-All output variables are decoupled from the map-scale factors.
+### The potential temperature budget
 
 The online flux averaging uses potential temperature perturbation ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}=\theta-300\,\mathrm{K}) like WRF itself.
 In the post-processing, however, the tendency calculations are done for full ![](https://latex.codecogs.com/svg.latex?\theta) for better interpretation.
 To obtain the full ![](https://latex.codecogs.com/svg.latex?\theta) budget, the advection equation is split up into advection of the perturbation and of the constant base state:
 
-![](https://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0\left(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})\right))
+<a name="full_theta">
+
+![](https://latex.codecogs.com/svg.latex?0=\partial_t(\mu_\mathrm{d}\theta)-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta)=\partial_t(\mu_\mathrm{d}\theta_\mathrm{p})-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu}\theta_\mathrm{p})&plus;\theta_0(\partial_t\mu_\mathrm{d}-\nabla\cdot(\mu_\mathrm{d}\boldsymbol{\nu})))
+
+</a>
 
 with the dry air mass ![](https://latex.codecogs.com/svg.latex?\mu_\mathrm{d}) and the contravariant velocity ![](https://latex.codecogs.com/svg.latex?\boldsymbol{\nu}).
-To close the budget for both, ![](https://l atex.codecogs.com/svg.latex?\theta_\mathrm{p}) and ![](https://latex.codecogs.com/svg.latex?\theta), the last term on the RHS needs to vanish. In other words the continuity equation must be closed.
-Since WRF does not actually solve the continuity equation but instead integrates it vertically, this is not trivial. Therefore, we calculate the temporal and horizontal terms explicitly and take the vertical term as the residual.
+To close the budget for both, ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{p}) and ![](https://latex.codecogs.com/svg.latex?\theta), the last term on the RHS needs to vanish. In other words the continuity equation must be closed.
+Since WRF does not solve the continuity equation explicitly but instead integrates it vertically, this is not trivial. Therefore, we calculate the temporal and horizontal terms explicitly and take the vertical term as the residual.
 Using the residual instead of calculating the vertical component explicitly has only a marginal effect on the vertical component, but when the three directions are summed up, the effect is noticeable. By using the velocities averaged over the acoustic time steps when building the time-averaged velocities, the mass fluxes also include the effect of the acoustic time steps.
 In the Cartesian form of the budget, correction terms are added to the mass fluxes analogous to the correction terms of the advective fluxes described in the theory section.
+
+### Advective form transformation
+
+The components of the continuity equation in the [above equation](#full_theta) are also used to transform the tendencies from flux-form to advective form when the budget setting `adv_form` is used (see [Theory/Advective form](#advective-form)).
+Only the mean advective tendencies, the total advective tendencies and the final model tendency are transformed to the advective form using the time-averaged continuity equation. This can be done in the postprocessing without changing the online part. The resolved turbulence tendency is left in flux-form.
+
+### Miscellaneous
+
+Map-scale factors are taken care of as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html). Thus, WRFlux is suited for idealized and real-case applications.
+All output variables are decoupled from the map-scale factors.
+
+When spatial averaging is switched on in the post-processing, the mean flux in the averaging direction only uses temporal averaging to allow differentiation in that direction. Then, the interior points become irrelevant and only the boundary points matter.
+
 
 ### List of modified files
 The following WRF source code files have been modified:
@@ -187,14 +216,19 @@ The following WRF source code files have been modified:
 
 
 ## Caveats and limitations
-Note the following limitations:
+WRFlux has a noticeable impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 25 %.
+
+Note the following  **caveats**:
+
+- If not using the budget setting `cartesian`, the tendencies are calculated in the [native form](#trans) used by the WRF model itself (divided by ![](https://latex.codecogs.com/svg.latex?{\rho}z_\eta)) .Note that this does not correspond to the tendency of the budget variable on model levels since the derivative also includes the coordinate metric ![](https://latex.codecogs.com/svg.latex?z_\eta). If the distance between the vertical levels changes strongly with time, these tendencies may be hard to interpret. Consider computing the tendencies in Cartesian form.
+- When computing the Cartesian flux-form tendency of ![](https://latex.codecogs.com/svg.latex?\theta) (i.e., ![](https://latex.codecogs.com/svg.latex?\partial_t \rho\theta)), the budget closure may be poor in some cases. This is due to the fact, that tendencies of ![](https://latex.codecogs.com/svg.latex?\rho) and ![](https://latex.codecogs.com/svg.latex?\theta) are often of opposite sign which leads to a rather small tendency of ![](https://latex.codecogs.com/svg.latex?\rho\theta) making the budget closure very challenging. However, the individual flux and budget components are still reliable, only the sum of all counteracting budget components does not match the total tendency very well. Instead of looking at the flux-form you can compute the tendency in advective form (budget setting `adv_form`) which leads to a better budget in closure in such cases.
+
+and **limitations**:
 
 * For hydrostatic simulations (`non_hydrostatic=.false.`) the w-budget is not correct.
 * SGS horizontal fluxes can only be retrieved for `diff_opt=2`.
 * For non-periodic boundary conditions, the budget calculation for the boundary grid points does not work.
 * If using WENO or monotonic advection for scalars, energy is not perfectly conserved. Therefore, when the model uses moist theta (`use_theta_m=1`), the dry theta-budget obtained with `output_dry_theta_fluxes=.true.` is not perfectly closed. 
-
-WRFlux has a relatively strong impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 25 %.
 
 ## Tests
 ### Test details
@@ -250,7 +284,12 @@ Running all tests on four cores takes about 3 hours (further parallelization is 
 
 ## Theory
 
+The theory is explained in detail in the paper: [https://gmd.copernicus.org/preprints/gmd-2021-171/](https://gmd.copernicus.org/preprints/gmd-2021-171/).
+
+We repeat it here in a slightly less mathematically rigorous notation.
+
 ### Advection equation transformations
+#### Flux form
 The advection equation for a variable ![](https://latex.codecogs.com/svg.latex?\psi) in the Cartesian coordinate system in flux-form reads:
 
 ![](https://latex.codecogs.com/svg.latex?\partial_t\left({\rho}\psi\right)=\sum_{i=1}^{3}-\partial_{x_i}\left({\rho}u_i\psi\right))
@@ -304,6 +343,20 @@ Numerically however, this form is not perfectly consistent with the [original tr
 
 Thus, we stay with the previous [back-transformed equation](#backtrans), in which the individual components plus their corrections are equivalent to the components of the Cartesian advection equation. 
 
+#### Advective form
+
+To transform the advection equation from the flux-form to the advective form, we can use the mass tendencies introduced in the section about [the potential temperature budget](#the-potential-temperature-budget).
+
+The left-hand side of the equation can be transformed as:
+
+![](https://latex.codecogs.com/svg.latex?\partial_t\psi=({\rho}z_\eta)^{-1}(\partial_t({\rho}z_\eta\psi)-\psi\partial_t({\rho}z_\eta)))
+
+and the components of the right-hand side as:
+
+![](https://latex.codecogs.com/svg.latex?u_i\partial_{x_i}\psi=({\rho}z_\eta)^{-1}(\partial_{x_i}\left({\rho}z_{\eta}u_i\psi\right)-\psi\partial_{x_i}\left({\rho}z_{\eta}u_i\right)))
+
+In the Cartesian coordinate system correction terms for the mass tendency components are introduced analogously to the correction terms for the ![](https://latex.codecogs.com/svg.latex?\psi) tendency.
+
 ### Numerical implementation
 
 WRF uses a staggered grid, where the fluxes of ![](https://latex.codecogs.com/svg.latex?\psi)  are staggered with respect to ![](https://latex.codecogs.com/svg.latex?\psi). If ![](https://latex.codecogs.com/svg.latex?\psi) is on the mass grid (potential temperature and mixing ratio) the equation with staggering operations indicated reads:
@@ -335,7 +388,7 @@ This implementation leads to a much better closure of the budget than the previo
 
 
 ### Averaging and decomposition
-When the advection equation is averaged over time and/or space, the fluxes and resulting tendency components can be decomposed into mean advective and resolved turbulent components.
+When the advection equation is averaged over time and/or space, the fluxes and resulting tendency components can be decomposed into mean advective and resolved turbulent components which is useful for LES simulations that partly resolve the turbulent spectrum.
 Since WRF is a compressible model, we use a density-weighted average (Hesselberg averaging) unless `hesselberg_avg=.false.`. The effect of the density-weighting is rather small. 
 
 Means and perturbations are defined by:
@@ -365,5 +418,4 @@ You are also invited to fix bugs and improve the code yourself. Your changes can
 ## Acknowledgments
 
 Thanks to Lukas Umek who provided the code used as a starting point for WRFlux: [https://github.com/lukasumek/WRF_LES_diagnostics](https://github.com/lukasumek/WRF_LES_diagnostics).
-
 

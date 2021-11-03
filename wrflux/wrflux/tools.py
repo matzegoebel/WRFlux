@@ -761,7 +761,7 @@ def load_postproc(outpath, var, cartesian, adv_form, hor_avg=False,
         If post-processed data includes calculations in Cartesian form,
         the file 'corr' will be loaded, as well.
     adv_form : bool
-        Tendencies are in advective form
+        Transform mean advective and total advective tendencies to advective form
     hor_avg : bool, optional
         Load horizontally averaged output. The default is False.
     avg_dims : str or list of str, optional
@@ -1949,7 +1949,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
         Also return WRF model output (dat_inst and dat_mean) for further calculations.
         The default is False.
     **load_kw :
-        Keyword arguments passed to xr.open_dataset.
+        Keyword arguments passed to load_data.
 
 
     Returns

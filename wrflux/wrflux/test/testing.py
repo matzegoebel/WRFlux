@@ -459,8 +459,8 @@ def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=No
     ----------
     dat_mean : xarray Dataset
         WRF time-averaged output.
-    datout : nested dict
-        Postprocessed output for all variables.
+    datout : dict
+        Postprocessed output for variable var.
     var : str
         Variable to process.
     cyclic : dict of booleans for xy or None, optional
@@ -574,8 +574,8 @@ def test_nan(datout, cut_bounds=None):
 
     Parameters
     ----------
-    datout : xarray dataset or DataArray
-        Input data.
+    datout : dict
+        Postprocessed output for variable var.
     cut_bounds : iterable, optional
         List of dimensions for which to cut the boundaries before testing.
         For each dimension the staggered and unstaggered version are considered.

@@ -2076,8 +2076,6 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                             if v == "t":
                                 raise ValueError("tend_mass not available! "
                                                  "You need to process variable q or t before!")
-                if not c["cartesian"]:
-                    raise ValueError("Advective form only implemented for Cartesian grid!")
                 var_mean_c = dat_mean[VAR + "_MEAN"]
                 if hor_avg:
                     var_mean_c = avg_xy(var_mean_c, avg_dims, cyclic=cyclic)

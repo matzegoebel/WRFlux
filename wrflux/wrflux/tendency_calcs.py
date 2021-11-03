@@ -12,7 +12,6 @@ import datetime
 import xarray as xr
 from wrflux.test import testing
 from wrflux import tools
-import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from pathlib import Path
@@ -61,8 +60,10 @@ skip_exist = False
 
 # Mapping from dimension "x" and/or "y" to chunk sizes to split the domain in tiles
 # running script with mpirun enables parallel processing of tiles
-# chunks = {"x": 10}
-chunks = None
+if nproc > 1:
+    chunks = {"x": 10}
+else:
+    chunks = None
 
 # tests to perform
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", dz_out", "adv_2nd",
@@ -81,7 +82,7 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim
 
 # all budget calculation methods to apply as a list of str
 # each item is a combination of setting strings from above separated by a space
-budget_methods = ["", "cartesian", "cartesian force_2nd_adv"]
+budget_methods = ["", "cartesian", "cartesian adv_form"]
 
 # %% calc tendencies
 

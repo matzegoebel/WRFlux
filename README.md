@@ -1,32 +1,40 @@
 
 
 # README
-- [Usage](#usage)
-	* [Online calculations](#online-calculations)
-	* [Post-processing](#post-processing)
-- [Installation](#installation)
-- [Implementation](#implementation)
-	* [Extracting the fluxes](#extracting-the -fluxes)
-	* [The potential temperature budget](#the-potential-temperature-budget)
-	* [Advective form transformation](#advective-form-transformation)
-	* [List of modified files](#list-of-modified-files)
-- [Caveats and limitations](#caveats-and-limitations)
-- [Tests](#tests)
-	* [Test details](#test-details)
-	* [Installation](#installation-1)
-- [Theory](#theory)
-	* [Advection equation transformations](#advection-equation-transformations)
-	* [Numerical implementation](#numerical-implementation)
-	* [Alternative corrections](#alternative-corrections)
-	* [Averaging and decomposition](#averaging-and-decomposition)
-- [Contributing](#contributing)
-- [Acknowledgments](#acknowledgments)
+* [Usage](#usage)
+   * [Online calculations](#online-calculations)
+   * [Post-processing](#post-processing)
+     * [File output](#file-output)
+* [Installation](#installation)
+* [Implementation](#implementation)
+   * [Extracting the fluxes](#extracting-the-fluxes)
+   * [The potential temperature budget](#the-potential-temperature-budget)
+   * [Advective form transformation](#advective-form-transformation)
+   * [Miscellaneous](#miscellaneous)
+   * [List of modified files](#list-of-modified-files)
+* [Caveats and limitations](#caveats-and-limitations)
+* [Tests](#tests)
+   * [Test details](#test-details)
+   * [Installation](#installation-1)
+* [Theory](#theory)
+   * [Advection equation transformations](#advection-equation-transformations)
+      * [Flux form](#flux-form)
+      * [Advective form](#advective-form)
+   * [Numerical implementation](#numerical-implementation)
+   * [Alternative corrections](#alternative-corrections)
+   * [Averaging and decomposition](#averaging-and-decomposition)
+* [Contributing](#contributing)
+* [Acknowledgments](#acknowledgments)
 
 This is a fork of the "Weather Research and Forecast model (WRF)" available at: [https://github.com/wrf-model/WRF](https://github.com/wrf-model/WRF).
 
 **WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes in each spatial direction, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulence components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
 It is continuously updated when new WRF versions are released.
 A publication that introduces WRFlux is currently under review: [https://gmd.copernicus.org/preprints/gmd-2021-171/](https://gmd.copernicus.org/preprints/gmd-2021-171/).
+
+
+
+
 
 ## Usage
 
@@ -70,7 +78,6 @@ The output interval of the history stream (`history_interval`) should be set in 
 
 You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 
-
 An example namelist file based on the `em_les` test case can be found here:
 [`wrflux/wrflux/test/input/namelist.input.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/input/namelist.input.wrflux)
 
@@ -112,7 +119,17 @@ The tiles can also be processed in parallel:
 
 Other arguments of `tools.calc_tendencies` include: averaging directions (x and/or y) for horizontal average, time-averaging interval (if time-averaged data should be coarsened again before processing), and definition of a limited subset (in time and/or space) to process.
 
+##### File output
 
+For each budget variable a directory is created at the path specified by the argument `outpath` containing the time-averaged postprocessed output in the following netCDF files:
+
+- **tend.nc** : net tendency (model tendency (i.e., left-hand side) and forcing (right-hand side)) and all tendency components including the advection terms decomposed into mean, resolved turbulence and SGS turbulence
+- **flux.nc** : mean advective, resolved turbulent and SGS turbulent fluxes in the x, y and z-direction
+- **grid.nc** : some grid related variables used in the post-processing, e.g., grid spacings, metric height and its spatial and temporal derivatives, and ![](https://latex.codecogs.com/svg.latex?\mu_\mathrm{d}) and ![](https://latex.codecogs.com/svg.latex?\rho) staggered to the grid of the budget variable
+- **corr.nc**  : only if budget settings include `cartesian`: corrections for the horizontal divergences and the time derivative 
+- **tend_mass.nc**  : only for potential temperature and also for water vapor if budget settings include `adv_form`: mass tendencies
+
+The netCDF dimension `ID` refers to the different budget settings. If horizontal averaging is switched on, the averaging dimension(s) are added to the filenames.
 
 ## Installation
 

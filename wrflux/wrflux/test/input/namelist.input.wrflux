@@ -75,6 +75,7 @@
  shcu_physics                        = 0,     0,     0,
  cudt                                = 0,     0,     0,
  isfflx                              = 2,
+ ghg_input                           = 0,
  /
 
  &fdda

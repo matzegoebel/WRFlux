@@ -72,6 +72,7 @@ params["bl_pbl_physics"] = 0
 params["ra_lw_physics"] = 1
 params["ra_sw_physics"] = 1
 params["sf_surface_physics"] = 2
+params["ghg_input"] = 0
 
 params["km_opt"] = 2
 params["khdif"] = 0.

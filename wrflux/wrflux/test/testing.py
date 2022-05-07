@@ -893,7 +893,7 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
             if attrs["HESSELBERG_AVG"] == 0:
                 kw["thresh"] = 0.995
             elif trb_exp:
-                kw["thresh"] = 0.999
+                kw["thresh"] = 0.998
             kw["figloc"] = figloc / "decomp_sumdir"
             failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
                 adv, datout_v["corr"], **kw)
@@ -903,7 +903,7 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
         if "decomp_sumcomp" in tests:
             if trb_exp:
                 # reduce threshold for explicit turbulent fluxes
-                kw["thresh"] = 0.999
+                kw["thresh"] = 0.998
             kw["figloc"] = figloc / "decomp_sumcomp"
             failed_i["decomp_sumcomp"], err_i["decomp_sumcomp"] = test_decomp_sumcomp(adv, **kw)
             if "thresh" in kw:

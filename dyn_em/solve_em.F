@@ -4774,9 +4774,15 @@ BENCH_END(bc_2d_tim)
       WRITE ( message , FMT = '("solve_em: old_dt =",g15.6,", dt=",g15.6," on domain ",I3)' ) &
            & old_dt,grid%dt,grid%id
       CALL wrf_debug(200,message)
-      old_dt=min(old_dt,grid%dt)
-      num = INT(old_dt * precision)
-      den = precision
+      ! get time step as fraction
+      IF (config_flags%use_adaptive_time_step) THEN
+         old_dt=min(old_dt,grid%dt)
+         num = INT(old_dt * precision)
+         den = precision
+      ELSE
+         den = config_flags%time_step_fract_den
+         num = den*config_flags%time_step + config_flags%time_step_fract_num
+      ENDIF
       CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
       IF (CurrTime .lt. temp_time + dtInterval) THEN
          WRITE ( message , FMT = '("solve_em: initializing avgflx at time ",A," on domain ",I3)' ) &

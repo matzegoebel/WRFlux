@@ -3545,19 +3545,23 @@
             ENDIF
          ENDIF
 
-         !averaging time must be smaller or equal output interval
-         output_interval = model_config_rec%auxhist24_interval  (i)*   60 + &
-                           model_config_rec%auxhist24_interval_d(i)*86400 + &
-                           model_config_rec%auxhist24_interval_h(i)* 3600 + &
-                           model_config_rec%auxhist24_interval_m(i)*   60 + &
-                           model_config_rec%auxhist24_interval_s(i)
-         IF (model_config_rec%avg_interval(i) .gt. output_interval) THEN
-
-         WRITE (wrf_err_message, fmt='(a,F8.1,a,I7,a)') '--- ERROR: Flux averaging time (avg_interval=', model_config_rec%avg_interval(i), &
-                                     's) must be smaller or equal the output interval of auxhist24 (=', output_interval, 's)!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+         IF (model_config_rec%output_avgfluxes(i)) THEN
+            !averaging time must be smaller or equal output interval
+            output_interval = model_config_rec%auxhist24_interval  (i)*   60 + &
+                              model_config_rec%auxhist24_interval_d(i)*86400 + &
+                              model_config_rec%auxhist24_interval_h(i)* 3600 + &
+                              model_config_rec%auxhist24_interval_m(i)*   60 + &
+                              model_config_rec%auxhist24_interval_s(i)
+            IF (model_config_rec%avg_interval(i) .gt. output_interval) THEN
+               WRITE (wrf_err_message, fmt='(a,F8.1,a,I7,a)') '--- ERROR: Flux averaging time (avg_interval=', model_config_rec%avg_interval(i), &
+                                           's) must be smaller or equal the output interval of auxhist24 (=', output_interval, 's)!'
+               CALL wrf_error_fatal ( TRIM(wrf_err_message) )
+            ENDIF
+            IF (model_config_rec%use_adaptive_time_step) THEN
+               CALL wrf_error_fatal ('Adaptive timestepping is not yet possible with WRFLux!' )
+            ENDIF
+            !TODO: throw warning if true model tendency for given flux averaging time cannot be calculated
          ENDIF
-         !TODO: throw warning if true model tendency for given flux averaging time cannot be calculated
       ENDDO
 
 

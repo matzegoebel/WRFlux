@@ -242,6 +242,7 @@ Note the following  **caveats**:
 
 and **limitations**:
 
+* The tool does not yet work with adaptive timestepping (let me know if you need this functionality)
 * For hydrostatic simulations (`non_hydrostatic=.false.`) the w-budget is not correct.
 * SGS horizontal fluxes can only be retrieved for `diff_opt=2`.
 * For non-periodic boundary conditions, the budget calculation for the boundary grid points does not work.

@@ -103,6 +103,7 @@ def test_all():
 
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     # test processing only one variable at the time
+    param_grids["simple test"] = odict()
     s = "output_{}_fluxes"
     d = {s.format(v): [2, 3] for v in tools.all_variables}
     param_names.update(d)

@@ -103,7 +103,6 @@ def test_all():
 
     ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     # test processing only one variable at the time
-    param_grids["simple test"] = odict()
     s = "output_{}_fluxes"
     d = {s.format(v): [2, 3] for v in tools.all_variables}
     param_names.update(d)
@@ -365,15 +364,15 @@ def run_and_test(param_grids, param_names, avg_dims=None):
             failed_v = failed[ind].loc[:, var]
             failed_tests = ",".join([test for test, f in failed_v.iteritems() if f == "FAIL"])
             failed_short.loc[ind, var] = failed_tests
-    failed_short = failed_short.where(failed_short != "").dropna(how="all").dropna(axis=1, how="all")
+    failed_short = failed_short.where(failed_short.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
     failed_short = failed_short.where(~failed_short.isnull(), "")
     err_short = err.where(failed == "FAIL")
     err_short = err_short.where(~err_short.isnull(), "")
-    err_short = err_short.where(err_short != "").dropna(how="all").dropna(axis=1, how="all")
+    err_short = err_short.where(err_short.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
     err_short = err_short.where(~err_short.isnull(), "")
-    err = err.where(err != "").dropna(how="all").dropna(axis=1, how="all")
+    err = err.where(err.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
     err = err.where(~err.isnull(), "")
-    failed = failed.where(failed != "").dropna(how="all").dropna(axis=1, how="all")
+    failed = failed.where(failed.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
     failed = failed.where(~failed.isnull(), "")
 
     # load previous scores file and compute difference
@@ -385,7 +384,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         err_previous = pd.read_csv(err_previous[-1], header=0, index_col=(0, 1))
         # delete Y=0 test
         err_previous = err_previous.loc[[t for t in err_previous.index if t[0] != "Y=0"]].astype(float)
-        err_clean = err.where(err != "")
+        err_clean = err.where(err.astype(str) != "")
         err_clean = err_clean.loc[[t for t in err_clean.index if t[0] != "Y=0"]]
         err_clean = err_clean.astype(float)
         err_diff = err_clean - err_previous
@@ -399,7 +398,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         failed_short.to_csv(test_results / ("test_results_failsonly_" + now + ".csv"))
         err_short.to_csv(test_results / ("test_scores_failsonly_" + now + ".csv"))
 
-    if (failed_short != "").values.any():
+    if (failed_short.astype(str) != "").values.any():
         message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
         print(message)
         if raise_error:
@@ -557,5 +556,5 @@ if __name__ == "__main__":
         for test in e_df.index.levels[0]:
             if test in e_df.index:
                 e = e_df.loc[test]
-                e = e.where(e != "").dropna(how="all").dropna(axis=1, how="all")
+                e = e.where(e.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
                 e_dict[test] = e.where(~e.isnull(), "").T

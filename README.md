@@ -144,15 +144,20 @@ Besides the spatial dimensions and the time dimension the following netCDF dimen
 
 This repository contains a complete, standalone version of WRF. Since it is a fork of WRF, the whole history of WRF's master branch is included as well. Thus, you can simply merge your changes with the changes that WRFlux introduces using `git`.
 
-The post-processing package in the directory `wrflux` can be installed together with its dependencies (xarray, matplotlib, netcdf4, and bottleneck) using `pip` (inside directory `wrflux`):
-
-`pip install -e .`
-
-To be able to do parallel processing with MPI an mpi-enabled version of `netcdf4-python` is required.
-The easiest way to install this is using [`conda`](https://docs.conda.io/en/latest/miniconda.html) (inside directory `wrflux`):
+To install the post-processing package in the directory `wrflux` and its dependencies (xarray, matplotlib, netcdf4, and bottleneck), I recommend using [`conda`](https://docs.conda.io/en/latest/miniconda.html).
+Switch to the directory `wrflux` and then:
 ```sh
 conda create -n wrflux python=3.7
 conda activate wrflux
+conda install -c conda-forge netcdf4 xarray matplotlib bottleneck
+pip install -e .
+```
+
+To be able to do parallel processing with MPI an mpi-enabled version of `netcdf4-python` is required.
+The easiest way to install this, is using `conda`:
+```sh
+conda create -n wrflux_mpi python=3.7
+conda activate wrflux_mpi
 conda install -c conda-forge netcdf4=*=mpi* xarray matplotlib bottleneck
 pip install -e .
 ```

@@ -49,7 +49,7 @@ setup(
     author_email='matthias-goebel@uibk.ac.at',
     keywords='WRF',
     packages=find_packages(),
-    python_requires=">=3",
+    python_requires=">3.7,<3.8",
     install_requires=['xarray', 'matplotlib', 'netcdf4', 'bottleneck'],
     extras_require={
         'test': ['pytest', 'run_wrf'],

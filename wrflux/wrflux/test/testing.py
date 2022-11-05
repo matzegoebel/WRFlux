@@ -191,7 +191,7 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
 
     """
     ref = adv.sel(comp="trb_r")
-    dat = adv.sel(comp="adv_r") - adv.sel(comp="mean")
+    dat = adv.sel(comp="total") - adv.sel(comp="mean") - adv.sel(comp="trb_s")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     failed = False
@@ -257,8 +257,9 @@ def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot
 
     """
     failed = False
-    ref = adv.sel(ID="cartesian")
-    dat = adv.sel(ID="cartesian dz_out_z")
+    comps = ["mean", "trb_r", "trb_s"]
+    ref = adv.sel(ID="cartesian", comp=comps)
+    dat = adv.sel(ID="cartesian dz_out_z", comp=comps)
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     err = R2(dat, ref, dim=avg_dims_error).min().values

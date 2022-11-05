@@ -1664,6 +1664,7 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
     corr.loc[:, "T"] = - corr.loc[:, "T"]
     tend = tend + corr.sel(comp="adv_r", dir="T", drop=True)
 
+    corr = corr.sel(comp=["mean", "trb_r"])
     desc = "directions of the correction derivatives (X, Y, or T)"
     corr["dir"] = corr["dir"].assign_attrs(description=desc)
     corr["comp"].attrs = adv["comp"].attrs
@@ -2141,6 +2142,12 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
         net = xr.concat([net, forcing], "side")
         desc = "side of the governing equation: tendency or forcing"
         net["side"] = net["side"].assign_attrs(description=desc)
+
+        # compute total (resolved + subgrid-scale advection)
+        for v in ["adv", "flux"]:
+            tot = datout[v].sel(comp=["adv_r", "trb_s"]).sum("comp")
+            datout[v] = datout[v].reindex(comp=["mean", "trb_r", "trb_s", "total"])
+            datout[v].loc[{"comp": "total"}] = tot
 
         # set units and descriptions
         units = units_dict_tend[var]

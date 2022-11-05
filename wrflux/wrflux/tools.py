@@ -1531,6 +1531,13 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     flux = flux.reindex(comp=["adv_r", "mean", "trb_r"])
     adv = adv.reindex(comp=["adv_r", "mean", "trb_r"])
 
+    # add attributes
+    for dat in [flux, adv]:
+        desc = "components of the Reynold's decomposition"
+        dat["comp"] = dat["comp"].assign_attrs(description=desc)
+    desc = "spatial directions of the flux derivative (X, Y, Z, and their sum)"
+    adv["dir"] = adv["dir"].assign_attrs(description=desc)
+
     return flux, adv, vmean, var_stag, corr_flx, tend_mass
 
 
@@ -1656,6 +1663,10 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
         adv.loc[d] = adv.loc[d] + corr.sel(dir=d)
     corr.loc[:, "T"] = - corr.loc[:, "T"]
     tend = tend + corr.sel(comp="adv_r", dir="T", drop=True)
+
+    desc = "directions of the correction derivatives (X, Y, or T)"
+    corr["dir"] = corr["dir"].assign_attrs(description=desc)
+    corr["comp"].attrs = adv["comp"].attrs
 
     return adv, tend, corr_flx, corr, tend_mass
 
@@ -2122,10 +2133,14 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                     datout[dn] = datout_c[dn]
                 else:
                     datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
+                desc = "form of the governing equation"
+                datout[dn]["ID"] = datout[dn]["ID"].assign_attrs(description=desc)
 
         net = datout["net"].expand_dims(side=["tendency"])
         forcing = datout["forcing"].expand_dims(side=["forcing"])
         net = xr.concat([net, forcing], "side")
+        desc = "side of the governing equation: tendency or forcing"
+        net["side"] = net["side"].assign_attrs(description=desc)
 
         # set units and descriptions
         units = units_dict_tend[var]

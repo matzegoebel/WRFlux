@@ -129,7 +129,16 @@ For each budget variable a directory is created at the path specified by the arg
 - **corr.nc**  : only if budget settings include `cartesian`: corrections for the horizontal divergences and the time derivative 
 - **tend_mass.nc**  : only for potential temperature and also for water vapor if budget settings include `adv_form`: mass tendencies
 
-The netCDF dimension `ID` refers to the different budget settings. If horizontal averaging is switched on, the averaging dimension(s) are added to the filenames.
+If horizontal averaging is switched on, the averaging dimension(s) are added to the filenames.
+
+Besides the spatial dimensions and the time dimension the following netCDF dimensions occur in the files:
+
+- **ID** : the different forms of the conservation equation: selected budget settings (see beginning of section)
+- **dir** : spatial directions of the flux derivatives: X, Y, Z, and their sum
+- **comp** : components of the Reynold's decomposition (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)):
+            mean advective (mean), resolved turbulent (trb_r), subgrid-scale turbulent (trb_s), and the sum of all (total)
+- **side** : side of the conservation equation: tendency (time derivative) or forcing (sum of all forcing terms)
+
 
 ## Installation
 

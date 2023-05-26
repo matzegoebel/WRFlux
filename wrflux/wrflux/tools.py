@@ -1392,7 +1392,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
             rho_stag = stagger_like(rho, ref=vel_stag, cyclic=cyclic, **grid[stagger_const])
             mass_flux[d] = vel_stag / rho_stag
         rho_m = rho
-        if hor_avg and (d.lower() not in avg_dims):  # TODO: use normal rho for var_stag...?
+        if hor_avg and (d.lower() not in avg_dims):
             # average horizontally, but only if current dimension is not averaging dimension
             var_stag[d] = avg_xy(var_stag[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
             vmean[d] = avg_xy(vmean[d], avg_dims, rho=rho, cyclic=cyclic, **grid[stagger_const])
@@ -1887,7 +1887,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
                 tile = None
                 task = None
             calc_tendencies_core(variables, outpath_wrf, outpath, tile=tile,
-                                 task=task, comm=local_comm, **kwargs)
+                                 tile_nr=i, task=task, comm=local_comm, **kwargs)
             done = int(i == len(tiles) - 1)
             if done:
                 print("All tiles processed!")
@@ -1915,7 +1915,7 @@ def calc_tendencies(variables, outpath_wrf, outpath=None, budget_methods="cartes
 
 
 def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartesian",
-                         tile=None, task=None, comm=None, t_avg=False, t_avg_interval=None,
+                         tile=None, tile_nr=0, task=None, comm=None, t_avg=False, t_avg_interval=None,
                          hor_avg=False, avg_dims=None, hor_avg_end=False, skip_exist=True,
                          save_output=True, return_model_output=True, **load_kw):
     """Core function of calc_tendencies. Load WRF output and start tendency calculations
@@ -1937,6 +1937,9 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
     tile : dict, optional
         Tile to process. Mapping from dimension names to integer-based indexers.
         The default is None.
+    tile_nr : integer, optional
+        Number of current tile processed by this processor. Default is 0.
+        Variables with existing output can only be skipped when tile_nr = 0.
     task : integer, optional
         ID number of current tile task. The default is None.
     comm : mpi4py.MPI.Intracomm, optional
@@ -2018,7 +2021,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
         VAR = var.upper()
         print("\n\n{0}\nProcess variable {1}\n".format("#" * 20, VAR))
         # check if postprocessed output already exists
-        if skip_exist:
+        if skip_exist and (tile_nr == 0):
             skip = True
             for outfile in outfiles:
                 if (outfile == "corr") and (not cartesian):
@@ -2098,7 +2101,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
                 trans.loc["Z"] = trans.loc["T"] - trans.loc["X"] - trans.loc["Y"]
                 trans = stagger_like(trans, var_mean_c, cyclic=cyclic, **grid[stagger_const])
                 trans = var_mean_c * trans / grid["RHOD_STAG_MEAN"]
-                datout_c["net"] = datout_c["net"] - trans.sel(dir="T", drop=True) # TODO need online-averaged variable?
+                datout_c["net"] = datout_c["net"] - trans.sel(dir="T", drop=True)
                 datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] = datout_c["adv"].loc[{"comp": ["mean", "adv_r"]}] \
                     - trans.sel(dir=["X","Y","Z"])
 

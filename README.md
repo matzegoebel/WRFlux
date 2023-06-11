@@ -48,7 +48,6 @@ The following namelist variables are available:
 
   0: no output, 1: resolved fluxes + SGS fluxes + other source terms, 2: resolved fluxes only, 3: SGS fluxes only
 
-- **`output_{t,q,u,v,w}_fluxes_add`** (default: 0): if 1, output additional fluxes using 2nd order advection and different correction forms for comparison (see [Theory/Alternative Corrections](#alternative-corrections)).
 - **`avg_interval`**: averaging interval in seconds. If -1 (default), use the output interval of the auxhist24 output stream.
 - **`output_dry_theta_fluxes`** (default: .true.): if .true., output potential temperature fluxes and tendencies based on dry theta even when the model uses moist theta (`use_theta_m=1`) internally.
 - **`hesselberg_avg`** (default and recommended: .true.): if .true., the time averaging of the budget variables is performed with density-weighting (see [Theory/Averaging and Decomposition](#averaging-and-decomposition))
@@ -81,7 +80,7 @@ You also need to set `io_form_auxhist24` and `frames_per_auxhist24`.
 An example namelist file based on the `em_les` test case can be found here:
 [`wrflux/wrflux/test/input/namelist.input.wrflux`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/input/namelist.input.wrflux)
 
-In addition to the namelist variables `output_{t,q,u,v,w}_fluxes` and `output_{t,q,u,v,w}_fluxes_add`, you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file (namelist setting `iofields_filename`). In this way you can save disk space, for instance, if you do not need the convection scheme tendencies or do not even have a convection scheme activated. Instantaneous fluxes are by default not output.
+In addition to the namelist variables `output_{t,q,u,v,w}_fluxes`, you can of course control the output by changing the entries in `registry.wrflux` or using an iofields file (namelist setting `iofields_filename`). In this way you can save disk space, for instance, if you do not need the convection scheme tendencies or do not even have a convection scheme activated. Instantaneous fluxes are by default not output.
 
 ### Post-processing
 
@@ -92,15 +91,10 @@ The budget for each variable can be calculated in several different ways specifi
 
 - `cartesian`: advective tendencies in Cartesian instead of native (terrain-following) form
 - `adv_form` : transform mean advective and total tendencies to advective form using the mass tendencies
-- `dz_out_x`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
-horizontal corrections derived from horizontal flux (requires cartesian)
-- `dz_out_z`: use alternative corrections with derivatives of z taken out of temporal and horizontal derivatives;
-horizontal corrections derived from vertical flux (requires cartesian)
-- `force_2nd_adv`: use 2nd-order advection
 
 Except for the first two, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication mentioned above.
 
-For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details. For an explanation of `dz_out_x` and `dz_out_z`, see [Theory/Alternative Corrections](#alternative-corrections).
+For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details.
 
 Since WRF uses flux-form conservation equations, the tendencies output by WRFlux are usually of the form (see also [Theory](#theory)):
 
@@ -237,7 +231,7 @@ The following WRF source code files have been modified:
 
 
 ## Caveats and limitations
-WRFlux has a noticeable impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables, but `output_{t,q,u,v,w}_fluxes_add=0`), the runtime is increased by about 25 %.
+WRFlux has a noticeable impact on the runtime of the model. If all budget variables are considered (`output_{t,q,u,v,w}_fluxes=1` for all variables), the runtime is increased by about 25 %.
 
 Note the following  **caveats**:
 
@@ -246,7 +240,7 @@ Note the following  **caveats**:
 
 and **limitations**:
 
-* The tool does not yet work with adaptive timestepping (let me know if you need this functionality)
+* The tool does not work with adaptive timestepping
 * For hydrostatic simulations (`non_hydrostatic=.false.`) the w-budget is not correct.
 * SGS horizontal fluxes can only be retrieved for `diff_opt=2`.
 * For non-periodic boundary conditions, the budget calculation for the boundary grid points does not work.
@@ -261,8 +255,6 @@ This package includes a test suite for automated testing with `pytest`. Idealize
 - instantaneous vertical velocity very similar to instantaneous [diagnosed vertical velocity](#w_eq) used in the tendency calculations (e > 0.9995)
 - explicit calculation of vertical component of continuity equation very similar to residual calculation (e > 0.99999999 )
 - no NaN and infinity values appearing except on the lateral boundaries for non-periodic BC
-- 2nd-order tendencies equivalent to model tendencies if 2nd-order advection is used in the model (e > 0.998)
-- similar advective tendencies for standard Cartesian corrections and [`dz_out_z` type corrections](#dz_out_z) (e > 0.95, lower if averaged spatially)
 
 The last test is only done for one simulation.
 All simulations, except for the ones with non-periodic BC, contain a 2D mountain ridge to turn on the effect of the Cartesian corrections.
@@ -386,27 +378,6 @@ WRF uses a staggered grid, where the fluxes of ![](https://latex.codecogs.com/sv
 ![](https://latex.codecogs.com/svg.latex?z_\eta^{-1}\partial_{t}\left({\rho}z_\eta\psi\right)-\partial_{z}\left({\rho}z_t\overline{\psi}^z\right)=\sum_{i=1}^{2}\left[-z_\eta^{-1}\partial_{x_i}\left({\rho}z_{\eta}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left({\rho}z_{x_i}\overline{u_i}^{x_iz}\overline{\psi}^z\right)\right]-\partial_{z}\left({\rho}w\overline{\psi}^z\right))
 
 where the staggering operations are denoted with an overbar and the staggering direction. For momentum, the equation looks a bit differently, since also the velocities in the fluxes need to be staggered. The staggering of ![](https://latex.codecogs.com/svg.latex?\psi) depends on the advection order as described in WRF's [technical note](https://www2.mmm.ucar.edu/wrf/users/docs/technote/contents.html). For the [back-transformed advection equation](#backtrans) to be numerically consistent with the [original transformed advection equation](#trans), all derivatives need to use the correct advection order. The correction terms derive from the vertical advection term and thus must use the order of the vertical advection.
-
-
-### Alternative corrections
-
-Before, we introduced a [form of the advection equation](#dz_out) in which the derivatives of z were taken out of the temporal and horizontal derivatives.
-For comparison, this form is also implemented in the package in two different ways:
-The straightforward implementation takes the horizontal flux and staggers it horizontally and vertically to the grid of the vertical flux (budget setting `dz_out_x`):
-
-![](https://latex.codecogs.com/svg.latex?\partial_{t}\left({\rho}\psi\right)-\partial_{z}\left({\rho}\overline{\psi}^z\right)z_t=\sum_{i=1}^{2}\left[-\partial_{x_i}\left({\rho}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left(\overline{{\rho}u_i\overline{\psi}^{x_i}}^{x_iz}\right)\overline{z_{x_i}}^{x_i}\right]-\partial_{z}\left({\rho}w\overline{\psi}^{z}\right))
-
-This implementation is analogous to how SGS fluxes are corrected in WRF.
-
-The second implementation is a hybrid form in which the correctly staggered ![](https://latex.codecogs.com/svg.latex?\overline{\psi}^{z}) is used (budget setting `dz_out_z`):
-
-<a name="dz_out_z">
-
-![](https://latex.codecogs.com/svg.latex?\partial_{t}\left({\rho}\psi\right)-\partial_{z}\left({\rho}\overline{\psi}^z\right)z_t=\sum_{i=1}^{2}\left[-\partial_{x_i}\left({\rho}u_i\overline{\psi}^{x_i}\right)+\partial_{z}\left({\rho}\overline{u_i}^{x_iz}\overline{\psi}^{z}\right)\overline{z_{x_i}}^{x_i}\right]-\partial_{z}\left({\rho}w\overline{\psi}^{z}\right))
-
-</a>
-
-This implementation leads to a much better closure of the budget than the previous one, but not quite as good as the [back-transformed advection equation](#backtrans).
 
 
 ### Averaging and decomposition

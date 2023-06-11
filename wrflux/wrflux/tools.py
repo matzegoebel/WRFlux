@@ -72,9 +72,7 @@ outfiles = ["grid", "flux", "tend", "corr", "tend_mass"]
 del_attrs = ["MemoryOrder", "FieldType", "stagger", "coordinates"]
 
 # available settings
-budget_settings = ["cartesian", "adv_form", "dz_out_x", "dz_out_z", "force_2nd_adv"]
-# abbreviations for settings
-settings_short_names = {"2nd": "force_2nd_adv"}
+budget_settings = ["cartesian", "adv_form"]
 
 all_variables = ["q", "t", "u", "v", "w"]
 
@@ -809,10 +807,6 @@ def get_budget_method(budget_method):
         budget_method = budget_method.strip()
         budget_method_list = budget_method.split(" ")
 
-    for i, key in enumerate(budget_method_list):
-        if key in settings_short_names:
-            budget_method_list[i] = settings_short_names[key]
-
     config = {}
     undefined = [key for key in budget_method_list if key not in budget_settings]
     if len(undefined) > 0:
@@ -1256,8 +1250,7 @@ def sgs_tendency(dat_mean, VAR, grid, cyclic, cartesian=False, mapfac=None):
 
 
 def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
-             hor_avg=False, avg_dims=None, calc_mass=False, cartesian=True,
-             force_2nd_adv=False,  dz_out_x=False, dz_out_z=False):
+             hor_avg=False, avg_dims=None, calc_mass=False, cartesian=True):
     """Compute advective tendencies decomposed into mean and resolved turbulence.
 
     Also return Cartesian corrections, but do not apply them yet.
@@ -1287,16 +1280,6 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         Calculate mass tendencies. The default is False.
     cartesian : bool, optional
         Calculate Cartesian tendencies. The default is False.
-    force_2nd_adv : bool, optional
-        Use 2nd-order fluxes. The default is False.
-    dz_out_x : bool, optional
-        In Cartesian correction terms: take derivatives of z out of vertical derivative.
-        Stagger horizontal flux to the grid of the vertical flux.
-        The default is False.
-    dz_out_z : bool, optional
-        In Cartesian correction terms: take derivatives of z out of vertical derivative.
-        Use variable correctly staggered in the vertical (depending on advection order).
-        The default is True.
 
     Returns
     -------
@@ -1319,19 +1302,9 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     # get appropriately staggered variables
     var_stag = xr.Dataset()
     fluxnames = ["F{}{}_ADV_MEAN".format(VAR, d) for d in XYZ]
-    if force_2nd_adv:
-        fluxnames = [fn + "_2ND" for fn in fluxnames]
-        for d, f in zip(XYZ, fluxnames):
-            var_stag[d] = stagger_like(dat_mean["{}_MEAN".format(VAR)],
-                                       dat_mean[f], cyclic=cyclic, **grid[stagger_const])
-        if VAR == "T":
-            if attrs["USE_THETA_M"] and (not attrs["OUTPUT_DRY_THETA_FLUXES"]):
-                raise ValueError(
-                    "Averaged moist potential temperature not available to build "
-                    "mean 2nd-order fluxes! (use_theta_m=1 and output_dry_theta_fluxes=0)")
-    else:
-        for d in XYZ:
-            var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
+
+    for d in XYZ:
+        var_stag[d] = dat_mean["{}{}_MEAN".format(VAR, d)]
 
     # mean velocities
     if cartesian:
@@ -1349,8 +1322,6 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
     # Standard Cartesian corrections
     corr_flx = ["F{}X_CORR".format(VAR), "F{}Y_CORR".format(VAR), "CORR_D{}DT".format(VAR)]
-    if force_2nd_adv:
-        corr_flx = [corri + "_2ND" for corri in corr_flx]
     corr_flx = dat_mean[corr_flx]
     corr_flx = corr_flx.to_array("dir")
     corr_flx["dir"] = ["X", "Y", "T"]
@@ -1359,21 +1330,6 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         # corrections were already included in vertical flux: remove them
         tot_flux["Z"] = tot_flux["Z"] - (corr_flx.loc["X"] + corr_flx.loc["Y"] + corr_flx.loc["T"]) / rhod8z
         tot_flux = tot_flux.drop("dir")
-
-    # Use alternative corrections
-    dz_out = False
-    if dz_out_x or dz_out_z:
-        dz_out = True
-        if dz_out_z:
-            corr_flx.loc["X"] = dat_mean["F{}X_CORR_DZOUT".format(VAR)]
-            corr_flx.loc["Y"] = dat_mean["F{}Y_CORR_DZOUT".format(VAR)]
-        else:
-            corr_new = tot_flux[XY]
-            corr_new = rhod8z * stagger_like(corr_new, rhod8z, cyclic=cyclic, **grid[stagger_const])
-            corr_flx.loc["X"] = corr_new["X"]
-            corr_flx.loc["Y"] = corr_new["Y"]
-        corr_t = rhod8z * dat_mean[VAR + "Z_MEAN"]
-        corr_flx.loc["T"] = corr_t
 
     #  mean advective fluxes
     mean_flux = xr.Dataset()
@@ -1440,15 +1396,10 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
             # determine correct mapscale factors and density to multiply with flux
             mf_flx = mapfac["F" + D]
-            if dz_out:
-                # only need density not dry air mass
-                fac = dat_mean["RHOD_MEAN"]
-            else:
-                fac = dat_mean["MUT_MEAN"]
+            fac = dat_mean["MUT_MEAN"]
             if (comp in ["mean", "trb_r"]) and hor_avg and (d not in avg_dims):
                 fac = avg_xy(fac, avg_dims, cyclic=cyclic)
-            if not dz_out:
-                fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[D].dims)
+            fac = build_mu(fac, grid, full_levels="bottom_top_stag" in flux[D].dims)
             fac = stagger_like(fac, flux[D], cyclic=cyclic, **grid[stagger_const])
 
             # flux derivative
@@ -1476,10 +1427,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
         # multiply with g so that we can then divide all tendencies by mu
         adv_i["Z"] = adv_i["Z"] * (-g)
         for d in adv_i.data_vars:
-            if dz_out and (d != "Z"):
-                adv_i[d] = adv_i[d] / grid["RHOD_STAG_MEAN"]
-            else:
-                adv_i[d] = adv_i[d] / grid["MU_STAG_MEAN"]
+            adv_i[d] = adv_i[d] / grid["MU_STAG_MEAN"]
 
         adv[comp] = adv_i
 
@@ -1494,12 +1442,8 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
     if calc_mass:
         # continuity equation
         dt = attrs["AVG_INTERVAL"]
-        if dz_out:
-            rhom = grid["RHOD_STAG_MEAN"]
-            rho_tend = dat_inst["RHOD_STAG"].diff("Time") / dt
-        else:
-            rhom = grid["MU_STAG_MEAN"]
-            rho_tend = dat_inst["MU_STAG"].diff("Time") / dt
+        rhom = grid["MU_STAG_MEAN"]
+        rho_tend = dat_inst["MU_STAG"].diff("Time") / dt
         # only keep end points of averaging intervals
         rho_tend = rho_tend.isel(Time=slice(None, None, 2))
         if hor_avg:
@@ -1542,7 +1486,7 @@ def adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
 
 
 def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid, adv, tend, tend_mass,
-                          cyclic=None, dz_out=False, hor_avg=False, avg_dims=None):
+                          cyclic=None, hor_avg=False, avg_dims=None):
     """
     Compute cartesian corrections and apply them to advective and total tendencies.
 
@@ -1572,9 +1516,6 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
         Defines which dimensions have periodic boundary conditions.
         Use periodic boundary conditions to fill lateral boundary points.
         The default is None.
-    dz_out : bool, optional
-        In Cartesian correction terms: take derivatives of z out of vertical derivative.
-        The default is False.
     hor_avg : bool, optional
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
@@ -1611,23 +1552,15 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
     # mean component
     for d, v in zip(xy, ["U", "V"]):
         D = d.upper()
-        if dz_out:
-            # alternative corrections: dz multiplied later (after taking derivative)
-            corr_d = stagger_like(vmean[D], **kw)
-        else:
-            corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
+        corr_d = -stagger_like(grid["dzdt_{}".format(d)], **kw)
         corr_flx.loc["mean", D] = rho_stag * var_stag["Z"] * corr_d
         if tend_mass is not None:
             corr_flx.loc["mass", D] = rho_stag * corr_d
-    if dz_out:
-        corr_flx.loc["mean", "T"] = corr_flx.loc["adv_r", "T"]
-        if tend_mass is not None:
-            corr_flx.loc["mass", "T"] = rho_stag
-    else:
-        dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
-        corr_flx.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
-        if tend_mass is not None:
-            corr_flx.loc["mass", "T"] = rho_stag * dzdt
+
+    dzdt = stagger_like(grid["dzdd"].sel(dir="T"), **kw)
+    corr_flx.loc["mean", "T"] = rho_stag * dzdt * var_stag["Z"]
+    if tend_mass is not None:
+        corr_flx.loc["mass", "T"] = rho_stag * dzdt
 
     # resolved turbulence component as residual
     corr_flx.loc["trb_r"] = corr_flx.loc["adv_r"] - corr_flx.loc["mean"]
@@ -1641,9 +1574,6 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
         corr = diff(corr_flx, "bottom_top_stag", grid["ZNU"]) / grid["DNW"]
     corr = corr * (-g) / grid["MU_STAG_MEAN"]
 
-    if dz_out:
-        corr = corr * stagger_like(grid["dzdd"], corr,
-                                           cyclic=cyclic, **grid[stagger_const])
     if tend_mass is not None:
         mass_corr = corr.sel(comp="mass")
         if VAR == "T":
@@ -1672,7 +1602,7 @@ def cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean, rhodm, grid,
     return adv, tend, corr_flx, corr, tend_mass
 
 
-def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
+def total_tendency(dat_inst, var, grid, attrs,
                    hor_avg=False, avg_dims=None, cyclic=None):
     """Compute total tendency.
 
@@ -1686,9 +1616,6 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
         Variables related to the model grid.
     attrs : dict
         Global attributes of WRF output.
-    dz_out : bool, optional
-        In Cartesian correction terms: take derivatives of z out of vertical derivative.
-        The default is False.
     hor_avg : bool, optional
         Average horizontally. The default is False.
     avg_dims : str or list of str, optional
@@ -1722,12 +1649,9 @@ def total_tendency(dat_inst, var, grid, attrs, dz_out=False,
         vard = dat_inst[var.upper()]
 
     # couple variable to rho/mu
-    if dz_out:
-        rho = dat_inst["RHOD_STAG"]
-        rho_m = grid["RHOD_STAG_MEAN"]
-    else:
-        rho = dat_inst["MU_STAG"]
-        rho_m = grid["MU_STAG_MEAN"]
+
+    rho = dat_inst["MU_STAG"]
+    rho_m = grid["MU_STAG_MEAN"]
     rvar = vard * rho
 
     # total tendency
@@ -2049,21 +1973,13 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
             # get config dict for current budget method
             c, budget_method = get_budget_method(budget_method)
             print("\nBudget method: " + budget_method)
-            dz_out = False
-            if c["dz_out_x"] or c["dz_out_z"]:
-                dz_out = True
-                if not c["cartesian"]:
-                    raise ValueError("dz_out can only be used for Cartesian calculations!")
-                if c["dz_out_x"] and c["dz_out_z"]:
-                    raise ValueError("dz_out_x and dz_out_z cannot be used at the same time!")
-            total_tend, vard = total_tendency(dat_inst, var, grid, attrs, dz_out=dz_out,
-                                              hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic)
+            total_tend, vard = total_tendency(dat_inst, var, grid, attrs, hor_avg=hor_avg,
+                                              avg_dims=avg_dims, cyclic=cyclic)
             # advective tendency
             calc_mass = (var == "t") or (c["adv_form"] and (var == "q"))
             dat = adv_tend(dat_mean, dat_inst, VAR, grid, mapfac, cyclic, attrs,
                            hor_avg=hor_avg, avg_dims=avg_dims, calc_mass=calc_mass,
-                           cartesian=c["cartesian"], force_2nd_adv=c["force_2nd_adv"],
-                           dz_out_x=c["dz_out_x"], dz_out_z=c["dz_out_z"])
+                           cartesian=c["cartesian"])
             if dat is None:
                 continue
             else:
@@ -2074,7 +1990,7 @@ def calc_tendencies_core(variables, outpath_wrf, outpath, budget_methods="cartes
             if c["cartesian"]:
                 out = cartesian_corrections(VAR, dim_stag, corr_flx, var_stag, vmean,
                                             dat_mean["RHOD_MEAN"], grid, datout_c["adv"],
-                                            total_tend, tend_mass, cyclic, dz_out=dz_out,
+                                            total_tend, tend_mass, cyclic,
                                             hor_avg=hor_avg, avg_dims=avg_dims)
                 datout_c["adv"], datout_c["net"], corr_flx, datout_c["corr"], tend_mass = out
 

@@ -14,7 +14,7 @@ from pathlib import Path
 from functools import partial
 
 all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
-             "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
+             "w", "mass", "Y=0", "NaN", "dim_coords",
              "no_model_change", "periodic", "adv_form"]
 
 
@@ -220,113 +220,6 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
     return failed, min(err)
 
 
-def test_dz_out(adv, avg_dims_error=None, thresh=0.95, loc=None, iloc=None, plot=True, **plot_kws):
-    """Test that the Cartesian corrections imposed by the budget methods
-    "cartesian" and "cartesian dz_out_z" lead to
-    similar advective tendencies in all three directions and components.
-
-    The test fails if the coefficient of determination
-    is below the given threshold. If avg_dims_error is given, the averaging in the
-    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
-    value is taken over the remaining dimensions.
-
-
-    Parameters
-    ----------
-    adv : xarray DataArray
-        Advective tendencies.
-    avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the R2. The default is None.
-    thresh : float, optional
-        Threshold value for R2 below which the test fails
-    loc : dict, optional
-        Mapping for label based indexing before running the test. The default is None.
-    iloc : dict, optional
-        Mapping for integer-location based indexing before running the test. The default is None.
-    plot : bool, optional
-        Create scatter plot if test fails. The default is True.
-    **plot_kws :
-        keyword arguments passed to plotting.scatter_hue.
-
-    Returns
-    -------
-    failed : bool
-        Test failed.
-    err : float
-        Test statistic R2
-
-    """
-    failed = False
-    comps = ["mean", "trb_r", "trb_s"]
-    ref = adv.sel(ID="cartesian", comp=comps)
-    dat = adv.sel(ID="cartesian dz_out_z", comp=comps)
-    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = R2(dat, ref, dim=avg_dims_error).min().values
-    if err < thresh:
-        log = "test_dz_out, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
-        print(log)
-        if plot:
-            dat.name = "dz_out_z"
-            ref.name = "reference corr."
-            plotting.scatter_hue(dat, ref, title=log, **plot_kws)
-        failed = True
-    return failed, err
-
-
-def test_2nd(adv, avg_dims_error=None, thresh=0.998, loc=None, iloc=None, plot=True, **plot_kws):
-    """Test that the advective tendencies resulting from 2nd-order and
-    correct advection order are equal in all three directions and components
-    (usually carried out if correct order is equal to 2nd order).
-
-    The test fails if the coefficient of determination
-    is below the given threshold. If avg_dims_error is given, the averaging in the
-    R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
-    value is taken over the remaining dimensions.
-
-
-    Parameters
-    ----------
-    adv : xarray DataArray
-        Advective tendencies.
-    avg_dims_error : str or list of str, optional
-        Dimensions over which to calculate the R2. The default is None.
-    thresh : float, optional
-        Threshold value for R2 below which the test fails
-    loc : dict, optional
-        Mapping for label based indexing before running the test. The default is None.
-    iloc : dict, optional
-        Mapping for integer-location based indexing before running the test. The default is None.
-    plot : bool, optional
-        Create scatter plot if test fails. The default is True.
-    **plot_kws :
-        keyword arguments passed to plotting.scatter_hue.
-
-    Returns
-    -------
-    failed : bool
-        Test failed.
-    err : float
-        Test statistic R2
-
-    """
-    failed = False
-    ref = adv.sel(ID="cartesian")
-    dat = adv.sel(ID="cartesian 2nd")
-    dat = tools.loc_data(dat, loc=loc, iloc=iloc)
-    ref = tools.loc_data(ref, loc=loc, iloc=iloc)
-    err = R2(dat, ref, dim=avg_dims_error).min().values
-    if err < thresh:
-        log = "test_2nd, {} (XYZ): min. R2 less than {}: {:.5f}".format(dat.description, thresh, err)
-        print(log)
-        if plot:
-            ref.name = "correct order"
-            dat.name = "2nd order"
-            plotting.scatter_hue(dat, ref, title=log, **plot_kws)
-        failed = True
-    return failed, err
-
-
 def test_w(dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
     """Test that the instantaneous vertical velocity is very similar to the
     instantaneous diagnosed vertical velocity used in the tendency calculations.
@@ -386,9 +279,6 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
     This test ensures that this residual calculation does not produce larger changes
     in the vertical component by comparing the residual calculation with the
     explicit calculation which uses the vertical velocity.
-    For the dz_out type formulations, the continuity equation cannot be well closed.
-    Therefore, we only compare the individual components with the standard Cartesian
-    formulation.
     The test fails if the coefficient of determination
     is below the given threshold. If avg_dims_error is given, the averaging in the
     R2 calculation is only carried out over these dimensions. Afterwards the minimum R2
@@ -910,34 +800,13 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
             if "thresh" in kw:
                 del kw["thresh"]
 
-        if ("dz_out" in tests) and (var != "q"):  # TODOm: why so bad for q?
-            kw["figloc"] = figloc / "dz_out"
-            adv_noavgdir = adv
-            if hor_avg:
-                thresh = {"t": 0.85, "u": 0.7, "v": 0.995, "w": 0.92}
-                kw["thresh"] = thresh[var]
-                adv_noavgdir = adv.sel(dir=[d for d in adv.dir.values if d.lower() not in avg_dims])
-            failed_i["dz_out"], err_i["dz_out"] = test_dz_out(adv_noavgdir, **kw)
-            if "thresh" in kw:
-                del kw["thresh"]
-
-        if "adv_2nd" in tests:
-            kw["figloc"] = figloc / "adv_2nd"
-            failed_i["adv_2nd"], err_i["adv_2nd"] = test_2nd(adv, **kw)
-
         if ("w" in tests) and (var == variables[-1]):
             # only do test once: for last variable
             kw["figloc"] = figloc / "w"
             failed_i["w"], err_i["w"] = test_w(dat_inst_lim, **kw)
 
         if ("mass" in tests) and (var == "t"):
-            if "dz_out" in tests:
-                if hor_avg:
-                    kw["thresh"] = 0.85
-                else:
-                    kw["thresh"] = 0.995
-
-            elif attrs["HESSELBERG_AVG"] == 0:
+            if attrs["HESSELBERG_AVG"] == 0:
                 kw["thresh"] = 0.99998
 
             kw["figloc"] = figloc / "mass"

@@ -3480,37 +3480,22 @@
          IF ((model_config_rec%output_t_fluxes(i)==1) .or. (model_config_rec%output_t_fluxes(i)==2)) THEN
             model_config_rec%output_tres_fluxes(i) = .true.
             model_config_rec%output_res_fluxes(i) = .true.
-         ELSEIF (model_config_rec%output_t_fluxes_add(i)==1) THEN
-            wrf_err_message = '--- ERROR: output_t_fluxes_add requires output_t_fluxes=1,2!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
          ENDIF
          IF ((model_config_rec%output_q_fluxes(i)==1) .or. (model_config_rec%output_q_fluxes(i)==2)) THEN
             model_config_rec%output_qres_fluxes(i) = .true.
             model_config_rec%output_res_fluxes(i) = .true.
-         ELSEIF (model_config_rec%output_q_fluxes_add(i)==1) THEN
-            wrf_err_message = '--- ERROR: output_q_fluxes_add requires output_q_fluxes=1,2!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
          ENDIF
          IF ((model_config_rec%output_u_fluxes(i)==1) .or. (model_config_rec%output_u_fluxes(i)==2)) THEN
             model_config_rec%output_ures_fluxes(i) = .true.
             model_config_rec%output_res_fluxes(i) = .true.
-         ELSEIF (model_config_rec%output_u_fluxes_add(i)==1) THEN
-            wrf_err_message = '--- ERROR: output_u_fluxes_add requires output_u_fluxes=1,2!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
          ENDIF
          IF ((model_config_rec%output_v_fluxes(i)==1) .or. (model_config_rec%output_v_fluxes(i)==2)) THEN
             model_config_rec%output_vres_fluxes(i) = .true.
             model_config_rec%output_res_fluxes(i) = .true.
-         ELSEIF (model_config_rec%output_v_fluxes_add(i)==1) THEN
-            wrf_err_message = '--- ERROR: output_v_fluxes_add requires output_v_fluxes=1,2!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
          ENDIF
          IF ((model_config_rec%output_w_fluxes(i)==1) .or. (model_config_rec%output_w_fluxes(i)==2)) THEN
             model_config_rec%output_wres_fluxes(i) = .true.
             model_config_rec%output_res_fluxes(i) = .true.
-         ELSEIF (model_config_rec%output_w_fluxes_add(i)==1) THEN
-            wrf_err_message = '--- ERROR: output_w_fluxes_add requires output_w_fluxes=1,2!'
-            CALL wrf_error_fatal ( TRIM(wrf_err_message) )
          ENDIF
 
          IF ((model_config_rec%output_t_fluxes(i)==1) .or. (model_config_rec%output_t_fluxes(i)==3)) THEN

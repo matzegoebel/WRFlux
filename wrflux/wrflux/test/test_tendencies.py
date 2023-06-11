@@ -9,7 +9,6 @@ perform tests defined in testing.py.
 
 @author: Matthias Göbel
 """
-import sys
 from run_wrf.launch_jobs import launch_jobs
 from run_wrf.tools import grid_combinations, Capturing
 import shutil
@@ -54,7 +53,7 @@ random_msf = True
 # tests to perform
 tests = testing.all_tests
 # tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
-#          "dz_out", "adv_2nd", "w", "mass", "Y=0", "NaN", "dim_coords",
+#          "w", "mass", "Y=0", "NaN", "dim_coords",
 #          "no_model_change", "periodic", "adv_form"]
 # keyword arguments for tests (mainly for plotting)
 kw = dict(
@@ -72,10 +71,7 @@ kw = dict(
 
 # %% budget calculation methods
 budget_methods = ["", "cartesian"]
-budget_methods_2nd = ["cartesian 2nd"]
 budget_methods_advform = ["cartesian adv_form"]
-budget_methods_dzout = ["cartesian dz_out_x", "cartesian dz_out_z"]
-
 
 # %%test functions
 
@@ -101,7 +97,6 @@ def test_all():
                    "symm_x": [True],
                    "symm_y": [True]}
 
-    ### param_grids["2nd no_debug"] =  odict(adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2], h_mom_adv_order=[2], v_mom_adv_order=[2]))
     # test processing only one variable at the time
     s = "output_{}_fluxes"
     d = {s.format(v): [2, 3] for v in tools.all_variables}
@@ -110,21 +105,19 @@ def test_all():
     param_names.update(d)
     for v in tools.all_variables:
         sv = s.format(v)
-        d = {s.format(vi) + suff: [0,0] for vi in tools.all_variables for suff in ["", "_add"]}
+        d = {s.format(vi): [0,0] for vi in tools.all_variables}
         d[sv] = [2, 3]
         param_grids[sv + "_debug_only"] = {sv: d}
-        d = {s.format(vi) + suff: [0] for vi in tools.all_variables for suff in ["", "_add"]}
+        d = {s.format(vi): [0] for vi in tools.all_variables}
         d[sv] = [1]
         param_grids[sv + "_no_org"] = {sv + "_1": d}
-    param_grids["dz_out no_debug"] = odict(msf=1, input_sounding="wrflux_u")
-    param_grids["dz_out no_debug hor_avg"] = param_grids["dz_out no_debug"].copy()
     param_grids["trb no_debug"] = odict(msf=1, input_sounding="wrflux_u",
         timing=dict(
         end_time=["2018-06-20_12:30:00"],
         output_streams=[{24: ["meanout", conf.params["dt_f"] / 60.],
                           0: ["instout", 10.]}]))
     param_grids["trb no_debug hor_avg"] = param_grids["trb no_debug"].copy()
-    param_grids["hor_avg no_debug msf=1"] = param_grids["dz_out no_debug"].copy()  # for Y=0 test
+    param_grids["hor_avg no_debug msf=1"] = odict(msf=1, input_sounding="wrflux_u")  # for Y=0 test
     param_grids["adv_form"] = odict(msf=1, input_sounding="wrflux_u",
                                     adv_order=dict(h_sca_adv_order=[2], v_sca_adv_order=[2],
                                                    h_mom_adv_order=[2], v_mom_adv_order=[2]))
@@ -305,19 +298,10 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 hor_avg = False
                 if "hor_avg" in label:
                     hor_avg = True
-                if "dz_out" in label:
-                    bm = bm + budget_methods_dzout
-                elif "dz_out" in tests_i:
-                    tests_i.remove("dz_out")
                 if ("chunking" in label) and ("periodic" in tests_i):
                     tests_i.remove("periodic")
-                if all(param_comb[i + "_adv_order"] == 2 for i in ["h_sca", "v_sca", "h_mom", "v_mom"]):
-                    bm = bm + budget_methods_2nd
-                elif "adv_2nd" in tests_i:
-                    tests_i.remove("adv_2nd")
                 if "adv_form" in label:
                     bm = budget_methods + budget_methods_advform
-                    tests_i.remove("adv_2nd")
                 elif "adv_form" in tests_i:
                     tests_i.remove("adv_form")
 

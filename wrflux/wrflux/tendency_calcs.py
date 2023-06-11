@@ -66,18 +66,13 @@ else:
     chunks = None
 
 # tests to perform
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", dz_out", "adv_2nd",
+# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
 #           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change", "periodic", "adv_form"]
 tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim_coords", "Y=0"]
 # %% set calculation methods
 
 # available settings:
 # cartesian: advective tendencies in Cartesian instead of native form
-# dz_out_x: use alternative cartesian corrections with dz taken out of derivative
-#           horizontal corrections derived from horizontal flux (requires cartesian)
-# dz_out_z: use alternative cartesian corrections with dz taken out of derivative
-#           horizontal corrections derived from vertical flux (requires cartesian)
-# force_2nd_adv : use second order advection
 # adv_form : transform tendencies to advective form using the mass tendencies
 
 # all budget calculation methods to apply as a list of str

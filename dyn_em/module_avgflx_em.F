@@ -28,16 +28,6 @@ CONTAINS
        & fux_corr,fuy_corr,corr_dudt,                                                                 &
        & fvx_corr,fvy_corr,corr_dvdt,                                                                 &
        & fwx_corr,fwy_corr,corr_dwdt,                                                                 &
-       & ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
-       & ftx_corr_dzout,fty_corr_dzout,                                                               &
-       & fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
-       & fqx_corr_dzout,fqy_corr_dzout,                                                               &
-       & fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd, fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd, &
-       & fux_corr_dzout,fuy_corr_dzout,                                                               &
-       & fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd, fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd, &
-       & fvx_corr_dzout,fvy_corr_dzout,                                                               &
-       & fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
-       & fwx_corr_dzout,fwy_corr_dzout,                                                               &
        & ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
        & fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
        & fux_sgs_mean,fuz_sgs_mean,                                                                   &
@@ -77,16 +67,6 @@ CONTAINS
        fux_corr,fuy_corr,corr_dudt,                                                                 &
        fvx_corr,fvy_corr,corr_dvdt,                                                                 &
        fwx_corr,fwy_corr,corr_dwdt,                                                                 &
-       ftx_adv_mean_2nd,fty_adv_mean_2nd,ftz_adv_mean_2nd, ftx_corr_2nd,fty_corr_2nd,corr_dtdt_2nd, &
-       ftx_corr_dzout,fty_corr_dzout,                                                               &
-       fqx_adv_mean_2nd,fqy_adv_mean_2nd,fqz_adv_mean_2nd, fqx_corr_2nd,fqy_corr_2nd,corr_dqdt_2nd, &
-       fqx_corr_dzout,fqy_corr_dzout,                                                               &
-       fux_adv_mean_2nd,fuy_adv_mean_2nd,fuz_adv_mean_2nd, fux_corr_2nd,fuy_corr_2nd,corr_dudt_2nd, &
-       fux_corr_dzout,fuy_corr_dzout,                                                               &
-       fvx_adv_mean_2nd,fvy_adv_mean_2nd,fvz_adv_mean_2nd, fvx_corr_2nd,fvy_corr_2nd,corr_dvdt_2nd, &
-       fvx_corr_dzout,fvy_corr_dzout,                                                               &
-       fwx_adv_mean_2nd,fwy_adv_mean_2nd,fwz_adv_mean_2nd, fwx_corr_2nd,fwy_corr_2nd,corr_dwdt_2nd, &
-       fwx_corr_dzout,fwy_corr_dzout,                                                               &
        ftx_sgs_mean,fty_sgs_mean,ftz_sgs_mean,                                                      &
        fqx_sgs_mean,fqy_sgs_mean,fqz_sgs_mean,                                                      &
        fux_sgs_mean,fuz_sgs_mean,                                                                   &
@@ -154,18 +134,6 @@ CONTAINS
             ftx_corr(i,k,j) = 0.
             fty_corr(i,k,j) = 0.
             corr_dtdt(i,k,j) = 0.
-
-            IF (config_flags%output_t_fluxes_add == 1) THEN
-              !2nd order fluxes
-              ftx_adv_mean_2nd(i,k,j) = 0.
-              fty_adv_mean_2nd(i,k,j) = 0.
-              ftz_adv_mean_2nd(i,k,j) = 0.
-              ftx_corr_dzout(i,k,j) = 0.
-              fty_corr_dzout(i,k,j) = 0.
-              ftx_corr_2nd(i,k,j) = 0.
-              fty_corr_2nd(i,k,j) = 0.
-              corr_dtdt_2nd(i,k,j) = 0.
-            ENDIF
           endif
           if (config_flags%output_tsgs_fluxes) then
             ftx_sgs_mean(i,k,j) = 0.
@@ -193,18 +161,6 @@ CONTAINS
             fqx_corr(i,k,j) = 0.
             fqy_corr(i,k,j) = 0.
             corr_dqdt(i,k,j) = 0.
-
-            IF (config_flags%output_q_fluxes_add == 1) THEN
-              !2nd order fluxes
-              fqx_adv_mean_2nd(i,k,j) = 0.
-              fqy_adv_mean_2nd(i,k,j) = 0.
-              fqz_adv_mean_2nd(i,k,j) = 0.
-              fqx_corr_dzout(i,k,j) = 0.
-              fqy_corr_dzout(i,k,j) = 0.
-              fqx_corr_2nd(i,k,j) = 0.
-              fqy_corr_2nd(i,k,j) = 0.
-              corr_dqdt_2nd(i,k,j) = 0.
-            ENDIF
           endif
           if (config_flags%output_qsgs_fluxes) then
             fqx_sgs_mean(i,k,j) = 0.
@@ -229,18 +185,6 @@ CONTAINS
             fux_corr(i,k,j) = 0.
             fuy_corr(i,k,j) = 0.
             corr_dudt(i,k,j) = 0.
-
-            IF (config_flags%output_u_fluxes_add == 1) THEN
-              !2nd order fluxes
-              fux_adv_mean_2nd(i,k,j) = 0.
-              fuy_adv_mean_2nd(i,k,j) = 0.
-              fuz_adv_mean_2nd(i,k,j) = 0.
-              fux_corr_dzout(i,k,j) = 0.
-              fuy_corr_dzout(i,k,j) = 0.
-              fux_corr_2nd(i,k,j) = 0.
-              fuy_corr_2nd(i,k,j) = 0.
-              corr_dudt_2nd(i,k,j) = 0.
-            ENDIF
           endif
           if (config_flags%output_usgs_fluxes) then
             fux_sgs_mean(i,k,j) = 0.
@@ -266,18 +210,6 @@ CONTAINS
             fvx_corr(i,k,j) = 0.
             fvy_corr(i,k,j) = 0.
             corr_dvdt(i,k,j) = 0.
-
-            IF (config_flags%output_v_fluxes_add == 1) THEN
-              !2nd order fluxes
-              fvx_adv_mean_2nd(i,k,j) = 0.
-              fvy_adv_mean_2nd(i,k,j) = 0.
-              fvz_adv_mean_2nd(i,k,j) = 0.
-              fvx_corr_dzout(i,k,j) = 0.
-              fvy_corr_dzout(i,k,j) = 0.
-              fvx_corr_2nd(i,k,j) = 0.
-              fvy_corr_2nd(i,k,j) = 0.
-              corr_dvdt_2nd(i,k,j) = 0.
-            ENDIF
           endif
           if (config_flags%output_vsgs_fluxes) then
             fvx_sgs_mean(i,k,j) = 0.
@@ -305,18 +237,6 @@ CONTAINS
             fwx_corr(i,k,j) = 0.
             fwy_corr(i,k,j) = 0.
             corr_dwdt(i,k,j) = 0.
-
-            IF (config_flags%output_w_fluxes_add == 1) THEN
-              !2nd order fluxes
-              fwx_adv_mean_2nd(i,k,j) = 0.
-              fwy_adv_mean_2nd(i,k,j) = 0.
-              fwz_adv_mean_2nd(i,k,j) = 0.
-              fwx_corr_dzout(i,k,j) = 0.
-              fwy_corr_dzout(i,k,j) = 0.
-              fwx_corr_2nd(i,k,j) = 0.
-              fwy_corr_2nd(i,k,j) = 0.
-              corr_dwdt_2nd(i,k,j) = 0.
-            ENDIF
           endif
           if (config_flags%output_wsgs_fluxes) then
             fwx_sgs_mean(i,k,j) = 0.
@@ -362,16 +282,6 @@ CONTAINS
        & FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                 &
        & FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                 &
        & FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                 &
-       & FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
-       & FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
-       & FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
-       & FQX_CORR_MEAN_DZOUT,FQY_CORR_MEAN_DZOUT,                                                                    &
-       & FUX_ADV_MEAN_2ND,FUY_ADV_MEAN_2ND,FUZ_ADV_MEAN_2ND,FUX_CORR_MEAN_2ND,FUY_CORR_MEAN_2ND,CORR_DUDT_MEAN_2ND,  &
-       & FUX_CORR_MEAN_DZOUT,FUY_CORR_MEAN_DZOUT,                                                                    &
-       & FVX_ADV_MEAN_2ND,FVY_ADV_MEAN_2ND,FVZ_ADV_MEAN_2ND,FVX_CORR_MEAN_2ND,FVY_CORR_MEAN_2ND,CORR_DVDT_MEAN_2ND,  &
-       & FVX_CORR_MEAN_DZOUT,FVY_CORR_MEAN_DZOUT,                                                                    &
-       & FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
-       & FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
        & FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
        & FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
        & FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
@@ -440,16 +350,6 @@ CONTAINS
        FUX_CORR_MEAN,FUY_CORR_MEAN,CORR_DUDT_MEAN,                                                                 &
        FVX_CORR_MEAN,FVY_CORR_MEAN,CORR_DVDT_MEAN,                                                                 &
        FWX_CORR_MEAN,FWY_CORR_MEAN,CORR_DWDT_MEAN,                                                                 &
-       FTX_ADV_MEAN_2ND,FTY_ADV_MEAN_2ND,FTZ_ADV_MEAN_2ND,FTX_CORR_MEAN_2ND,FTY_CORR_MEAN_2ND,CORR_DTDT_MEAN_2ND,  &
-       FTX_CORR_MEAN_DZOUT,FTY_CORR_MEAN_DZOUT,                                                                    &
-       FQX_ADV_MEAN_2ND,FQY_ADV_MEAN_2ND,FQZ_ADV_MEAN_2ND,FQX_CORR_MEAN_2ND,FQY_CORR_MEAN_2ND,CORR_DQDT_MEAN_2ND,  &
-       FQX_CORR_MEAN_DZOUT,FQY_CORR_MEAN_DZOUT,                                                                    &
-       FUX_ADV_MEAN_2ND,FUY_ADV_MEAN_2ND,FUZ_ADV_MEAN_2ND,FUX_CORR_MEAN_2ND,FUY_CORR_MEAN_2ND,CORR_DUDT_MEAN_2ND,  &
-       FUX_CORR_MEAN_DZOUT,FUY_CORR_MEAN_DZOUT,                                                                    &
-       FVX_ADV_MEAN_2ND,FVY_ADV_MEAN_2ND,FVZ_ADV_MEAN_2ND,FVX_CORR_MEAN_2ND,FVY_CORR_MEAN_2ND,CORR_DVDT_MEAN_2ND,  &
-       FVX_CORR_MEAN_DZOUT,FVY_CORR_MEAN_DZOUT,                                                                    &
-       FWX_ADV_MEAN_2ND,FWY_ADV_MEAN_2ND,FWZ_ADV_MEAN_2ND,FWX_CORR_MEAN_2ND,FWY_CORR_MEAN_2ND,CORR_DWDT_MEAN_2ND,  &
-       FWX_CORR_MEAN_DZOUT,FWY_CORR_MEAN_DZOUT,                                                                    &
        FTX_SGS_MEAN,FTY_SGS_MEAN,FTZ_SGS_MEAN,                                                 &
        FQX_SGS_MEAN,FQY_SGS_MEAN,FQZ_SGS_MEAN,                                                 &
        FUX_SGS_MEAN,FUZ_SGS_MEAN,                                                              &
@@ -826,25 +726,6 @@ CONTAINS
               FTX_CORR_MEAN(i,k,j)  = (local_count*FTX_CORR_MEAN(i,k,j) + rzxu(i,k,j)*thetaz )/count_p1
               FTY_CORR_MEAN(i,k,j)  = (local_count*FTY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*thetaz )/count_p1
               CORR_DTDT_MEAN(i,k,j)  = (local_count*CORR_DTDT_MEAN(i,k,j) + rdzdt(i,k,j)*thetaz )/count_p1
-
-              IF (config_flags%output_t_fluxes_add == 1) THEN
-                !2nd order fluxes
-                thetax2 = 0.5*(th_save(i-1,k,j) + th_save(i,k,j))
-                thetay2 = 0.5*(th_save(i,k,j-1) + th_save(i,k,j))
-                call stagger_z(thetaz2, th_save(i,:,j),            &
-                               cf1, cf2, cf3, cfn, cfn1, fnm, fnp, &
-                               k, kms, kme, kde                   )
-                ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
-                rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-                FTX_ADV_MEAN_2ND(i,k,j) = (local_count*FTX_ADV_MEAN_2ND(i,k,j)+ (ru(i,k,j)*thetax2 + ftx_small(i,k,j)) )/count_p1*fqx_dfac
-                FTY_ADV_MEAN_2ND(i,k,j) = (local_count*FTY_ADV_MEAN_2ND(i,k,j)+ (rv(i,k,j)*thetay2 + fty_small(i,k,j)) )/count_p1*fqy_dfac
-                FTZ_ADV_MEAN_2ND(i,k,j) = (local_count*FTZ_ADV_MEAN_2ND(i,k,j)+ (rw_diag(i,k,j)*thetaz2 + ftz_small(i,k,j)*msfty(i,j)/(-g)))/count_p1/rhoz_mean_flx
-                FTX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTX_CORR_MEAN_DZOUT(i,k,j) + ru8z*thetaz )/count_p1
-                FTY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FTY_CORR_MEAN_DZOUT(i,k,j) + rv8z*thetaz )/count_p1
-                FTX_CORR_MEAN_2ND(i,k,j) = (local_count*FTX_CORR_MEAN_2ND(i,k,j) + rzxu(i,k,j)*thetaz2 )/count_p1
-                FTY_CORR_MEAN_2ND(i,k,j) = (local_count*FTY_CORR_MEAN_2ND(i,k,j) + rzyv(i,k,j)*thetaz2 )/count_p1
-                CORR_DTDT_MEAN_2ND(i,k,j) = (local_count*CORR_DTDT_MEAN_2ND(i,k,j) + rdzdt(i,k,j)*thetaz2 )/count_p1
-              ENDIF
             ENDIF
 
             IF (config_flags%output_qres_fluxes) THEN
@@ -873,29 +754,6 @@ CONTAINS
               FQX_CORR_MEAN(i,k,j)  = (local_count*FQX_CORR_MEAN(i,k,j) + rzxu(i,k,j)*qz )/count_p1
               FQY_CORR_MEAN(i,k,j)  = (local_count*FQY_CORR_MEAN(i,k,j) + rzyv(i,k,j)*qz )/count_p1
               CORR_DQDT_MEAN(i,k,j)  = (local_count*CORR_DQDT_MEAN(i,k,j) + rdzdt(i,k,j)*qz )/count_p1
-
-              IF (config_flags%output_q_fluxes_add == 1) THEN
-                !2nd order fluxes
-                qx2 = 0.5*(Q(i-1,k,j) + Q(i,k,j))
-                qy2 = 0.5*(Q(i,k,j-1) + Q(i,k,j))
-                IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                  qz2 = (fnp(k)* Q(i,k-1,j) + fnm(k)* Q(i,k,j))
-                ELSE
-                  qz2 = qz
-                ENDIF
-                ru8z = rhoz*0.5*(u8w(i,k,j) + u8w(i+1,k,j))
-                rv8z = rhoz*0.5*(v8w(i,k,j) + v8w(i,k,j+1))
-                !use ww_m instead of ww
-                rw_diag_s = w_diag(i,k,j)*rho8w(i,k,j)
-                FQX_ADV_MEAN_2ND(i,k,j) = (local_count*FQX_ADV_MEAN_2ND(i,k,j) + ( ru_m(i,k,j)*qx2 ) )/count_p1*fqx_dfac
-                FQY_ADV_MEAN_2ND(i,k,j) = (local_count*FQY_ADV_MEAN_2ND(i,k,j) + ( rv_m(i,k,j)*qy2 ) )/count_p1*fqy_dfac
-                FQZ_ADV_MEAN_2ND(i,k,j) = (local_count*FQZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*qz2 )/count_p1/rhoz_mean_flx
-                FQX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQX_CORR_MEAN_DZOUT(i,k,j) + ru8z*qz )/count_p1
-                FQY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FQY_CORR_MEAN_DZOUT(i,k,j) + rv8z*qz )/count_p1
-                FQX_CORR_MEAN_2ND(i,k,j) = (local_count*FQX_CORR_MEAN_2ND(i,k,j) + rzxu(i,k,j)*qz2 )/count_p1
-                FQY_CORR_MEAN_2ND(i,k,j) = (local_count*FQY_CORR_MEAN_2ND(i,k,j) + rzyv(i,k,j)*qz2 )/count_p1
-                CORR_DQDT_MEAN_2ND(i,k,j) = (local_count*CORR_DQDT_MEAN_2ND(i,k,j) + rdzdt(i,k,j)*qz2 )/count_p1
-              ENDIF
             ENDIF
 
             IF (config_flags%output_ures_fluxes) THEN
@@ -928,28 +786,6 @@ CONTAINS
               FUX_CORR_MEAN(i,k,j)  = (local_count*FUX_CORR_MEAN(i,k,j) + rzxu_s*uz )/count_p1
               FUY_CORR_MEAN(i,k,j)  = (local_count*FUY_CORR_MEAN(i,k,j) + rzyv_s*uz )/count_p1
               CORR_DUDT_MEAN(i,k,j)  = (local_count*CORR_DUDT_MEAN(i,k,j) + rdzdt_s*uz )/count_p1
-
-              IF (config_flags%output_u_fluxes_add == 1) THEN
-                !2nd order fluxes
-                ux2 = 0.5*(u_save(i+1,k,j) + u_save(i,k,j))
-                uy2 = 0.5*(u_save(i,k,j-1) + u_save(i,k,j))
-                IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                  uz2 = (fnp(k)* u_save(i,k-1,j) + fnm(k)* u_save(i,k,j))
-                ELSE
-                  uz2 = uz
-                ENDIF
-                ru8z = rhoxz*u8w(i,k,j)
-                rv8z = rhoxz*0.25*(v8w(i,k,j) + v8w(i,k,j+1) + v8w(i-1,k,j) + v8w(i-1,k,j+1))
-                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i-1,k,j)/msfty(i-1,j))*msfuy(i,j)
-                FUX_ADV_MEAN_2ND(i,k,j) = (local_count*FUX_ADV_MEAN_2ND(i,k,j) + ru_d*ux2 )/count_p1*fux_dfac
-                FUY_ADV_MEAN_2ND(i,k,j) = (local_count*FUY_ADV_MEAN_2ND(i,k,j) + rv_d*uy2 )/count_p1*fuy_dfac
-                FUZ_ADV_MEAN_2ND(i,k,j) = (local_count*FUZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*uz2 )/count_p1/rhoxz_mean_flx
-                FUX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUX_CORR_MEAN_DZOUT(i,k,j) + ru8z*uz )/count_p1
-                FUY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FUY_CORR_MEAN_DZOUT(i,k,j) + rv8z*uz )/count_p1
-                FUX_CORR_MEAN_2ND(i,k,j) = (local_count*FUX_CORR_MEAN_2ND(i,k,j) + rzxu_s*uz2 )/count_p1
-                FUY_CORR_MEAN_2ND(i,k,j) = (local_count*FUY_CORR_MEAN_2ND(i,k,j) + rzyv_s*uz2 )/count_p1
-                CORR_DUDT_MEAN_2ND(i,k,j) = (local_count*CORR_DUDT_MEAN_2ND(i,k,j) + rdzdt_s*uz2 )/count_p1
-              ENDIF
             ENDIF
 
             IF (config_flags%output_vres_fluxes) THEN
@@ -982,28 +818,6 @@ CONTAINS
               FVX_CORR_MEAN(i,k,j)  = (local_count*FVX_CORR_MEAN(i,k,j) + rzxu_s*vz )/count_p1
               FVY_CORR_MEAN(i,k,j)  = (local_count*FVY_CORR_MEAN(i,k,j) + rzyv_s*vz )/count_p1
               CORR_DVDT_MEAN(i,k,j)  = (local_count*CORR_DVDT_MEAN(i,k,j) + rdzdt_s*vz )/count_p1
-
-              IF (config_flags%output_v_fluxes_add == 1) THEN
-                !2nd order fluxes
-                vx2 = 0.5*(v_save(i-1,k,j) + v_save(i,k,j))
-                vy2 = 0.5*(v_save(i,k,j+1) + v_save(i,k,j))
-                IF (( k .gt. kts) .and. (k .lt. kte)) THEN
-                  vz2 = (fnp(k)* v_save(i,k-1,j) + fnm(k)* v_save(i,k,j))
-                ELSE
-                  vz2 = vz
-                ENDIF
-                ru8z = rhoyz*0.25*(u8w(i,k,j) + u8w(i+1,k,j) + u8w(i,k,j-1) + u8w(i+1,k,j-1))
-                rv8z = rhoyz*v8w(i,k,j)
-                rw_diag_s = 0.5*(rw_diag(i,k,j)/msfty(i,j) + rw_diag(i,k,j-1)/msfty(i,j-1))*msfvy(i,j)
-                FVX_ADV_MEAN_2ND(i,k,j) = (local_count*FVX_ADV_MEAN_2ND(i,k,j) + ( ru_d*vx2 ) )/count_p1*fvx_dfac
-                FVY_ADV_MEAN_2ND(i,k,j) = (local_count*FVY_ADV_MEAN_2ND(i,k,j) + ( rv_d*vy2 ) )/count_p1*fvy_dfac
-                FVZ_ADV_MEAN_2ND(i,k,j) = (local_count*FVZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*vz2 )/count_p1/rhoyz_mean_flx
-                FVX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVX_CORR_MEAN_DZOUT(i,k,j) + ru8z*vz )/count_p1
-                FVY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FVY_CORR_MEAN_DZOUT(i,k,j) + rv8z*vz )/count_p1
-                FVX_CORR_MEAN_2ND(i,k,j) = (local_count*FVX_CORR_MEAN_2ND(i,k,j) + rzxu_s*vz2 )/count_p1
-                FVY_CORR_MEAN_2ND(i,k,j) = (local_count*FVY_CORR_MEAN_2ND(i,k,j) + rzyv_s*vz2 )/count_p1
-                CORR_DVDT_MEAN_2ND(i,k,j) = (local_count*CORR_DVDT_MEAN_2ND(i,k,j) + rdzdt_s*vz2 )/count_p1
-              ENDIF
             ENDIF
 
             IF (config_flags%output_wres_fluxes) THEN
@@ -1049,32 +863,6 @@ CONTAINS
                 FWX_CORR_MEAN(i,k,j)  = (local_count*FWX_CORR_MEAN(i,k,j) + rzxu_s*wz )/count_p1
                 FWY_CORR_MEAN(i,k,j)  = (local_count*FWY_CORR_MEAN(i,k,j) + rzyv_s*wz )/count_p1
                 CORR_DWDT_MEAN(i,k,j)  = (local_count*CORR_DWDT_MEAN(i,k,j) + rdzdt_s*wz )/count_p1
-              ENDIF
-
-              IF (config_flags%output_w_fluxes_add == 1) THEN
-                !2nd order fluxes
-                IF (k .gt. kts) THEN
-                  wx2 = 0.5*(w_save(i-1,k,j) + w_save(i,k,j))
-                  wy2 = 0.5*(w_save(i,k,j-1) + w_save(i,k,j))
-                  FWX_ADV_MEAN_2ND(i,k,j) = (local_count*FWX_ADV_MEAN_2ND(i,k,j) + ru_d*wx2 )/count_p1*fwx_dfac
-                  FWY_ADV_MEAN_2ND(i,k,j) = (local_count*FWY_ADV_MEAN_2ND(i,k,j) + rv_d*wy2 )/count_p1*fwy_dfac
-                ENDIF
-                IF (k .lt. kte) THEN
-                  IF (k .lt. kte) THEN
-                    wz2 = 0.5*(w_save(i,k+1,j) + w_save(i,k,j))
-                  ELSE
-                    wz2 = wz
-                  ENDIF
-                  ru8z = rhom*0.5*(u_save(i,k,j) + u_save(i+1,k,j))
-                  rv8z = rhom*0.5*(v_save(i,k,j) + v_save(i,k,j+1))
-                  rw_diag_s = 0.5*(rw_diag(i,k+1,j) + rw_diag(i,k,j))
-                  FWX_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWX_CORR_MEAN_DZOUT(i,k,j) + ru8z*wz )/count_p1
-                  FWY_CORR_MEAN_DZOUT(i,k,j) = (local_count*FWY_CORR_MEAN_DZOUT(i,k,j) + rv8z*wz )/count_p1
-                  FWZ_ADV_MEAN_2ND(i,k,j) = (local_count*FWZ_ADV_MEAN_2ND(i,k,j) + rw_diag_s*wz2 )/count_p1/rho_mean_flx
-                  FWX_CORR_MEAN_2ND(i,k,j) = (local_count*FWX_CORR_MEAN_2ND(i,k,j) + rzxu_s*wz2 )/count_p1
-                  FWY_CORR_MEAN_2ND(i,k,j) = (local_count*FWY_CORR_MEAN_2ND(i,k,j) + rzyv_s*wz2 )/count_p1
-                  CORR_DWDT_MEAN_2ND(i,k,j) = (local_count*CORR_DWDT_MEAN_2ND(i,k,j) + rdzdt_s*wz2 )/count_p1
-                ENDIF
               ENDIF
             ENDIF
 

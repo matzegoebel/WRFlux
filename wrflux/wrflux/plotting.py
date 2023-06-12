@@ -13,18 +13,32 @@ from wrflux import tools
 from wrflux.test import testing
 import xarray as xr
 from pathlib import Path
+
 xr.set_options(arithmetic_join="exact")
 xr.set_options(keep_attrs=True)
 dim_dict = dict(x="U", y="V", bottom_top="W", z="W")
-tex_names = {"t": "\\theta", "q": "q_\\mathrm{v}",
-             "u": "u", "v": "v", "v": "v"}
+tex_names = {"t": "\\theta", "q": "q_\\mathrm{v}", "u": "u", "v": "v", "v": "v"}
 
 # %%
 
 
-def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=True,
-                discrete=True, cmap="gnuplot", iloc=None, loc=None, savefig=False, fname=None, figloc=None,
-                close=False, title=None, **kwargs):
+def scatter_hue(
+    dat,
+    ref,
+    plot_diff=False,
+    hue="bottom_top",
+    ignore_missing_hue=True,
+    discrete=True,
+    cmap="gnuplot",
+    iloc=None,
+    loc=None,
+    savefig=False,
+    fname=None,
+    figloc=None,
+    close=False,
+    title=None,
+    **kwargs
+):
     """Scatter plot of dat vs. ref with coloring based on hue variable.
 
 
@@ -80,7 +94,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         pdat[0] = dat - ref
 
     if ignore_missing_hue:
-        if ((hue not in pdat.dims) and (hue + "_stag" not in pdat.dims)):
+        if (hue not in pdat.dims) and (hue + "_stag" not in pdat.dims):
             hue = "bottom_top"
     if (hue not in pdat.dims) and (hue + "_stag" in pdat.dims):
         hue = hue + "_stag"
@@ -148,7 +162,7 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
         ax.set_ylim(minmax)
 
     # colorbar
-    cax = fig.add_axes([0.92, 0.125, 0.05, .75], frameon=True)
+    cax = fig.add_axes([0.92, 0.125, 0.05, 0.75], frameon=True)
     cax.set_yticks([])
     cax.set_xticks([])
     clabel = hue
@@ -172,10 +186,16 @@ def scatter_hue(dat, ref, plot_diff=False, hue="bottom_top", ignore_missing_hue=
 
     # labels for error stats
     err = abs(dat - ref)
-    rmse = (err**2).mean().values**0.5
+    rmse = (err ** 2).mean().values ** 0.5
     r = testing.R2(dat, ref)
-    ax.text(0.74, 0.07, "RMSE={0:.2E}\nR$^2$={1:.7f}".format(rmse, r.values),
-            horizontalalignment='left', verticalalignment='bottom', transform=ax.transAxes)
+    ax.text(
+        0.74,
+        0.07,
+        "RMSE={0:.2E}\nR$^2$={1:.7f}".format(rmse, r.values),
+        horizontalalignment="left",
+        verticalalignment="bottom",
+        transform=ax.transAxes,
+    )
     if title is not None:
         fig.suptitle(title)
 

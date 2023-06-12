@@ -11,13 +11,14 @@ Test settings for automated tests with normal build.
 """
 from wrflux.test.config.config_test_tendencies_base import *
 from copy import deepcopy
+
 params = deepcopy(params)
 
 # %%
-'''Simulations settings'''
+"""Simulations settings"""
 
 params["end_time"] = "2018-06-20_13:00:00"  # format %Y-%m-%d_%H:%M:%S
-params["output_streams"] = {24: ["meanout", 30.], 0: ["instout", 30.]}
+params["output_streams"] = {24: ["meanout", 30.0], 0: ["instout", 30.0]}
 
 params["output_t_fluxes"] = 1
 params["output_q_fluxes"] = 1

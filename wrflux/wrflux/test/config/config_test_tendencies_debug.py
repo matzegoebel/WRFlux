@@ -11,12 +11,13 @@ Test settings for automated tests with debug build.
 """
 from wrflux.test.config.config_test_tendencies import *
 from copy import deepcopy
+
 params = deepcopy(params)
 
 
 # %%
 
-'''Simulations settings'''
+"""Simulations settings"""
 
 # only short test run to check for invalid arithmetics,...
 params["end_time"] = "2018-06-20_12:00:18"  # format %Y-%m-%d_%H:%M:%S

@@ -15,14 +15,16 @@ from wrflux import tools
 import matplotlib.pyplot as plt
 import sys
 from pathlib import Path
+
 try:
     # if mpi4py is not installed: no parallel processing possible
     from mpi4py import MPI
+
     rank = MPI.COMM_WORLD.rank
     nproc = MPI.COMM_WORLD.size
     if nproc > 1:
-        sys.stdout = open('p{}_tendency_calcs.log'.format(rank), 'w')
-        sys.stderr = open('p{}_tendency_calcs.err'.format(rank), 'w')
+        sys.stdout = open("p{}_tendency_calcs.log".format(rank), "w")
+        sys.stderr = open("p{}_tendency_calcs.err".format(rank), "w")
 except ImportError:
     rank = 0
     nproc = 1
@@ -81,11 +83,23 @@ budget_methods = ["", "cartesian", "cartesian adv_form"]
 
 # %% calc tendencies
 
-out = tools.calc_tendencies(variables, outpath_wrf, outpath, mean_file=mean_file, inst_file=inst_file,
-                            budget_methods=budget_methods, pre_iloc=pre_iloc, pre_loc=pre_loc,
-                            t_avg=t_avg, t_avg_interval=t_avg_interval, hor_avg=hor_avg,
-                            avg_dims=avg_dims, chunks=chunks,
-                            skip_exist=skip_exist, return_model_output=True)
+out = tools.calc_tendencies(
+    variables,
+    outpath_wrf,
+    outpath,
+    mean_file=mean_file,
+    inst_file=inst_file,
+    budget_methods=budget_methods,
+    pre_iloc=pre_iloc,
+    pre_loc=pre_loc,
+    t_avg=t_avg,
+    t_avg_interval=t_avg_interval,
+    hor_avg=hor_avg,
+    avg_dims=avg_dims,
+    chunks=chunks,
+    skip_exist=skip_exist,
+    return_model_output=True,
+)
 
 # %% run tests
 print("\n\n" + "#" * 50)
@@ -93,7 +107,11 @@ print("Run tests")
 if rank == 0:
     datout, dat_inst, dat_mean = out
     kw = dict(
-        avg_dims_error=[*avg_dims, "bottom_top", "Time"],  # dimensions over which to calculate error norms
+        avg_dims_error=[
+            *avg_dims,
+            "bottom_top",
+            "Time",
+        ],  # dimensions over which to calculate error norms
         plot=True,  # scatter plots for failed tests
         # plot_diff=True,  # plot difference between forcing and tendency against tendency
         discrete=True,  # discrete colormap
@@ -104,8 +122,9 @@ if rank == 0:
         # close = True # close figures directly
     )
 
-    failed, err = testing.run_tests(datout, tests, dat_mean=dat_mean, dat_inst=dat_inst,
-                                    hor_avg=hor_avg, chunks=chunks, **kw)
+    failed, err = testing.run_tests(
+        datout, tests, dat_mean=dat_mean, dat_inst=dat_inst, hor_avg=hor_avg, chunks=chunks, **kw
+    )
 
     if not (failed == "FAIL").any().any():
         print("\nAll tests passed")

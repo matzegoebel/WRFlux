@@ -13,16 +13,37 @@ import os
 from pathlib import Path
 from functools import partial
 
-all_tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
-             "w", "mass", "Y=0", "NaN", "dim_coords",
-             "no_model_change", "periodic", "adv_form"]
+all_tests = [
+    "budget",
+    "decomp_sumdir",
+    "decomp_sumcomp",
+    "sgs",
+    "w",
+    "mass",
+    "Y=0",
+    "NaN",
+    "dim_coords",
+    "no_model_change",
+    "periodic",
+    "adv_form",
+]
 
 
 # %% test functions
 
-def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartesian=None,
-                budget_methods=("native", "adv_form", "cartesian", "cartesian adv_form"),
-                loc=None, iloc=None, plot=True, **plot_kws):
+
+def test_budget(
+    tend,
+    forcing,
+    avg_dims_error=None,
+    thresh=0.9999,
+    thresh_cartesian=None,
+    budget_methods=("native", "adv_form", "cartesian", "cartesian adv_form"),
+    loc=None,
+    iloc=None,
+    plot=True,
+    **plot_kws,
+):
     """
     Test closure of budget: tend = forcing.
 
@@ -45,7 +66,8 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
         Use different threshold value for Cartesian coordinate system.
         The default is None, for which 'thresh' is used in both formulations.
     budget_methods : list of str
-        Budget methods to consider. By default, only "native", "adv_form", "cartesian", and "cartesian adv_form" are tested.
+        Budget methods to consider.
+        By default, only "native", "adv_form", "cartesian", and "cartesian adv_form" are tested.
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
     iloc : dict, optional
@@ -90,15 +112,16 @@ def test_budget(tend, forcing, avg_dims_error=None, thresh=0.9999, thresh_cartes
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                    log = fname_i + "\n" +  log
+                    log = fname_i + "\n" + log
                 plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
             failed = True
 
     return failed, min(err)
 
 
-def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
-                       loc=None, iloc=None, plot=True, **plot_kws):
+def test_decomp_sumdir(
+    adv, corr, avg_dims_error=None, thresh=0.99999, loc=None, iloc=None, plot=True, **plot_kws
+):
     """
     Test that budget methods "native" and "cartesian" give equal advective tendencies
     in all components if the three spatial directions are summed up.
@@ -144,7 +167,9 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     err = R2(dat, ref, dim=avg_dims_error).min().values
     failed = False
     if err < thresh:
-        log = "test_decomp_sumdir, {}: min. R2 less than {}: {:.7f}".format(dat.description, thresh, err)
+        log = "test_decomp_sumdir, {}: min. R2 less than {}: {:.7f}".format(
+            dat.description, thresh, err
+        )
         print(log)
         if plot:
             dat.name = "cartesian"
@@ -154,8 +179,9 @@ def test_decomp_sumdir(adv, corr, avg_dims_error=None, thresh=0.99999,
     return failed, err
 
 
-def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
-                        loc=None, iloc=None, plot=True, **plot_kws):
+def test_decomp_sumcomp(
+    adv, avg_dims_error=None, thresh=0.999995, loc=None, iloc=None, plot=True, **plot_kws
+):
     """Test that the total advective tendency is indeed the sum of the mean and
     resolved turbulent components in all three spatial directions.
 
@@ -206,7 +232,8 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
         err.append(e)
         if e < thresh:
             log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.8f}".format(
-                dat.description, ID, thresh, e)
+                dat.description, ID, thresh, e
+            )
             print(log)
             if plot:
                 ref_i.name = "trb_r"
@@ -214,13 +241,15 @@ def test_decomp_sumcomp(adv, avg_dims_error=None, thresh=0.999995,
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                    log = fname_i + "\n" +  log
+                    log = fname_i + "\n" + log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)
 
 
-def test_w(dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
+def test_w(
+    dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws
+):
     """Test that the instantaneous vertical velocity is very similar to the
     instantaneous diagnosed vertical velocity used in the tendency calculations.
 
@@ -269,8 +298,9 @@ def test_w(dat_inst, avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, pl
     return failed, err
 
 
-def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
-              loc=None, iloc=None, plot=True, **plot_kws):
+def test_mass(
+    tend_mass, avg_dims_error=None, thresh=0.99999999, loc=None, iloc=None, plot=True, **plot_kws
+):
     """Test closure of continuity equation.
 
     In the tendency calculations the vertical component of the continuity equation
@@ -324,7 +354,9 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.10f}".format(ID, thresh, e)
+            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.10f}".format(
+                ID, thresh, e
+            )
             print(log)
             if plot:
                 dat_i.name = "Residual calculation"
@@ -333,14 +365,26 @@ def test_mass(tend_mass, avg_dims_error=None, thresh=0.99999999,
                 fname_i = fname
                 if fname is not None:
                     fname_i = "ID=" + ID + "_" + fname
-                    log = fname_i + "\n" +  log
+                    log = fname_i + "\n" + log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
     return failed, min(err)
 
 
-def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=None,
-                  avg_dims_error=None, thresh=0.9995, loc=None, iloc=None, plot=True, **plot_kws):
+def test_adv_form(
+    dat_mean,
+    datout,
+    var,
+    cyclic=None,
+    hor_avg=False,
+    avg_dims=None,
+    avg_dims_error=None,
+    thresh=0.9995,
+    loc=None,
+    iloc=None,
+    plot=True,
+    **plot_kws,
+):
     """Compare implicit and explicit advective form calculations
 
     Explicitly calculate 2nd order mean advection in advective form and compare with
@@ -402,7 +446,9 @@ def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=No
     tend = xr.Dataset()
     for dim in tools.XYZ:
         if hor_avg:
-            vmean[dim] = tools.avg_xy(vmean[dim], avg_dims, cyclic=cyclic, **grid[tools.stagger_const])
+            vmean[dim] = tools.avg_xy(
+                vmean[dim], avg_dims, cyclic=cyclic, **grid[tools.stagger_const]
+            )
         ds = dim.lower()
         if dim == "Z":
             ds = "bottom_top"
@@ -419,16 +465,22 @@ def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=No
 
         if d in adv.dims:
             grad[dim] = tools.diff(var_mean, d, new_coord=flux[ds], cyclic=cyc) / dd[dim]
-            vmean_c[dim] = tools.stagger_like(vmean[dim], ref=grad[dim], cyclic=cyclic, **grid[tools.stagger_const])
+            vmean_c[dim] = tools.stagger_like(
+                vmean[dim], ref=grad[dim], cyclic=cyclic, **grid[tools.stagger_const]
+            )
 
     for dim in tools.XYZ:
         if dim in grad:
-            adv_s = - vmean_c[dim] * grad[dim]
-            tend[dim] = tools.stagger_like(adv_s, ref=adv, cyclic=cyclic, **grid[tools.stagger_const])
+            adv_s = -vmean_c[dim] * grad[dim]
+            tend[dim] = tools.stagger_like(
+                adv_s, ref=adv, cyclic=cyclic, **grid[tools.stagger_const]
+            )
     for dim in ["X", "Y"]:
         if dim in grad:
             corr = grid[f"dzdt_{dim.lower()}"]
-            corr = grad["Z"]*tools.stagger_like(corr, ref=grad["Z"], cyclic=cyclic, **grid[tools.stagger_const])
+            corr = grad["Z"] * tools.stagger_like(
+                corr, ref=grad["Z"], cyclic=cyclic, **grid[tools.stagger_const]
+            )
             corr = tools.stagger_like(corr, ref=adv, cyclic=cyclic, **grid[tools.stagger_const])
             tend[dim] = tend[dim] - corr
 
@@ -438,7 +490,9 @@ def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=No
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
 
-    dat = tools.loc_data(adv.sel(ID="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc)
+    dat = tools.loc_data(
+        adv.sel(ID="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc
+    )
     ref = tools.loc_data(tend, loc=loc, iloc=iloc)
     dat = dat.sel(dir=ref.dir)
     if var == "w":
@@ -448,13 +502,15 @@ def test_adv_form(dat_mean, datout, var, cyclic=None, hor_avg=False, avg_dims=No
     failed = False
     if err < thresh:
         failed = True
-        log = "test_adv_form: mean advective component: min. R2 less than {}: {:.10f}".format(thresh, err)
+        log = "test_adv_form: mean advective component: min. R2 less than {}: {:.10f}".format(
+            thresh, err
+        )
         print(log)
         if plot:
             dat.name = "Implicit calculation"
             ref.name = "Explicit calculation"
             if fname is not None:
-                log = fname + "\n" +  log
+                log = fname + "\n" + log
             plotting.scatter_hue(dat, ref, title=log, fname=fname, **plot_kws)
     return failed, err
 
@@ -520,7 +576,11 @@ def test_y0(adv, thresh=(5e-6, 5e-3)):
             for comp in f.comp.values:
                 fi = f.sel(ID=ID, comp=comp).values
                 if fi > thresh_i:
-                    print("test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(ID, comp, fi, thresh_i))
+                    print(
+                        "test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(
+                            ID, comp, fi, thresh_i
+                        )
+                    )
                     failed = True
     return failed, f.max("comp").values
 
@@ -537,9 +597,11 @@ def test_dim_coords(dat, dat_inst, variable, dat_name, failed):
         c = dat[dim].values
         cr = dat_inst[dim].values
         if (len(c) != len(cr)) or (c != cr).any():
-            print("Coordinates for dimension {} in data {} of variable {}"
-                  " differs between postprocessed output and WRF output:"
-                  "\n {} vs. {}".format(dim, dat_name, variable, c, cr))
+            print(
+                "Coordinates for dimension {} in data {} of variable {}"
+                " differs between postprocessed output and WRF output:"
+                "\n {} vs. {}".format(dim, dat_name, variable, c, cr)
+            )
             f = "FAIL"
         else:
             f = "pass"
@@ -627,15 +689,30 @@ def test_periodic(datout, attrs, thresh=0.99999999, **kw):
                         dat = ds[v][{dim_s: -1}]
                         e = R2(dat, ref, dim=["x", "y", "bottom_top", "Time"]).min().values
                         if e < thresh:
-                            log = (f"test_periodic: {dim}-bounds not periodic for "
-                                   f" {v} in {k}: min. R2 less than {thresh}: {e:.10f}")
+                            log = (
+                                f"test_periodic: {dim}-bounds not periodic for "
+                                f" {v} in {k}: min. R2 less than {thresh}: {e:.10f}"
+                            )
                             print(log)
                             failed = True
     return failed
+
+
 # %% run_tests
 
-def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=False,
-              hor_avg=False, chunks=None, figloc=None, **kw):
+
+def run_tests(
+    datout,
+    tests,
+    dat_mean=None,
+    dat_inst=None,
+    sim_id="",
+    trb_exp=False,
+    hor_avg=False,
+    chunks=None,
+    figloc=None,
+    **kw,
+):
     """Run test functions for WRF output postprocessed with WRFlux.
        Thresholds are hard-coded.
 
@@ -676,12 +753,14 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
     if tests is None:
         tests = all_tests
     else:
-        #drop duplicates
+        # drop duplicates
         tests = list(set(tests))
     tests = tests.copy()
     for test in tests:
         if test not in all_tests:
-            raise ValueError("Test {} not available! Available tests:\n{}".format(test, ", ".join(all_tests)))
+            raise ValueError(
+                "Test {} not available! Available tests:\n{}".format(test, ", ".join(all_tests))
+            )
     variables = list(datout.keys())
     failed = pd.DataFrame(columns=tests, index=variables)
     err = pd.DataFrame(columns=tests, index=variables)
@@ -787,7 +866,8 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
                 kw["thresh"] = 0.998
             kw["figloc"] = figloc / "decomp_sumdir"
             failed_i["decomp_sumdir"], err_i["decomp_sumdir"] = test_decomp_sumdir(
-                adv, datout_v["corr"], **kw)
+                adv, datout_v["corr"], **kw
+            )
             if "thresh" in kw:
                 del kw["thresh"]
 
@@ -820,8 +900,9 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
                 kw["thresh"] = 0.995
             if dat_mean is None:
                 raise ValueError("For adv_form test, dat_mean needs to be given!")
-            failed_i["adv_form"], err_i["adv_form"] = test_adv_form(dat_mean_v, datout_v, var, cyclic,
-                                                                    hor_avg=hor_avg, avg_dims=avg_dims, **kw)
+            failed_i["adv_form"], err_i["adv_form"] = test_adv_form(
+                dat_mean_v, datout_v, var, cyclic, hor_avg=hor_avg, avg_dims=avg_dims, **kw
+            )
             if "thresh" in kw:
                 del kw["thresh"]
         if "periodic" in tests:
@@ -854,6 +935,7 @@ def run_tests(datout, tests, dat_mean=None, dat_inst=None, sim_id="", trb_exp=Fa
 
 
 # %% other functions
+
 
 def dropna_dims(dat, dims=None, how="all", **kwargs):
     """
@@ -934,13 +1016,14 @@ def R2(dat, ref, dim=None):
         d = {}
     dat = dat.astype(np.float64)
     ref = ref.astype(np.float64)
-    mse = ((dat - ref)**2).mean(**d)
-    var = ((ref - ref.mean(**d))**2).mean(**d)
+    mse = ((dat - ref) ** 2).mean(**d)
+    var = ((ref - ref.mean(**d)) ** 2).mean(**d)
     return 1 - mse / var
 
 
-def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
-               cyclic=None, hor_avg=False, avg_dims=None):
+def trb_fluxes(
+    dat_mean, inst, variables, grid, t_avg_interval, cyclic=None, hor_avg=False, avg_dims=None
+):
     """Compute turbulent fluxes explicitly from complete timeseries output.
 
     Parameters
@@ -970,8 +1053,11 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
     None.
 
     """
-    avg_kwargs = {"Time": t_avg_interval, "coord_func": {
-        "Time": partial(tools.select_ind, indeces=-1)}, "boundary": "trim"}
+    avg_kwargs = {
+        "Time": t_avg_interval,
+        "coord_func": {"Time": partial(tools.select_ind, indeces=-1)},
+        "boundary": "trim",
+    }
 
     # define all needed variables
     all_vars = ["OMZN_MEAN"]
@@ -990,22 +1076,33 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
             vel = v + "_MEAN"
 
             if d in ["X", "Y"]:
-                rho = tools.build_mu(inst["MUT_MEAN"], grid, full_levels="bottom_top_stag" in inst[var_d].dims)
+                rho = tools.build_mu(
+                    inst["MUT_MEAN"], grid, full_levels="bottom_top_stag" in inst[var_d].dims
+                )
             else:
                 rho = inst["RHOD_MEAN"]
 
             var_d_m = means[var_d]
             vel_m = means[vel]
             if hor_avg:
-                var_d_m = tools.avg_xy(var_d_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const])
-                vel_m = tools.avg_xy(vel_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const])
+                var_d_m = tools.avg_xy(
+                    var_d_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const]
+                )
+                vel_m = tools.avg_xy(
+                    vel_m, avg_dims, rho=rho, cyclic=cyclic, **grid[tools.stagger_const]
+                )
 
             # compute perturbations
             var_pert = inst[var_d] - var_d_m
-            rho_stag_vel = tools.stagger_like(rho, inst[vel],
-                                              cyclic=cyclic, **grid[tools.stagger_const])
-            vel_pert = tools.stagger_like(rho_stag_vel * (inst[vel] - vel_m), var_pert,
-                                          cyclic=cyclic, **grid[tools.stagger_const])
+            rho_stag_vel = tools.stagger_like(
+                rho, inst[vel], cyclic=cyclic, **grid[tools.stagger_const]
+            )
+            vel_pert = tools.stagger_like(
+                rho_stag_vel * (inst[vel] - vel_m),
+                var_pert,
+                cyclic=cyclic,
+                **grid[tools.stagger_const],
+            )
             # build flux
             flux = vel_pert * var_pert
             flux = flux.coarsen(**avg_kwargs).mean()
@@ -1013,41 +1110,7 @@ def trb_fluxes(dat_mean, inst, variables, grid, t_avg_interval,
                 flux = tools.avg_xy(flux, avg_dims, cyclic=cyclic)
                 rho = tools.avg_xy(rho, avg_dims, cyclic=cyclic, **grid[tools.stagger_const])
 
-            rho_stag = tools.stagger_like(rho, var_pert, cyclic=cyclic,
-                                          **grid[tools.stagger_const])
+            rho_stag = tools.stagger_like(rho, var_pert, cyclic=cyclic, **grid[tools.stagger_const])
             rho_stag_mean = rho_stag.coarsen(**avg_kwargs).mean()
             flux = flux / rho_stag_mean
             dat_mean["F{}{}_TRB_MEAN".format(var, v)] = flux
-
-            # rho_stag_vel_mean = rho_stag_vel.coarsen(**avg_kwargs).mean()
-            # vel_stag = tools.stagger_like(rho_stag_vel * inst[vel], var_pert,
-            #                               cyclic=cyclic, **grid[tools.stagger_const])
-            # vel_stag_mean = tools.stagger_like(rho_stag_vel_mean * dat_mean[vel], var_pert,
-            #                                    cyclic=cyclic, **grid[tools.stagger_const])
-            # tot_flux = vel_stag * inst[var_d]
-            # tot_flux = tot_flux.coarsen(**avg_kwargs).mean()
-            # mean_flux = vel_stag_mean * dat_mean[var_d]
-            # if hor_avg and (d.lower() not in avg_dims):
-            # tot_flux = tools.avg_xy(tot_flux, avg_dims, cyclic=cyclic)
-            # mean_flux = tools.avg_xy(mean_flux, avg_dims, cyclic=cyclic)
-            # tot_flux = tot_flux / rho_stag_mean
-            # dat_mean["F{}{}_TOT_MEAN".format(var, v)] = tot_flux
-            # mean_flux = mean_flux / rho_stag_mean
-            # dat_mean["F{}{}_MEAN_MEAN".format(var, v)] = mean_flux
-
-# TODO: reimplement?
-# def check_bounds(dat_mean, attrs, var):
-#     for dim in ["x", "y"]:
-#         if not attrs["PERIODIC_{}".format(dim.upper())]:
-#             for comp in ["ADV", "SGS"]:
-#                 for flx_dir in ["X", "Y", "Z"]:
-#                     flx_name = "F{}{}_{}_MEAN".format(var.upper(), flx_dir, comp)
-#                     flx = dat_mean[flx_name]
-#                     if (comp == "SGS") and (flx_dir == "Z"):
-#                         #sgs surface flux is filled everywhere
-#                         flx = flx[:,1:]
-#                     dims = dim
-#                     if dim not in flx.dims:
-#                         dims = dim + "_stag"
-#                     if not (flx[{dims : [0,-1]}] == 0).all():
-#                         print("For non-periodic BC in {0} direction, {1} should be zero on {0} boundaries!".format(dim, flx_name))

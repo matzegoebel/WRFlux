@@ -9,23 +9,22 @@ Test settings for automated tests.
 @author: Matthias Göbel
 
 """
-import os
 from pathlib import Path
-import numpy as np
 from run_wrf.configs.base_config import *
 from copy import deepcopy
+
 params = deepcopy(params)
 
 
 # %%
-'''Simulations settings'''
+"""Simulations settings"""
 
 runID = "pytest"
 test_path = Path(__file__).parent.parent
 test_sims = test_path / "test_sims"
 params["outpath"] = str(test_sims / "results")  # WRF output path root
-params["run_path"] = str(test_sims / "runs")  # path where run directories of simulations will be created
-
+# path where run directories of simulations will be created
+params["run_path"] = str(test_sims / "runs")
 # path where different versions of the compiled WRF model code reside
 build_path = str(test_path.parents[3])
 params["build_path"] = build_path
@@ -63,7 +62,8 @@ params["vgrid_method"] = 1
 params["dt_f"] = 2  # time step (s), if None calculated as dt = 6 s/m *dx/1000; can be float
 params["spec_hfx"] = None
 
-params["input_sounding"] = "wrflux_uv"  # name of input sounding to use (final name is then created: input_sounding_$name)
+# name of input sounding to use (final name is then created: input_sounding_$name)
+params["input_sounding"] = "wrflux_uv"
 params["hm"] = 200  # mountain height (m)
 
 # other standard namelist parameters
@@ -75,8 +75,8 @@ params["sf_surface_physics"] = 2
 params["ghg_input"] = 0
 
 params["km_opt"] = 2
-params["khdif"] = 0.
-params["kvdif"] = 0.
+params["khdif"] = 0.0
+params["kvdif"] = 0.0
 params["use_theta_m"] = 1
 params["mix_isotropic"] = 0
 params["momentum_adv_opt"] = 1

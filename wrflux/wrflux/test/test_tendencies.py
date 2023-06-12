@@ -454,7 +454,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
     for ind in failed.keys():
         for var in variables:
             failed_v = failed[ind].loc[:, var]
-            failed_tests = ",".join([test for test, f in failed_v.iteritems() if f == "FAIL"])
+            failed_tests = ",".join([test for test, f in failed_v.items() if f == "FAIL"])
             failed_short.loc[ind, var] = failed_tests
     failed_short = (
         failed_short.where(failed_short.astype(str) != "")

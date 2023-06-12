@@ -2421,6 +2421,13 @@ def calc_tendencies_core(
                         else:
                             stop = -1
                     t_bounds[d] = slice(start, stop)
+                    # set values at domain boundaries to NaN as they are wrong when using tiling
+                    for var in dat.variables:
+                        if d in dat[var].dims and d != var:
+                            if start is None:
+                                dat[{d: 0}][var] = np.nan
+                            if stop is None:
+                                dat[{d: -1}][var] = np.nan
                 dat = dat[t_bounds]
 
             if save_output:

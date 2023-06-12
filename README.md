@@ -102,7 +102,7 @@ With the setting `adv_form` the tendencies are transformed to the advective form
 
 ![](https://latex.codecogs.com/svg.latex?\partial_t\psi=-\mathbf{v}\nabla\psi+...)
 
-If the WRF output data is too large to fit into memory, the domain can be decomposed into xy-tiles and processed tile per tile. The tile sizes are set in the `chunks` argument.
+If the WRF output data is too large to fit into memory, the domain can be decomposed into xy-tiles and processed tile per tile. The tile sizes are set in the `chunks` argument. In this case, the values at the domain boundaries cannot be computed correctly and are thus set to NaN.
 The tiles can also be processed in parallel:
 
 ```sh

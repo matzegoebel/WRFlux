@@ -22,8 +22,10 @@ import numpy as np
 import datetime
 from pathlib import Path
 import glob
+from functools import partial
 from config import config_test_tendencies_base as conf
 
+print = partial(print, flush=True)
 pd.set_option("display.precision", 15)
 now = datetime.datetime.now().isoformat()[:16]
 test_path = Path(__file__).parent.absolute()
@@ -338,7 +340,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 failed[ind] = ""
                 err[ind] = ""
                 print("Check if simulations were successfully initialized and run.")
-                run_dir = Path(conf.params["run_path"]) / ("WRF_" + IDi + "_0")
+                run_dir = Path(conf.params["run_path"]) / (IDi + "_0")
                 log = (run_dir / "init.log").read_text()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
                     print("Error in initializing simulation!")
@@ -489,8 +491,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
         err_clean = err_clean.astype(float)
         err_diff = err_clean - err_previous
         err_ratio = (1 - err_clean) / (1 - err_previous)
-        err_diff = err_diff.dropna(0, "all").dropna(1, "all")
-        err_ratio = err_ratio.dropna(0, "all").dropna(1, "all")
+        err_diff = err_diff.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        err_ratio = err_ratio.dropna(axis=0, how="all").dropna(axis=1, how="all")
 
     if save_results:
         failed.to_csv(test_results / ("test_results_" + now + ".csv"))

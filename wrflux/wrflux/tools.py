@@ -454,7 +454,7 @@ def stagger_like(data, ref, rename=True, cyclic=None, ignore=None, **stagger_kw)
     ----------
     data : xarray dataarray or dataset
         input data.
-    data : xarray dataarray
+    ref : xarray dataarray
         reference data.
     rename : boolean, optional
         add "_stag" to dimension name. The default is True.

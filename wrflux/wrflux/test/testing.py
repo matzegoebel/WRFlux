@@ -38,7 +38,7 @@ def test_budget(
     avg_dims_error=None,
     thresh=0.9999,
     thresh_cartesian=None,
-    budget_methods=("native", "adv_form", "cartesian", "cartesian adv_form"),
+    budget_forms=("native", "adv_form", "cartesian", "cartesian adv_form"),
     loc=None,
     iloc=None,
     plot=True,
@@ -65,8 +65,8 @@ def test_budget(
     thresh_cartesian : float, optional
         Use different threshold value for Cartesian coordinate system.
         The default is None, for which 'thresh' is used in both formulations.
-    budget_methods : list of str
-        Budget methods to consider.
+    budget_forms : list of str
+        Budget forms to consider.
         By default, only "native", "adv_form", "cartesian", and "cartesian adv_form" are tested.
     loc : dict, optional
         Mapping for label based indexing before running the test. The default is None.
@@ -90,28 +90,28 @@ def test_budget(
     fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
-    for ID in budget_methods:
+    for budget_form in budget_forms:
         thresh_i = thresh
-        if (ID == "cartesian") and (thresh_cartesian is not None):
+        if (budget_form == "cartesian") and (thresh_cartesian is not None):
             thresh_i = thresh_cartesian
-        if ID not in tend.ID:
+        if budget_form not in tend.budget_form:
             continue
-        ref = tend.sel(ID=ID, drop=True)
-        dat = forcing.sel(ID=ID, drop=True)
+        ref = tend.sel(budget_form=budget_form, drop=True)
+        dat = forcing.sel(budget_form=budget_form, drop=True)
         dat = tools.loc_data(dat, loc=loc, iloc=iloc)
         ref = tools.loc_data(ref, loc=loc, iloc=iloc)
         e = R2(dat, ref, dim=avg_dims_error).min().values
         err.append(e)
 
         if e < thresh_i:
-            log = "test_budget for ID='{}': min. R2 less than {}: {:.10f}\n".format(ID, thresh_i, e)
+            log = "test_budget for budget_form='{}': min. R2 less than {}: {:.10f}\n".format(budget_form, thresh_i, e)
             print(log)
             if plot:
                 dat.name = dat.description[:8] + "forcing"
                 ref.name = ref.description
                 fname_i = fname
                 if fname is not None:
-                    fname_i = "ID=" + ID + "_" + fname
+                    fname_i = "budget_form=" + budget_form + "_" + fname
                     log = fname_i + "\n" + log
                 plotting.scatter_hue(dat, ref, title=log, fname=fname_i, **plot_kws)
             failed = True
@@ -123,7 +123,7 @@ def test_decomp_sumdir(
     adv, corr, avg_dims_error=None, thresh=0.99999, loc=None, iloc=None, plot=True, **plot_kws
 ):
     """
-    Test that budget methods "native" and "cartesian" give equal advective tendencies
+    Test that budget forms "native" and "cartesian" give equal advective tendencies
     in all components if the three spatial directions are summed up.
 
     The test fails if the coefficient of determination
@@ -160,8 +160,8 @@ def test_decomp_sumdir(
 
     """
     data = adv.sel(dir="sum", comp=corr.comp)
-    ref = data.sel(ID="native")
-    dat = data.sel(ID="cartesian") - corr.sel(ID="cartesian", dir="T")
+    ref = data.sel(budget_form="native")
+    dat = data.sel(budget_form="cartesian") - corr.sel(budget_form="cartesian", dir="T")
     dat = tools.loc_data(dat, loc=loc, iloc=iloc)
     ref = tools.loc_data(ref, loc=loc, iloc=iloc)
     err = R2(dat, ref, dim=avg_dims_error).min().values
@@ -225,14 +225,14 @@ def test_decomp_sumcomp(
     fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
-    for ID in dat.ID.values:
-        dat_i = dat.sel(ID=ID)
-        ref_i = ref.sel(ID=ID)
+    for budget_form in dat.budget_form.values:
+        dat_i = dat.sel(budget_form=budget_form)
+        ref_i = ref.sel(budget_form=budget_form)
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for ID={}: min. R2 less than {}: {:.8f}".format(
-                dat.description, ID, thresh, e
+            log = "decomp_sumcomp, {} (XYZ) for budget_form={}: min. R2 less than {}: {:.8f}".format(
+                dat.description, budget_form, thresh, e
             )
             print(log)
             if plot:
@@ -240,7 +240,7 @@ def test_decomp_sumcomp(
                 dat_i.name = "adv_r - mean"
                 fname_i = fname
                 if fname is not None:
-                    fname_i = "ID=" + ID + "_" + fname
+                    fname_i = "budget_form=" + budget_form + "_" + fname
                     log = fname_i + "\n" + log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
@@ -346,16 +346,16 @@ def test_mass(
     fname = ""
     if "fname" in plot_kws:
         fname = plot_kws.pop("fname")
-    for ID in dat.ID.values:
-        dat_i = dat.sel(ID=ID)
-        ref_i = ref.sel(ID=ID)
+    for budget_form in dat.budget_form.values:
+        dat_i = dat.sel(budget_form=budget_form)
+        ref_i = ref.sel(budget_form=budget_form)
         dat_i = tools.loc_data(dat_i, loc=loc, iloc=iloc)
         ref_i = tools.loc_data(ref_i, loc=loc, iloc=iloc)
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "test_mass: vertical component of continuity equation\n for ID={}: min. R2 less than {}: {:.10f}".format(
-                ID, thresh, e
+            log = "test_mass: vertical component of continuity equation\n for budget_form={}: min. R2 less than {}: {:.10f}".format(
+                budget_form, thresh, e
             )
             print(log)
             if plot:
@@ -364,7 +364,7 @@ def test_mass(
 
                 fname_i = fname
                 if fname is not None:
-                    fname_i = "ID=" + ID + "_" + fname
+                    fname_i = "budget_form=" + budget_form + "_" + fname
                     log = fname_i + "\n" + log
                 plotting.scatter_hue(dat_i, ref_i, title=log, fname=fname_i, **plot_kws)
             failed = True
@@ -491,7 +491,7 @@ def test_adv_form(
         fname = plot_kws.pop("fname")
 
     dat = tools.loc_data(
-        adv.sel(ID="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc
+        adv.sel(budget_form="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc
     )
     ref = tools.loc_data(tend, loc=loc, iloc=iloc)
     dat = dat.sel(dir=ref.dir)
@@ -566,19 +566,19 @@ def test_y0(adv, thresh=(5e-6, 5e-3)):
     """Test whether the advective tendency resulting from fluxes in y-direction is,
     on average, much smaller than the one resulting from fluxes in x-direction. This
     should be the case if the budget is averaged over y. The average absolute ratio is
-    compared to the given thresholds for the two budget methods "native" and "cartesian".
+    compared to the given thresholds for the two budget forms "native" and "cartesian".
     """
     failed = False
-    dims = [d for d in adv.dims if d not in ["dir", "ID", "comp"]]
+    dims = [d for d in adv.dims if d not in ["dir", "budget_form", "comp"]]
     f = abs((adv.sel(dir="Y") / adv.sel(dir="X"))).median(dims)
-    for ID, thresh_i in zip(["native", "cartesian"], thresh):
-        if ID in f.ID:
+    for budget_form, thresh_i in zip(["native", "cartesian"], thresh):
+        if budget_form in f.budget_form:
             for comp in f.comp.values:
-                fi = f.sel(ID=ID, comp=comp).values
+                fi = f.sel(budget_form=budget_form, comp=comp).values
                 if fi > thresh_i:
                     print(
-                        "test_y0 failed for ID={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(
-                            ID, comp, fi, thresh_i
+                        "test_y0 failed for budget_form={}, comp={}!: median(|adv_y/adv_x|) = {} > {}".format(
+                            budget_form, comp, fi, thresh_i
                         )
                     )
                     failed = True
@@ -798,12 +798,12 @@ def run_tests(
     for v, datout_v in datout.items():
         datout_lim[v] = {}
         for n, dat in datout_v.items():
-            if "ID" in dat.dims:
-                IDs = []
-                for ID in dat.ID.values:
-                    ID = ID.split(" ")
-                    IDs.append(" ".join(ID))
-                dat["ID"] = IDs
+            if "budget_form" in dat.dims:
+                budget_forms = []
+                for budget_form in dat.budget_form.values:
+                    budget_form = budget_form.split(" ")
+                    budget_forms.append(" ".join(budget_form))
+                dat["budget_form"] = budget_forms
             if "dim_coords" in tests:
                 test_dim_coords(dat, dat_inst, v, n, failed)
             if hor_avg:

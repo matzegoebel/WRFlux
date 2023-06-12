@@ -69,10 +69,9 @@ kw = dict(
     savefig=True,
 )
 
-
-# %% budget calculation methods
-budget_methods = ["", "cartesian"]
-budget_methods_advform = ["cartesian adv_form"]
+# %% budget calculation forms
+budget_forms = ["", "cartesian"]
+budget_forms_advform = ["cartesian adv_form"]
 
 # %%test functions
 
@@ -380,8 +379,8 @@ def run_and_test(param_grids, param_names, avg_dims=None):
 
                 print("Postprocess simulation")
 
-                # set budget methods
-                bm = budget_methods
+                # set budget forms
+                bm = budget_forms
                 tests_i = tests.copy()
                 hor_avg = False
                 if "hor_avg" in label:
@@ -389,7 +388,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 if ("chunking" in label) and ("periodic" in tests_i):
                     tests_i.remove("periodic")
                 if "adv_form" in label:
-                    bm = budget_methods + budget_methods_advform
+                    bm = budget_forms + budget_forms_advform
                 elif "adv_form" in tests_i:
                     tests_i.remove("adv_form")
 
@@ -408,7 +407,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     outpath_c,
                     inst_file=inst_file,
                     mean_file=mean_file,
-                    budget_methods=bm,
+                    budget_forms=bm,
                     hor_avg=hor_avg,
                     avg_dims=avg_dims,
                     t_avg=t_avg,

@@ -855,26 +855,26 @@ def load_postproc(
     return datout
 
 
-def get_budget_method(budget_method):
+def get_budget_form(budget_form):
     """Build settings dictionary from str. Replace abbreviations."""
-    if budget_method == "":
+    if budget_form == "":
         # if no settings are given: calculate native WRF tendencies
-        budget_method = "native"
-        budget_method_list = []
+        budget_form = "native"
+        budget_form_list = []
     else:
-        budget_method = budget_method.strip()
-        budget_method_list = budget_method.split(" ")
+        budget_form = budget_form.strip()
+        budget_form_list = budget_form.split(" ")
 
     config = {}
-    undefined = [key for key in budget_method_list if key not in budget_settings]
+    undefined = [key for key in budget_form_list if key not in budget_settings]
     if len(undefined) > 0:
         raise ValueError("Undefined keys: {}".format(", ".join(undefined)))
     for k in budget_settings:
-        if k in budget_method_list:
+        if k in budget_form_list:
             config[k] = True
         else:
             config[k] = False
-    return config, budget_method
+    return config, budget_form
 
 
 def prepare(
@@ -1225,10 +1225,10 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sgs_i, sgsflux_i = sgs_tendency(
             dat_mean, VAR, grid, cyclic, cartesian=cartesian, mapfac=mapfac
         )
-        sgs.append(sgs_i.expand_dims(ID=[label]))
-        sgsflux.append(sgsflux_i.expand_dims(ID=[label]))
-    sgs = xr.concat(sgs, dim="ID")
-    sgsflux = xr.concat(sgsflux, dim="ID")
+        sgs.append(sgs_i.expand_dims(budget_form=[label]))
+        sgsflux.append(sgsflux_i.expand_dims(budget_form=[label]))
+    sgs = xr.concat(sgs, dim="budget_form")
+    sgsflux = xr.concat(sgsflux, dim="budget_form")
 
     if hor_avg:
         sources = avg_xy(sources, avg_dims, cyclic=cyclic)
@@ -1244,7 +1244,7 @@ def calc_tend_sources(dat_mean, dat_inst, var, grid, cyclic, attrs, hor_avg=Fals
         sources_sum = sources.to_array("comp").sum("comp")
     else:
         sources_sum = 0
-    sources_sum = sources_sum + sgs_sum.sel(ID="cartesian", drop=True)
+    sources_sum = sources_sum + sgs_sum.sel(budget_form="cartesian", drop=True)
 
     return dat_mean, dat_inst, sgs, sgsflux, sources, sources_sum, grid, dim_stag, mapfac
 
@@ -1830,7 +1830,7 @@ def calc_tendencies(
     variables,
     outpath_wrf,
     outpath=None,
-    budget_methods="cartesian",
+    budget_forms="cartesian",
     t_avg=False,
     t_avg_interval=None,
     hor_avg=False,
@@ -1842,7 +1842,7 @@ def calc_tendencies(
     return_model_output=False,
     **load_kw
 ):
-    """Load WRF output and start tendency calculations according to the given budget methods.
+    """Load WRF output and start tendency calculations according to the given budget forms.
        MPI processing is available via the chunks argument.
 
     Parameters
@@ -1853,10 +1853,10 @@ def calc_tendencies(
         Path to the WRF output directory.
     outpath : str or path-like, optional
         Where to save the postprocessed output. Defaults to $outpath_wrf/postprocessed.
-    budget_methods : str or list of str, optional
-        Budget calculation methods to apply. One method is a string that contains
+    budget_forms : str or list of str, optional
+        Budget calculation forms to apply. One form is a string that contains
         keys from tools.budget_settings separated by a space.
-        Several methods can be combined in a list.
+        Several forms can be combined in a list.
         The default is "cartesian".
     t_avg : bool, optional
         Average WRF output again over time. The default is False.
@@ -1917,8 +1917,8 @@ def calc_tendencies(
         skip = True
     else:
         skip = False
-    cartesian = "cartesian" in " ".join(make_list(budget_methods))
-    adv_form = "adv_form" in " ".join(make_list(budget_methods))
+    cartesian = "cartesian" in " ".join(make_list(budget_forms))
+    adv_form = "adv_form" in " ".join(make_list(budget_forms))
 
     for outfile in outfiles:
         if (outfile == "corr") and (not cartesian):
@@ -1934,7 +1934,7 @@ def calc_tendencies(
                 skip = False
 
     kwargs = dict(
-        budget_methods=budget_methods,
+        budget_forms=budget_forms,
         t_avg=t_avg,
         t_avg_interval=t_avg_interval,
         hor_avg=hor_avg,
@@ -2050,7 +2050,7 @@ def calc_tendencies_core(
     variables,
     outpath_wrf,
     outpath,
-    budget_methods="cartesian",
+    budget_forms="cartesian",
     tile=None,
     tile_nr=0,
     task=None,
@@ -2066,7 +2066,7 @@ def calc_tendencies_core(
     **load_kw
 ):
     """Core function of calc_tendencies. Load WRF output and start tendency calculations
-       according to the given budget methods. Only process a certain tile, if desired.
+       according to the given budget forms. Only process a certain tile, if desired.
 
     Parameters
     ----------
@@ -2076,10 +2076,10 @@ def calc_tendencies_core(
         Path to the WRF output directory.
     outpath : str or path-like
         Where to save the postprocessed output.
-    budget_methods : str or list of str, optional
-        Budget calculation methods to apply. One method is a string that contains
+    budget_forms : str or list of str, optional
+        Budget calculation forms to apply. One form is a string that contains
         keys from tools.budget_settings separated by a space.
-        Several methods can be combined in a list.
+        Several forms can be combined in a list.
         The default is "cartesian".
     tile : dict, optional
         Tile to process. Mapping from dimension names to integer-based indexers.
@@ -2135,9 +2135,9 @@ def calc_tendencies_core(
     cyclic = {d: bool(dat_inst_all.attrs["PERIODIC_{}".format(d.upper())]) for d in xy}
     cyclic["bottom_top"] = False
 
-    budget_methods = make_list(budget_methods)
-    cartesian = "cartesian" in " ".join(budget_methods)
-    adv_form = "adv_form" in " ".join(make_list(budget_methods))
+    budget_forms = make_list(budget_forms)
+    cartesian = "cartesian" in " ".join(budget_forms)
+    adv_form = "adv_form" in " ".join(make_list(budget_forms))
 
     # select tile
     if tile is not None:
@@ -2213,12 +2213,12 @@ def calc_tendencies_core(
         )
 
         # total and advective tendencies
-        for budget_method in budget_methods:
-            budget_method = budget_method.strip()
+        for budget_form in budget_forms:
+            budget_form = budget_form.strip()
             datout_c = {}
-            # get config dict for current budget method
-            c, budget_method = get_budget_method(budget_method)
-            print("\nBudget method: " + budget_method)
+            # get config dict for current budget form
+            c, budget_form = get_budget_form(budget_form)
+            print("\nBudget form: " + budget_form)
             total_tend, vard = total_tendency(
                 dat_inst, var, grid, attrs, hor_avg=hor_avg, avg_dims=avg_dims, cyclic=cyclic
             )
@@ -2269,7 +2269,7 @@ def calc_tendencies_core(
                 if tend_mass is None:
                     for v in ["q", "t"]:
                         try:
-                            tend_mass = datout_all[v]["tend_mass"].sel(ID=budget_method)
+                            tend_mass = datout_all[v]["tend_mass"].sel(budget_form=budget_form)
                             break
                         except KeyError:
                             if v == "t":
@@ -2300,10 +2300,10 @@ def calc_tendencies_core(
                 datout_c[v] = datout_c[v].reindex(comp=[*datout_c[v].comp.values, "trb_s"])
                 for dv in datout_c[v].data_vars:
                     if c["cartesian"]:
-                        IDs = "cartesian"
+                        bf = "cartesian"
                     else:
-                        IDs = "native"
-                    datout_c[v][dv].loc[{"comp": "trb_s"}] = sgs_dat[dv].sel(ID=IDs)
+                        bf = "native"
+                    datout_c[v][dv].loc[{"comp": "trb_s"}] = sgs_dat[dv].sel(budget_form=bf)
             adv = datout_c["adv"].to_array().isel(variable=0, drop=True).reindex(dir=[*XYZ, "sum"])
             adv_sum = adv.sum("dir")
             adv.loc[{"dir": "sum"}] = adv_sum
@@ -2318,16 +2318,16 @@ def calc_tendencies_core(
                 # remove inappropriate coordinate
                 datout_c["net"] = datout_c["net"].drop("dim")
 
-            # aggregate output of different IDs
-            loc = dict(ID=[budget_method])
+            # aggregate output of different budget_forms
+            loc = dict(budget_form=[budget_form])
             for dn in datout_c.keys():
                 datout_c[dn] = datout_c[dn].expand_dims(loc)
                 if dn not in datout:
                     datout[dn] = datout_c[dn]
                 else:
-                    datout[dn] = xr.concat([datout[dn], datout_c[dn]], "ID")
+                    datout[dn] = xr.concat([datout[dn], datout_c[dn]], "budget_form")
                 desc = "form of the governing equation"
-                datout[dn]["ID"] = datout[dn]["ID"].assign_attrs(description=desc)
+                datout[dn]["budget_form"] = datout[dn]["budget_form"].assign_attrs(description=desc)
 
         net = datout["net"].expand_dims(side=["tendency"])
         forcing = datout["forcing"].expand_dims(side=["forcing"])

@@ -87,12 +87,10 @@ In addition to the namelist variables `output_{t,q,u,v,w}_fluxes`, you can of co
 In the post-processing, the tendencies are calculated by differentiating the fluxes and decomposed into mean, resolved turbulence, and SGS.
 To check the closure of the budget, all forcing terms are added and the total model tendency over the averaging interval is calculated. The post-processing is done with a python package located in the directory `wrflux`. The tendency calculations can be done with the function `tools.calc_tendencies`. A template script is given by [`tendency_calcs.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/tendency_calcs.py). This script sets the arguments and runs `tools.calc_tendencies` for some example WRF output data located in the directory `example`. Then the output is checked for consistency and a profile plot is drawn.
 
-The budget for each variable can be calculated in several different ways specified by the `budget_methods` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
+The budget for each variable can be calculated in several different ways specified by the `budget_forms` argument. This is a list of strings, where each string is a combination of the following settings separated by a space:
 
 - `cartesian`: advective tendencies in Cartesian instead of native (terrain-following) form
 - `adv_form` : transform mean advective and total tendencies to advective form using the mass tendencies
-
-Except for the first two, these options are mainly for testing purposes to see the effect of approximations on the budget closure. This is addressed in the publication mentioned above.
 
 For the tendencies in Cartesian form, corrections are applied to the total tendency and to the horizontal derivatives and the vertical flux is using the Cartesian vertical velocity. See [Theory/Advection equation transformations](#advection-equation-transformations) for details.
 
@@ -127,7 +125,7 @@ If horizontal averaging is switched on, the averaging dimension(s) are added to 
 
 Besides the spatial dimensions and the time dimension the following netCDF dimensions occur in the files:
 
-- **ID** : the different forms of the conservation equation: selected budget settings (see beginning of section)
+- **budget_form** : the different forms of the conservation equation: selected budget settings (see beginning of section)
 - **dir** : spatial directions of the flux derivatives: X, Y, Z, and their sum
 - **comp** : components of the Reynold's decomposition (see [Theory/Averaging and Decomposition](#averaging-and-decomposition)):
             mean advective (mean), resolved turbulent (trb_r), subgrid-scale turbulent (trb_s), and the sum of all (total)
@@ -264,7 +262,7 @@ The test statistic used is the coefficient of determination calculated for data 
 
 ![](https://latex.codecogs.com/svg.latex?R^2=1-\frac{\mathrm{MSE}(d,r)}{\mathrm{VAR}(r)}=1-\frac{\overline{(d-r)^2}}{\overline{(r-\bar{r})^2}})
 
-The averaging is over time, height, and along-mountain direction. Afterward, the minimum ![](https://latex.codecogs.com/svg.latex?R^2) value is taken over the remaining dimensions (cross-valley direction, and potentially flux direction, component (mean, resolved turbulent, or total), and budget method). The tests fail if the ![](https://latex.codecogs.com/svg.latex?R^2) score is below the threshold given in brackets for the tests in the list. 
+The averaging is over time, height, and along-mountain direction. Afterward, the minimum ![](https://latex.codecogs.com/svg.latex?R^2) value is taken over the remaining dimensions (cross-valley direction, and potentially flux direction, component (mean, resolved turbulent, or total), and budget form). The tests fail if the ![](https://latex.codecogs.com/svg.latex?R^2) score is below the threshold given in brackets for the tests in the list. 
 
 For some simulations, the stated thresholds are reduced (see [`testing.py`](https://github.com/matzegoebel/WRFlux/blob/master/wrflux/wrflux/test/testing.py) for details): For open and symmetric boundary conditions; when using WENO or monotonic advection for scalars together with `output_dry_theta_fluxes`; and when calculating tendencies for moist ![](https://latex.codecogs.com/svg.latex?\theta). The reduction for moist ![](https://latex.codecogs.com/svg.latex?\theta) is due to the fact that the ![](https://latex.codecogs.com/svg.latex?\theta_\mathrm{m})-tendencies in the Cartesian coordinate system are very close to 0. 
 

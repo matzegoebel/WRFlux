@@ -77,9 +77,9 @@ tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim
 # cartesian: advective tendencies in Cartesian instead of native form
 # adv_form : transform tendencies to advective form using the mass tendencies
 
-# all budget calculation methods to apply as a list of str
+# all budget calculation forms to apply as a list of str
 # each item is a combination of setting strings from above separated by a space
-budget_methods = ["", "cartesian", "cartesian adv_form"]
+budget_forms = ["", "cartesian", "cartesian adv_form"]
 
 # %% calc tendencies
 
@@ -89,7 +89,7 @@ out = tools.calc_tendencies(
     outpath,
     mean_file=mean_file,
     inst_file=inst_file,
-    budget_methods=budget_methods,
+    budget_forms=budget_forms,
     pre_iloc=pre_iloc,
     pre_loc=pre_loc,
     t_avg=t_avg,
@@ -131,7 +131,7 @@ if rank == 0:
     # %% plotting
     pdat = datout["t"]["tend"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
     pdat.name = "advective $\\theta$-tendency"
-    pgrid = pdat.plot(hue="ID", row="dir", y="z", col="comp", sharex=False)
+    pgrid = pdat.plot(hue="budget_form", row="dir", y="z", col="comp", sharex=False)
     plt.savefig(outpath_wrf / "tend_profile.pdf")
 
 # %% elapsed time

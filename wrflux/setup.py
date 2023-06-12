@@ -28,30 +28,39 @@ SOFTWARE.
 """
 
 from setuptools import setup, find_packages
+
 # To use a consistent encoding
 from codecs import open
 from pathlib import Path
+
 here = Path(__file__)
 
 # Get the long description from the README file
-with open(here.parents[1] / 'README.md', encoding='utf-8') as f:
+with open(here.parents[1] / "README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name='wrflux',
-    version='1.5.1',
-    description='With this package time-averaged tendencies of the WRF model can be retrieved '
-    'in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.',
+    name="wrflux",
+    version="1.5.1",
+    description="With this package time-averaged tendencies of the WRF model can be retrieved "
+    "in the Cartesian coordinate system and decomposed into mean and resolved turbulent components.",
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    url='https://github.com/matzegoebel/wrflux',
-    author='Matthias Göbel',
-    author_email='matthias-goebel@uibk.ac.at',
-    keywords='WRF',
+    long_description_content_type="text/markdown",
+    url="https://github.com/matzegoebel/wrflux",
+    author="Matthias Göbel",
+    author_email="matthias-goebel@uibk.ac.at",
+    keywords="WRF",
     packages=find_packages(),
-    python_requires=">3.7,<3.8",
-    install_requires=['xarray', 'matplotlib', 'netcdf4', 'bottleneck'],
+    python_requires="==3.11.4",
+    install_requires=[
+        "numpy==1.24.3",
+        "pandas==2.0.2",
+        "xarray==2023.5.0",
+        "matplotlib==3.7.1",
+        "netcdf4==1.6.4",
+        "bottleneck==1.3.7",
+    ],
     extras_require={
-        'test': ['pytest', 'run_wrf'],
+        "test": ["pytest", "run_wrf"],
     },
 )

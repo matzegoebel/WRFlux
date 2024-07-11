@@ -336,7 +336,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     continue
                 IDi = param_comb["fname"]
                 ind = label + ": " + IDi
-                print("\n\n{0}\nCheck simulation: {1}, {2}\n{0}\n".format("#" * 70, label, IDi))
+                print("\n\n{0}\nCheck simulation: {1}, {2}\n{0}\n".format("#" * 100, label, IDi))
                 results[ind] = ""
                 scores[ind] = ""
                 print("Check if simulations were successfully initialized and run.")
@@ -359,11 +359,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 inst_file = "instout_d01_" + start_time
                 mean_file = "meanout_d01_" + start_time
 
-                if (
-                    ("no_model_change" in tests)
-                    and ("org" in builds_i)
-                    and (build == "debug")
-                ):
+                if ("no_model_change" in tests) and ("org" in builds_i) and (build == "debug"):
                     # replace build with placeholder for later formatting
                     ID_b = IDi.replace(build, "{}")
                     f = testing.test_no_model_change(

@@ -104,7 +104,9 @@ def test_budget(
         err.append(e)
 
         if e < thresh_i:
-            log = "test_budget for budget_form='{}': min. R2 less than {}: {:.10f}\n".format(budget_form, thresh_i, e)
+            log = "test_budget for budget_form='{}': min. R2 less than {}: {:.10f}\n".format(
+                budget_form, thresh_i, e
+            )
             print(log)
             if plot:
                 dat.name = dat.description[:8] + "forcing"
@@ -231,8 +233,10 @@ def test_decomp_sumcomp(
         e = R2(dat_i, ref_i, dim=avg_dims_error).min().values
         err.append(e)
         if e < thresh:
-            log = "decomp_sumcomp, {} (XYZ) for budget_form={}: min. R2 less than {}: {:.8f}".format(
-                dat.description, budget_form, thresh, e
+            log = (
+                "decomp_sumcomp, {} (XYZ) for budget_form={}: min. R2 less than {}: {:.8f}".format(
+                    dat.description, budget_form, thresh, e
+                )
             )
             print(log)
             if plot:
@@ -491,7 +495,9 @@ def test_adv_form(
         fname = plot_kws.pop("fname")
 
     dat = tools.loc_data(
-        adv.sel(budget_form="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"), loc=loc, iloc=iloc
+        adv.sel(budget_form="cartesian adv_form", dir=["X", "Y", "Z"], comp="mean"),
+        loc=loc,
+        iloc=iloc,
     )
     ref = tools.loc_data(tend, loc=loc, iloc=iloc)
     dat = dat.sel(dir=ref.dir)

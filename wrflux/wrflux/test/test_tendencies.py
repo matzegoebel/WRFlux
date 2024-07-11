@@ -226,11 +226,11 @@ def test_all():
     )
     param_grids["symmetric BC y hor_avg"] = param_grids["symmetric BC y"].copy()
 
-    failed, failed_short, err, err_short, err_diff, err_ratio = run_and_test(
+    results, results_short, scores, scores_short, scores_diff, scores_ratio = run_and_test(
         param_grids, param_names, avg_dims=["y"]
     )
 
-    return failed, failed_short, err, err_short, err_diff, err_ratio
+    return results, results_short, scores, scores_short, scores_diff, scores_ratio
 
 
 # %% run_and_test
@@ -238,14 +238,14 @@ def test_all():
 
 def run_and_test(param_grids, param_names, avg_dims=None):
     """Run test simulations defined by param_grids and config_file and perform tests."""
-    index = pd.MultiIndex.from_product([["INIT", "RUN"] + tests, variables])
-    failed = pd.DataFrame(index=index)
-    failed_short = pd.DataFrame(columns=variables)
+    index = pd.MultiIndex.from_product([["INIT", "RUN"] + tests, variables + ["general"]])
+    results = pd.DataFrame(index=index)
+    results_short = pd.DataFrame(columns=variables + ["general"])
     index = pd.MultiIndex.from_product([tests, variables])
-    err = pd.DataFrame(index=index)
+    scores = pd.DataFrame(index=index)
 
-    test_results = test_path / "test_results"
-    os.makedirs(test_results, exist_ok=True)
+    results_path = test_path / "test_results"
+    results_path.mkdir(exist_ok=True, parents=True)
 
     for label, param_grid in param_grids.items():
         print(
@@ -337,20 +337,21 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 IDi = param_comb["fname"]
                 ind = label + ": " + IDi
                 print("\n\n{0}\nCheck simulation: {1}, {2}\n{0}\n".format("#" * 70, label, IDi))
-                failed[ind] = ""
-                err[ind] = ""
+                results[ind] = ""
+                scores[ind] = ""
                 print("Check if simulations were successfully initialized and run.")
                 run_dir = Path(conf.params["run_path"]) / (IDi + "_0")
                 log = (run_dir / "init.log").read_text()
                 if "wrf: SUCCESS COMPLETE IDEAL INIT" not in log:
                     print("Error in initializing simulation!")
-                    failed[ind].loc["INIT", variables_i[0]] = "FAIL"
+                    results[ind].loc["INIT", "general"] = "FAIL"
                     continue
                 log = (run_dir / "rsl.error.0000").read_text()
                 if "wrf: SUCCESS COMPLETE WRF" not in log:
                     print("Error in running simulation!")
-                    failed[ind].loc["RUN", variables_i[0]] = "FAIL"
+                    results[ind].loc["RUN", "general"] = "FAIL"
                     continue
+                results[ind].loc[["RUN", "INIT"], "general"] = "pass"
 
                 # postprocess data and run tests
                 outpath_c = os.path.join(conf.params["outpath"], IDi) + "_0"
@@ -358,23 +359,19 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 inst_file = "instout_d01_" + start_time
                 mean_file = "meanout_d01_" + start_time
 
-                if "normal" in builds_i:
-                    use_build = "normal"
-                else:
-                    use_build = "debug"
                 if (
                     ("no_model_change" in tests)
-                    and ("debug" in builds_i)
                     and ("org" in builds_i)
-                    and (build == use_build)
+                    and (build == "debug")
                 ):
-                    print("Check for differences between debug build and official WRF.")
                     # replace build with placeholder for later formatting
                     ID_b = IDi.replace(build, "{}")
                     f = testing.test_no_model_change(
                         conf.params["outpath"], ID_b, inst_file, mean_file
                     )
-                    failed.loc["no_model_change", variables_i[0]] = f
+                    if f == "pass":
+                        print("Found no differences between debug build and official WRF.")
+                    results[ind].loc["no_model_change", "general"] = f
 
                 if build != "normal":
                     continue
@@ -425,7 +422,7 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                     tests_i.remove("Y=0")
                 kw["fname"] = label.replace(" ", "_") + ":" + IDi  # figure filename
                 kw["close"] = True  # always close figures
-                failed_i, err_i = testing.run_tests(
+                results_i, scores_i = testing.run_tests(
                     datout,
                     tests_i,
                     dat_mean=dat_mean,
@@ -438,13 +435,13 @@ def run_and_test(param_grids, param_names, avg_dims=None):
                 )
 
                 for var in variables_i:
-                    for test, f in failed_i.loc[var].items():
-                        failed[ind].loc[test, var] = f
-                    for test, e in err_i.loc[var].items():
-                        err[ind].loc[test, var] = e
+                    for test, f in results_i.loc[var].items():
+                        results[ind].loc[test, var] = f
+                    for test, s in scores_i.loc[var].items():
+                        scores[ind].loc[test, var] = s
                 if save_results:
-                    failed.to_csv(test_results / ("test_results_" + now + ".csv"))
-                    err.to_csv(test_results / ("test_scores_" + now + ".csv"))
+                    results.to_csv(results_path / ("test_results_" + now + ".csv"))
+                    scores.to_csv(results_path / ("test_scores_" + now + ".csv"))
 
     if restore_init_module and (not skip_running):
         print("\n")
@@ -453,60 +450,65 @@ def run_and_test(param_grids, param_names, avg_dims=None):
             setup_test_sim(build, restore=True)
 
     # assemble and save final test results
-    for ind in failed.keys():
-        for var in variables:
-            failed_v = failed[ind].loc[:, var]
-            failed_tests = ",".join([test for test, f in failed_v.items() if f == "FAIL"])
-            failed_short.loc[ind, var] = failed_tests
-    failed_short = (
-        failed_short.where(failed_short.astype(str) != "")
+    for ind in results.keys():
+        for var in variables + ["general"]:
+            results_v = results[ind].loc[:, var]
+            results_tests = ",".join([test for test, f in results_v.items() if f == "FAIL"])
+            results_short.loc[ind, var] = results_tests
+    results_short = (
+        results_short.where(results_short.astype(str) != "")
         .dropna(how="all")
         .dropna(axis=1, how="all")
     )
-    failed_short = failed_short.where(~failed_short.isnull(), "")
-    err_short = err.where(failed == "FAIL")
-    err_short = err_short.where(~err_short.isnull(), "")
-    err_short = (
-        err_short.where(err_short.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
+    results_short = results_short.where(~results_short.isnull(), "")
+    scores_short = scores.where(results == "FAIL")
+    scores_short = scores_short.where(~scores_short.isnull(), "")
+    scores_short = (
+        scores_short.where(scores_short.astype(str) != "")
+        .dropna(how="all")
+        .dropna(axis=1, how="all")
     )
-    err_short = err_short.where(~err_short.isnull(), "")
-    err = err.where(err.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
-    err = err.where(~err.isnull(), "")
-    failed = failed.where(failed.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
-    failed = failed.where(~failed.isnull(), "")
+    scores_short = scores_short.where(~scores_short.isnull(), "")
+    scores = scores.where(scores.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
+    scores = scores.where(~scores.isnull(), "")
+    results = results.where(results.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
+    results = results.where(~results.isnull(), "")
 
     # load previous scores file and compute difference
-    err_previous = glob.glob(str(test_results / "test_scores_*.csv"))
-    err_previous = sorted([f for f in err_previous if "failsonly" not in f and now not in f])
-    err_diff = None
-    err_ratio = None
-    if len(err_previous) > 0:
-        err_previous = pd.read_csv(err_previous[-1], header=0, index_col=(0, 1))
+    scores_previous = glob.glob(str(results_path / "test_scores_*.csv"))
+    scores_previous = sorted([f for f in scores_previous if "failsonly" not in f and now not in f])
+    scores_diff = None
+    scores_ratio = None
+    if len(scores_previous) > 0:
+        scores_previous = pd.read_csv(scores_previous[-1], header=0, index_col=(0, 1))
         # delete Y=0 test
-        err_previous = err_previous.loc[[t for t in err_previous.index if t[0] != "Y=0"]].astype(
-            float
-        )
-        err_clean = err.where(err.astype(str) != "")
-        err_clean = err_clean.loc[[t for t in err_clean.index if t[0] != "Y=0"]]
-        err_clean = err_clean.astype(float)
-        err_diff = err_clean - err_previous
-        err_ratio = (1 - err_clean) / (1 - err_previous)
-        err_diff = err_diff.dropna(axis=0, how="all").dropna(axis=1, how="all")
-        err_ratio = err_ratio.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        scores_previous = scores_previous.loc[
+            [t for t in scores_previous.index if t[0] != "Y=0"]
+        ].astype(float)
+        scores_clean = scores.where(scores.astype(str) != "")
+        scores_clean = scores_clean.loc[[t for t in scores_clean.index if t[0] != "Y=0"]]
+        scores_clean = scores_clean.astype(float)
+        scores_diff = scores_clean - scores_previous
+        scores_ratio = (1 - scores_clean) / (1 - scores_previous)
+        scores_diff = scores_diff.dropna(axis=0, how="all").dropna(axis=1, how="all")
+        scores_ratio = scores_ratio.dropna(axis=0, how="all").dropna(axis=1, how="all")
 
     if save_results:
-        failed.to_csv(test_results / ("test_results_" + now + ".csv"))
-        err.to_csv(test_results / ("test_scores_" + now + ".csv"))
-        failed_short.to_csv(test_results / ("test_results_failsonly_" + now + ".csv"))
-        err_short.to_csv(test_results / ("test_scores_failsonly_" + now + ".csv"))
+        results.to_csv(results_path / ("test_results_" + now + ".csv"))
+        scores.to_csv(results_path / ("test_scores_" + now + ".csv"))
+        results_short.to_csv(results_path / ("test_results_failsonly_" + now + ".csv"))
+        scores_short.to_csv(results_path / ("test_scores_failsonly_" + now + ".csv"))
+        if scores_diff is not None:
+            scores_diff.to_csv(results_path / ("test_scores_diff_" + now + ".csv"))
+            scores_ratio.to_csv(results_path / ("test_scores_ratio_" + now + ".csv"))
 
-    if (failed_short.astype(str) != "").values.any():
-        message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, failed_short.to_string())
+    if (results_short.astype(str) != "").values.any():
+        message = "\n\n{}\nFailed tests:\n{}".format("#" * 100, results_short.to_string())
         print(message)
         if raise_error:
             raise RuntimeError(message)
 
-    return failed, failed_short, err, err_short, err_diff, err_ratio
+    return results, results_short, scores, scores_short, scores_diff, scores_ratio
 
 
 # %% misc
@@ -519,7 +521,7 @@ def capture_submit(*args, **kwargs):
             combs = launch_jobs(*args, **kwargs)
     except Exception as e:
         print("\n".join(output))
-        raise (e)
+        raise e
 
     return combs, output
 
@@ -650,13 +652,4 @@ def setup_test_sim(build, restore=False, random_msf=True):
 
 # %%main
 if __name__ == "__main__":
-    failed, failed_short, err, err_short, err_diff, err_ratio = test_all()
-
-    err_dict = {}
-    err_short_dict = {}
-    for e_df, e_dict in zip([err, err_short], [err_dict, err_short_dict]):
-        for test in e_df.index.levels[0]:
-            if test in e_df.index:
-                e = e_df.loc[test]
-                e = e.where(e.astype(str) != "").dropna(how="all").dropna(axis=1, how="all")
-                e_dict[test] = e.where(~e.isnull(), "").T
+    results, results_short, scores, scores_short, scores_diff, scores_ratio = test_all()

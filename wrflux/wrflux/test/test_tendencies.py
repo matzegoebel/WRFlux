@@ -144,7 +144,7 @@ def test_all():
         avg_interval=1200, output_streams=[{24: ["meanout", 30.0], 0: ["instout", 10.0]}]
     )
     param_grids["km_opt"] = odict(km_opt=[2, 5], spec_hfx=[0.2, None], th=th)
-    param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[1], th=th)
+    param_grids["PBL scheme with theta moist+dry"] = odict(bl_pbl_physics=[2], th=th)
     param_grids["2nd-order advection th variations"] = odict(
         use_theta_m=[0, 1],
         adv_order=dict(h_sca_adv_order=2, v_sca_adv_order=2, h_mom_adv_order=2, v_mom_adv_order=2),
@@ -182,7 +182,7 @@ def test_all():
         w_damping=1, dz0=30, dzmax=50, dx=1000, lx=20000, ly=20000, dt_f=10
     )
 
-    hm = 0  # flat simulations in boundaries are not periodic
+    hm = 0  # flat simulations with non-periodic BC
     param_grids["open BC x"] = odict(
         open_x=dict(
             open_xs=[True],

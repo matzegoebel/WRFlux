@@ -29,8 +29,10 @@ try:
     rank = comm.rank
     nproc = comm.size
     if nproc > 1:
-        sys.stdout = open("p{}_tendency_calcs.log".format(rank), "w")
-        sys.stderr = open("p{}_tendency_calcs.err".format(rank), "w")
+        sys.stdout = open(f"p{rank}_tendency_calcs.log", "w")
+        sys.stderr = open(f"p{rank}_tendency_calcs.err", "w")
+    else:
+        comm = None
 except ImportError:
     rank = 0
     nproc = 1
@@ -42,7 +44,7 @@ logger.setLevel(logging.DEBUG)
 # uncomment to enable debugging messages:
 # ch = logging.StreamHandler()
 # ch.setLevel(logging.DEBUG)
-# ch.setStream(sys.stdout)
+# ch.setStream(open(f"p{rank}_tendency_calcs_debug.log", "w"))
 # logger.addHandler(ch)
 
 print = partial(print, flush=True)
@@ -2546,31 +2548,30 @@ def save_tiles(dat, name, fpath, coords_all, task, tile, comm=None):
 
     """
     logger = logging.getLogger("l1")
-    logger.debug("#" * 20 + "\n\n Writing {}".format(name))
-    if os.path.isfile(fpath):
+    logger.debug("#" * 20 + f"\n\nWriting {name} at {fpath}\n\n")
+    fpath = Path(fpath)
+    if fpath.exists():
         mode = "r+"
     else:
         mode = "w"
 
     if comm is None:
         parallel = False
+        rank = 0
     else:
         parallel = True
+        rank = comm.rank
 
     nc = netCDF4.Dataset(fpath, mode=mode, parallel=parallel, comm=comm)
+
     # coordinates of whole dataset
     coords_all = {d: coords_all[d].values for d in tile.keys() if d in dat.dims}
     if mode == "w":
-        tempfile = str(fpath) + ".tmp"
-        if task == 0:
-            # create small template file to copy attributes and coordinates from
-            tmp = dat.isel({d: [1] for d in tile.keys() if d in dat.dims})
-            if os.path.isfile(tempfile):
-                os.remove(tempfile)
-            tmp.to_netcdf(tempfile)
-
-        nc_dat = netCDF4.Dataset(tempfile, "r", parallel=parallel, comm=comm)
-        logger.debug("Loaded template nc file")
+        # create small template file to copy attributes and coordinates from
+        tempfile = fpath.parent / (f"{fpath.stem}_{rank}.tmp")
+        tmp = dat.isel({d: [1] for d in tile.keys() if d in dat.dims})
+        tmp.to_netcdf(tempfile)
+        nc_dat = netCDF4.Dataset(tempfile, "r")
 
         # create dimensions
         for d in dat.dims:
@@ -2619,8 +2620,8 @@ def save_tiles(dat, name, fpath, coords_all, task, tile, comm=None):
         # global attributes
         attrs = {att: nc_dat.getncattr(att) for att in nc_dat.ncattrs()}
         nc.setncatts(attrs)
-        os.remove(tempfile)
         nc.close()
 
     if mode == "w":
         nc_dat.close()
+        os.remove(tempfile)

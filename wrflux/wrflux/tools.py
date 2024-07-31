@@ -1924,7 +1924,7 @@ def calc_tendencies(
         if (outfile == "corr") and (not cartesian):
             continue
         for var in variables:
-            if (outfile == "tend_mass") and (var != "t"):
+            if (outfile == "tend_mass") and (var not in ["q", "t"]):
                 continue
             fpath = outpath / var.upper() / (outfile + avg + ".nc")
             if fpath.exists():

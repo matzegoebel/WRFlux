@@ -2396,13 +2396,26 @@ def calc_tendencies_core(
 
             da_type = False
             if type(dat) == DataArray:
-                # data needs to be a Dataset
+                # data needs to be a DataArray
                 da_type = True
                 dat = dat.to_dataset(name=dn)
 
             for v in dat.variables:
                 # delete unnecessary variable attributes
                 dat[v].attrs = {k: v for k, v in dat[v].attrs.items() if k not in del_attrs}
+
+            # cache results
+            # if tiling is used only tend_mass is needed and only if adv_form is used for u/v/w
+            cache = dn == "tend_mass"
+            cache = cache and any("adv_form" in b for b in budget_forms)
+            cache = cache and any(v in variables for v in ["u", "v", "w"])
+            cache = cache or (tile is None)
+            if cache:
+                if da_type:
+                    # convert Dataset back to DataArray
+                    datout[dn] = dat[dn]
+                else:
+                    datout[dn] = dat
 
             if tile is not None:
                 # strip tile boundary points except for domain boundary points
@@ -2422,12 +2435,12 @@ def calc_tendencies_core(
                             stop = -1
                     t_bounds[d] = slice(start, stop)
                     # set values at domain boundaries to NaN as they are wrong when using tiling
-                    for var in dat.variables:
-                        if d in dat[var].dims and d != var:
+                    for v in dat.variables:
+                        if d in dat[v].dims and d != v:
                             if start is None:
-                                dat[{d: 0}][var] = np.nan
+                                dat[{d: 0}][v] = np.nan
                             if stop is None:
-                                dat[{d: -1}][var] = np.nan
+                                dat[{d: -1}][v] = np.nan
                 dat = dat[t_bounds]
 
             if save_output:
@@ -2439,14 +2452,7 @@ def calc_tendencies_core(
                 else:
                     save_tiles(dat, dn, fpath, dat_mean_all.coords, task, tile, comm=comm)
 
-            if da_type:
-                # convert Dataset back to DataArray
-                dat = dat[dn]
-
-            datout[dn] = dat
-
-        if tile is None:
-            datout_all[var] = datout
+        datout_all[var] = datout
 
     if tile is None:
         out = datout_all

@@ -68,9 +68,9 @@ else:
     chunks = None
 
 # tests to perform
-# tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs",
-#           "w", "mass", "Y=0", "NaN", "dim_coords", "no_model_change", "periodic", "adv_form"]
-tests = ["budget", "decomp_sumdir", "decomp_sumcomp", "sgs", "mass", "NaN", "dim_coords", "Y=0"]
+ignore = ["no_model_change", "adv_form", "Y=0"]
+tests = [t for t in testing.all_tests if t not in ignore]
+
 # %% set calculation methods
 
 # available settings:
@@ -130,6 +130,9 @@ if rank == 0:
         print("\nAll tests passed")
     # %% plotting
     pdat = datout["t"]["tend"]["adv"].isel(x=15, Time=-1, dir=[0, 2, 3])
+    if "y" in pdat.dims:
+        pdat["z"] = pdat.z.mean("y")
+        pdat = pdat.mean("y")
     pdat.name = "advective $\\theta$-tendency"
     pgrid = pdat.plot(hue="budget_form", row="dir", y="z", col="comp", sharex=False)
     plt.savefig(outpath_wrf / "tend_profile.pdf")

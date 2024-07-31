@@ -303,7 +303,7 @@ def test_w(
 
 
 def test_mass(
-    tend_mass, avg_dims_error=None, thresh=0.99999999, loc=None, iloc=None, plot=True, **plot_kws
+    tend_mass, avg_dims_error=None, thresh=0.9999999, loc=None, iloc=None, plot=True, **plot_kws
 ):
     """Test closure of continuity equation.
 

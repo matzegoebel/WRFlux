@@ -208,7 +208,7 @@ SUBROUTINE solve_em ( grid , config_flags  &
    CHARACTER*256                              :: message, message2, message3
    REAL                                       :: old_dt
    TYPE(WRFU_Time)                            :: temp_time, CurrTime, restart_time
-   INTEGER, PARAMETER                         :: precision = 100
+   INTEGER, PARAMETER                         :: precision = 1000
    INTEGER                                    :: num, den
    TYPE(WRFU_TimeInterval)                    :: dtInterval, intervaltime,restartinterval
 
@@ -4782,20 +4782,16 @@ BENCH_END(bc_2d_tim)
       WRITE ( message , FMT = '("solve_em: old_dt =",g15.6,", dt=",g15.6," on domain ",I3)' ) &
            & old_dt,grid%dt,grid%id
       CALL wrf_debug(200,message)
-      ! get time step as fraction
-      IF (config_flags%use_adaptive_time_step) THEN
-         old_dt=min(old_dt,grid%dt)
-         num = INT(old_dt * precision)
-         den = precision
-      ELSE
-         den = config_flags%time_step_fract_den
-         num = den*config_flags%time_step + config_flags%time_step_fract_num
-      ENDIF
+      ! get timestep as time interval
+      ! round down to avoid calling zero_avgflx twice
+      old_dt = min(old_dt,grid%dt)
+      num = INT(old_dt * precision) - 1
+      den = precision
       CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
       IF (CurrTime .lt. temp_time + dtInterval) THEN
          WRITE ( message , FMT = '("solve_em: initializing avgflx at time ",A," on domain ",I3)' ) &
               & TRIM(message2), grid%id
-         CALL wrf_message(trim(message)) 
+         CALL wrf_message(trim(message))
          grid%avgflx_count = 0
 !tile-loop for zero_avgflx
    !$OMP PARALLEL DO   &
@@ -4845,17 +4841,21 @@ BENCH_END(bc_2d_tim)
       ENDIF
 
       ! Update avgflx quantities
-      !tile-loop for upd_avgflx
-      IF (CurrTime .ge. temp_time + intervaltime - dtInterval) THEN
-         last_timestep = .true.
+      ! WRFlux: round timestep up to reach last_timestep = .true. before saving
+      num = INT(old_dt * precision) + 1
+      CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
+      IF (CurrTime .gt. temp_time + intervaltime - dtInterval) THEN
+        ! in last timestep before saving auxhist24, divide by density
+        last_timestep = .true.
+        WRITE ( message , FMT = '("solve_em: divide fluxes by density before saving at time ",A," on domain ",I3)' ) &
+        & TRIM(message2), grid%id
+        CALL wrf_message(trim(message))
       ELSE
-         last_timestep = .false.
+        last_timestep = .false.
       ENDIF
       num = INT(config_flags%avg_interval * precision)
       den = precision
       CALL WRFU_TimeIntervalSet(dtInterval, Sn=num, Sd=den)
-      !$OMP PARALLEL DO   &
-      !$OMP PRIVATE ( ij )
       ! WRFlux: only do averaging in the interval of length avg_interval before the next output
       ! original do_avgflx_em is not affected
       IF ((config_flags%avg_interval .eq. -1) .or. (temp_time + intervaltime - CurrTime .le. dtInterval)) THEN
@@ -4864,6 +4864,9 @@ BENCH_END(bc_2d_tim)
          do_avg = .false.
       ENDIF
 
+      !tile-loop for upd_avgflx
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE ( ij )
       DO ij = 1 , grid%num_tiles
          CALL wrf_debug(200,'In solve_em, before upd_avgflx call')
          CALL upd_avgflx(grid%avgflx_count, do_avg, grid%avgflx_rum,grid%avgflx_rvm,grid%avgflx_wwm, &

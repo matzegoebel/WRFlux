@@ -30,6 +30,7 @@ This is a fork of the "Weather Research and Forecast model (WRF)" available at: 
 
 **WRFlux** allows to output time-averaged resolved and subgrid-scale (SGS) fluxes and other tendency components for potential temperature, water vapor mixing ratio, and momentum for the ARW dynamical core. The included post-processing tool written in Python can be used to calculate tendencies from the fluxes in each spatial direction, transform the tendencies to the Cartesian coordinate system, average spatially, and decompose the resolved advection into mean and resolved turbulence components. The sum of all forcing terms agrees to high precision with the model-computed tendency. The package is well tested and easy to install.
 It is continuously updated when new WRF versions are released.
+The current version is based on [WRF 4.7.1](https://github.com/wrf-model/WRF/releases/tag/v4.7.1).
 The journal article that introduces WRFlux is available here: [https://doi.org/10.5194/gmd-15-669-2022](https://doi.org/10.5194/gmd-15-669-2022).
 
 

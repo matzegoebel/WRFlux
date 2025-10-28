@@ -66,7 +66,6 @@ USE module_model_constants, ONLY :  piconst
    REAL, ALLOCATABLE, DIMENSION(:) :: TRLEND_TBL, TBLEND_TBL, TGLEND_TBL
    REAL, ALLOCATABLE, DIMENSION(:) :: AKANDA_URBAN_TBL
 !for BEP
-
    ! MAXDIRS :: The maximum number of street directions we're allowed to define
    INTEGER, PARAMETER :: MAXDIRS = 3
    ! MAXHGTS :: The maximum number of building height bins we're allowed to define
@@ -916,7 +915,7 @@ USE module_model_constants, ONLY :  piconst
        SG1=SX*VFGS*(1.-ALBG)
        SB1=SX*VFWS*(1.-ALBB)
        SG2=SB1*ALBB/(1.-ALBB)*VFGW*(1.-ALBG)
-       SB2=SG1*ALBG/(1.-ALBG)*VFWG*(1.-ALBB)
+       SB2=SG1*ALBG/(1.-ALBG)*VFWG*(1.-ALBB) + SB1*ALBB*VFWW
 
      ELSE                              ! shadow effects model
 
@@ -962,7 +961,7 @@ USE module_model_constants, ONLY :  piconst
        SG1=SD*(RW-SLX)/RW*(1.-ALBG)+SQ*VFGS*(1.-ALBG)
        SB1=SD*SLX/W*(1.-ALBB)+SQ*VFWS*(1.-ALBB)
        SG2=SB1*ALBB/(1.-ALBB)*VFGW*(1.-ALBG)
-       SB2=SG1*ALBG/(1.-ALBG)*VFWG*(1.-ALBB)
+       SB2=SG1*ALBG/(1.-ALBG)*VFWG*(1.-ALBB) + SB1*ALBB*VFWW
 
      END IF
 
@@ -1033,7 +1032,8 @@ USE module_model_constants, ONLY :  piconst
    IF (IMP_SCHEME==2) then
    IF (FLXHUMRP <= 0.) FLXHUMRP = 0. 
 !  Compute water retention depth from previous time step 
-   DrelR = DrelRP+(RAIN1-FLXHUMRP)*DELT/porimp(IMPR)
+   ! Convert kinematic water flux to evaporation in m/s: multiply flux by rho_air/who_water in SI units
+   DrelR = DrelRP+(RAIN1-FLXHUMRP*RHOO/1000.)*DELT/porimp(IMPR)
    IF (RAIN > 0. .AND. DrelR < DrelRP) DrelR = DrelRP 
   
    IF (DrelR <= 0.) then
@@ -1185,7 +1185,7 @@ USE module_model_constants, ONLY :  piconst
           
        CALL TDFCND (DF1,SMR(KZ), QUARTZ, SMCMAX )
        DF1 = DF1 * EXP(-2.0 * SHDFAC)  
-       RGR = EPSV*(RX-SIG*(TGRP**4.)/60.)
+       RGR = EPSV*(RX-SIG*(TA**4.)/60.)
        RGRR= (SGR+RGR) * 697.7 * 60.
        RCH = RHOO*CPP*CHGR
        RR1 = EPSV*(TA**4) * 6.48E-8 / (PS* CHGR) + 1.0
@@ -1285,9 +1285,10 @@ ENDIF
    IF (FLXHUMBP <= 0.) FLXHUMBP = 0. 
    IF (FLXHUMGP <= 0.) FLXHUMGP = 0. 
 ! Compute water retention from previous time step for wall and ground
-  DrelB = DrelBP+(RAIN1-FLXHUMBP)*DELT/porimp(IMPB) 
+   ! Convert kinematic water flux to evaporation in m/s: multiply flux by rho_air/who_water in SI units
+  DrelB = DrelBP+(RAIN1-FLXHUMBP*RHOO/1000.)*DELT/porimp(IMPB) 
     IF (RAIN > 0. .AND. DrelB < DrelBP) DrelB = DrelBP 
-  DrelG = DrelGP+(RAIN1-FLXHUMGP)*DELT/porimp(IMPG)  
+  DrelG = DrelGP+(RAIN1-FLXHUMGP*RHOO/1000.)*DELT/porimp(IMPG)  
     IF (RAIN > 0. .AND. DrelG < DrelGP) DrelG = DrelGP 
   
   IF (DrelB <= 0.) then
@@ -1728,7 +1729,7 @@ ENDIF
         PSIM=ALOG((Z+Z0)/Z0) &
             -ALOG((X+1.)**2.*(X**2.+1.)) &
             +2.*ATAN(X) &
-            +ALOG((X+1.)**2.*(X0**2.+1.)) &
+            +ALOG((X0+1.)**2.*(X0**2.+1.)) &
             -2.*ATAN(X0)
         FAIH=1./SQRT(1.-16.*XXX)
         PSIH=ALOG((Z+Z0)/Z0)+0.4*B1 &
@@ -3160,13 +3161,13 @@ SUBROUTINE SFCDIF_URB (ZLM,Z0,THZ0,THLM,SFCSPD,AKANDA,AKMS,AKHS,RLMO,CD,ZT_OUT,V
 ! LECH'S SURFACE FUNCTIONS
 ! ----------------------------------------------------------------------
       PSLMU (ZZ)= -0.96* log (1.0-4.5* ZZ)
-      PSLMS (ZZ)= ZZ * RRIC -2.076* (1. -1./ (ZZ +1.))
+      PSLMS (ZZ)= (ZZ/RFC) -2.076* (1. -1./ (ZZ +1.))
       PSLHU (ZZ)= -0.96* log (1.0-4.5* ZZ)
 
 ! ----------------------------------------------------------------------
 ! PAULSON'S SURFACE FUNCTIONS
 ! ----------------------------------------------------------------------
-      PSLHS (ZZ)= ZZ * RFAC -2.076* (1. -1./ (ZZ +1.))
+      PSLHS (ZZ)= ZZ * RFAC -2.076* (1. - exp(-1.2 * ZZ))
       PSPMU (XX)= -2.* log ( (XX +1.)*0.5) - log ( (XX * XX +1.)*0.5)   &
      &        +2.* ATAN (XX)                                            &
      &- PIHF
